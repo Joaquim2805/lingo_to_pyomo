@@ -1,0 +1,22 @@
+
+MODEL:
+SETS:
+MACHINES/1,2/:disponibilite;
+PRODUITS/remorcage,stabilisateur/:gain,x;
+ARC(MACHINES,PRODUITS):temps;
+ENDSETS
+
+DATA:
+gain=130,150;
+disponibilite=16,15;
+temps=3.2,2.4,
+      2,3;
+ENDDATA
+
+!FO;
+[FO] MAX=@SUM(PRODUITS:gain*x);
+
+@FOR(MACHINES(m):@SUM(ARC(m,p):temps(m,p)*x(p))<=disponibilite(m));
+!variables entieres;
+@FOR(PRODUITS:@GIN(x));
+END

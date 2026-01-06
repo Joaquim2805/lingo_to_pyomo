@@ -1,0 +1,111 @@
+// Terminals (mots-clés et ponctuation)
+MODEL: "MODEL"
+SETS: "SETS"
+ENDSETS: "ENDSETS"
+DATA: "DATA"
+ENDDATA: "ENDDATA"
+END: "END"
+MAX: "MAX"
+MIN: "MIN"
+FOR: "@FOR"
+SUM: "@SUM"
+GIN: "@GIN"   // --- CHANGE: Ajout de GIN ---
+BIN: "@BIN"
+
+COLON: ":"
+SEMICOLON: ";"
+COMMA: ","
+LPAR: "("
+RPAR: ")"
+LBRACK: "["
+RBRACK: "]"
+
+LE: "<="
+GE: ">="
+EQ: "="
+
+PLUS: "+"
+MINUS: "-"
+TIMES: "*"
+DIVIDE: "/"
+
+// Importations
+%import common.CNAME -> NAME
+%import common.SIGNED_NUMBER -> NUMBER
+%import common.WS_INLINE
+%import common.NEWLINE
+
+// Ignorés
+%ignore WS_INLINE
+%ignore NEWLINE
+%ignore /!.*(\r?\n)?/
+
+// Grammaire principale
+
+start: model_decl statement* end_decl
+
+model_decl: MODEL COLON
+
+end_decl: END
+
+statement: set_block
+         | data_block
+         | objective
+         | constraint
+         | label
+
+label: LBRACK LABEL_TEXT RBRACK
+
+// --- CHANGE: Priorité négative pour éviter de manger la ponctuation ---
+LABEL_TEXT.-1: /[^\]\n\r]+/
+
+set_block: SETS COLON set_decl+ ENDSETS
+
+set_decl: NAME LPAR NAME COMMA NAME RPAR COLON name_list SEMICOLON
+        | NAME "/" name_list "/" COLON name_list SEMICOLON
+        | NAME "/" name_list "/" COLON NAME SEMICOLON
+        | NAME "/" name_list "/" SEMICOLON
+
+name_list: (NAME | NUMBER) (COMMA (NAME | NUMBER))*
+
+// Liste simple pour les indices (ex: m,p)
+simple_name_list: NAME (COMMA NAME)*
+
+data_block: DATA COLON data_stmt+ ENDDATA
+
+data_stmt: NAME "=" number_list_or_matrix SEMICOLON?
+
+objective: (MAX | MIN) EQ expr SEMICOLON
+
+constraint: for_loop
+          | expr comp_op expr SEMICOLON
+
+for_loop: FOR LPAR indexset COLON (expr | expr_with_comp) RPAR SEMICOLON
+
+expr_with_comp: expr comp_op expr
+
+expr: sum_expr
+
+bin_expr: BIN LPAR expr RPAR
+gin_expr: GIN LPAR expr RPAR // --- CHANGE: Ajout règle GIN ---
+
+sum_expr: term ((PLUS | MINUS) term)*
+
+term: factor ((TIMES | DIVIDE) factor)*
+
+factor: NUMBER
+      | NAME
+      | NAME LPAR simple_name_list RPAR       -> param_ref  // --- CHANGE: Supporte (m,p) ---
+      | SUM LPAR indexset COLON expr RPAR -> sum_expr
+      | BIN LPAR expr RPAR           -> bin_expr
+      | GIN LPAR expr RPAR           -> gin_expr   // --- CHANGE: Ajout dans factor ---
+      | LPAR expr RPAR
+
+indexset: NAME
+        | NAME LPAR simple_name_list RPAR      -> indexed_set // --- CHANGE: Supporte (m,p) ---
+
+comp_op: LE | GE | EQ
+
+number_list_or_matrix: number_list (COMMA NEWLINE? number_list)*
+
+number_list: NUMBER (COMMA NUMBER)*

@@ -1,0 +1,31 @@
+site_name: From Lingo to Pyomo
+site_url: ""
+
+theme:
+  name: material
+  language: fr
+  features:
+    - navigation.tabs
+    - content.code.annotate
+    - navigation.expand
+    - navigation.sections
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: ["src"]
+          options:
+            docstring_style: google
+            show_source: true
+  - gen-files:
+      scripts:
+        - docs/generate_api.py
+  - literate-nav
+
+nav:
+  - Accueil: index.md
+  - Référence API:
+      - Aperçu: reference/SUMMARY.md
+      - Modules: reference/

@@ -1,0 +1,41 @@
+!ENONCE
+
+MODEL:
+
+SETS:
+PERIODES/1, 2, 3, 4, 5, 6/:Cout_achat, cout_prod, mini, maxi, cap_prod, Achat_ble, Prod_spag, Stock_ble, Stock_spag;! Les stocks et productions sont contr�l�s en fin de mois. Les achats en debut de mois;
+ENDSETS
+
+DATA:
+cout_achat=1000,975,1000,980,1020,1025;!cout achat du ble;
+mini=4,3,5,2,4,5;!achat mini de ble;
+maxi=6,4,7,3,7,6;!achat maxi de ble;
+cap_prod=6,5,4,4,4,3;!capacite de production de spaghetti;
+Cout_prod=160,150,150,160,175,165;!cout de production de spaghetti;
+cap_ble=3;!capacite de l entrepot de ble;
+cap_spag=1;!capacite du magasin de spaghetti;
+cout_stock_ble=20;!cout unitaire du stockage de ble;
+cout_stock_spag=25;!cout unitaire du stockage de spaghetti;
+
+ENDDATA
+
+!Fonction objectif;
+[Obj] MIN=@SUM(Periodes:cout_achat*Achat_ble+cout_prod*prod_spag+cout_stock_ble*stock_ble+cout_stock_spag*stock_spag);!couts d'achat, de production, de stockage. il n'est pas necessaire de retirer les benefices car ils sont constants et ne dependent pas des variables (6 mois * 4 tonnes * 1280 CAD);
+
+!SAC ;
+@FOR(PERIODES:Achat_ble>=mini);!achat minimum mensuel de ble;
+@FOR(PERIODES:Achat_ble<=maxi);!achat maximum mensuel de ble;
+@FOR(PERIODES:prod_spag<=cap_prod);!capacite mensuelle de production de spaghetti;
+@FOR(PERIODES:stock_ble<=cap_ble);!capacite mensuelle de stock de l entrepot de ble;
+@FOR(PERIODES:stock_spag<=cap_spag);!capacite mensuelle de stock du magasin de spaghetti;
+!@FOR(PERIODES(i) | i#GE#2:stock_ble(i)=stock_ble(i-1)+achat_ble(i)-prod_spag(i));!lien entre achat et stock de ble;
+!stock_ble(1)=2+achat_ble(1)-prod_spag(1);!lien entre achat et stock de ble au mois 1 - initialisation (car la contrainte precendente n'est pas definie pour i=0);
+!stock_ble(6)=2;!imposition du stock final;
+!@FOR(PERIODES(i) | i#GE#2:stock_spag(i)=stock_spag(i-1)+prod_spag(i)-4);!lien entre stock et production de spaghetti;
+!stock_spag(1)=prod_spag(1)-4;!lien entre stock et production de spaghetti au mois 1 (car la contrainte precendente n'est pas definie pour i=1);
+!stock_spag(6)=0;!imposition du stock final de spaghetti;
+
+
+
+END
+

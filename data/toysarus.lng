@@ -1,0 +1,36 @@
+SETS:
+JOUETS/1,2/:revenu,cout_dem,x,y;!x=qte a produire,y=decision de produire;
+USINES/1,2/:prod_max,z;!z=1 si la machine fonctionne;
+ARC(USINES,JOUETS):ponderation;
+ENDSETS
+
+DATA:
+bigM=1000000;!grand chiffre;
+revenu=10,15;
+cout_dem=50000,80000;
+ponderation=0.02,0.025,
+		0.025,0.04;
+prod_max=500,700;
+ENDDATA
+
+!Fonction objectif (Profit-Revenu);
+max=@SUM(JOUETS:revenu*x-cout_dem*y);
+
+!SAC;
+
+
+!2 machines possibles;
+@FOR(USINES(m):@SUM(JOUETS(p):ponderation(m,p)*x(p))<=prod_max+bigM*(1-z(m)));
+@SUM(USINES:z)=1;
+
+
+!Si le produit n'est pas fabriqué,x=0;
+@FOR(JOUETS:x<=bigM*y);
+
+!Variables binaires;
+@FOR(JOUETS:@BIN(y));
+@FOR(USINES:@BIN(z));
+!Les quantités à fabriquer sont entières;
+@FOR(JOUETS:@GIN(x));
+
+

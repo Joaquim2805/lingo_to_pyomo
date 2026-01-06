@@ -1,0 +1,66 @@
+!ENONCE:
+Speedy Delivery fournit un service de livraison de deux jours sur de gros colis à travers les États-
+Unis. Chaque matin, dans chaque centre de collecte, les colis arrivés pendant la nuit sont chargés
+dans plusieurs camions pour être livrés dans toute la zone. Étant donné que le champ de bataille
+concurrentiel dans ce secteur est la rapidité de livraison, les colis sont répartis entre les camions
+en fonction de leur destination géographique afin de minimiser le temps moyen nécessaire pour
+effectuer les livraisons.
+Ce matin-là, le distributeur pour la Rivière Bleue travaille dur. Ses trois chauffeurs arriveront dans
+moins d’une heure pour effectuer les livraisons du jour.
+Il y a neuf colis à livrer. Comme d’habitude, le distributeur a chargé ces emplacements dans son
+ordinateur. Il utilise le logiciel spécial de son entreprise. La première chose que fait ce logiciel est
+d’utiliser ces emplacements pour générer un nombre considérable de routes possibles et attrayantes
+pour les camions de livraison individuels.
+Ces itinéraires sont indiqués dans le tableau, ainsi que le temps estimé nécessaire pour parcourir
+l’itinéraire. Le logiciel formule ensuite et résout un modèle ILP pour sélectionner trois itinéraires qui
+minimisent leur temps total tout en incluant chaque emplacement de livraison sur un seul itinéraire.
+Formuler ce modèle.
+
+Colis		 Routes possibles
+----------------------------------------------------------------------------------------------------------------------------------------
+	1	 2	 3 	4	 5	 6	 7	 8	 9 	10
+----------------------------------------------------------------------------------------------------------------------------------------
+
+A	 1 				1 				1
+B 		2 		1 		2 			2	 2
+C			 3 	3 			3 		3
+D	 2 					1 		1
+E 			 2	2		3
+F		 1			 2
+G 	 3						 1 	2 		3
+H			 1 		3 					1
+I		 3 		4 			 2
+----------------------------------------------------------------------------------------------------------------------------------------
+Tps (hr) 6	 4 	 7 	5 	4	 6	 5	 3 	7 	6
+;
+
+
+SETS:
+ROUTES:temps,x;
+NOEUDS:;
+ARC(NOEUDS,ROUTES):connexion;
+ENDSETS
+
+DATA:
+ROUTES,NOEUDS,temps,connexion=@OLE("delivery.xlsx");
+ENDDATA
+
+!FO:minimiser le temps total;
+[FO] MIN=@SUM(ROUTES:temps*x);
+
+!SAC;
+!Tous les noeuds doivent etre desservis exactement une fois;
+@FOR(NOEUDS(n):@SUM(ROUTES(r):connexion(n,r)*x(r))=1);
+
+!les points doivent etre delivrés par trois livreurs;
+@SUM(ROUTES:x)=3;
+
+!Binaires;
+@FOR(ROUTES:@BIN(x));
+
+
+DATA:
+@OLE("delivery.xlsx")=FO,x;
+ENDDATA
+
+

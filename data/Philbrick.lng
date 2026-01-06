@@ -1,0 +1,77 @@
+!ENONCE:
+La Philbrick Company possède deux usines situées de part et d’autre des États-Unis. Chacune de
+ces usines produit les deux mêmes produits et les vend ensuite aux grossistes de sa région. Les commandes
+des grossistes ont déjà été reçues pour les 2 prochains mois L’entreprise
+n’est pas obligée de remplir complètement ces commandes, mais le fera si possible sans réduire ses
+bénéfices.
+Chaque usine dispose de 20 jours de production en février et de 23 jours en mars. Les stocks sont
+épuisés à la fin du mois de janvier, mais chaque usine a une capacité suffisante pour entreposer 1
+000 unités au total si une quantité excédentaire est produite en février pour être vendue en mars.
+Dans les deux usines, le coût d’entreposage est de 3 dollars par unité de produit 1, et de 4 dollars par
+unité de produit 2. Chaque usine possède les deux mêmes processus de production, chacun pouvant
+être utilisé pour produire l’un ou l’autre des deux produits. Les coûts de production et les taux journaliers de production sont
+indiqués dans les tableaux.
+Le chiffre d’affaires net est de 83 dollars par unité de produit 1 et 112 dollars par unité de produit
+2. Il est également possible pour une usine de faire une expédition dans l’autre moitié du pays pour
+aider à combler les ventes de l’autre usine. Lorsque cela se produit, des frais de port supplémentaires
+de 9 $ l’unité (produit 1) et de 7 $ l’unité (produit 2) sont engagés.
+
+Commandes		
+			 Région 1		Région 2
+        Produit		 Février / Mars 		Février / Mars
+	1 		3600   6300		 4900   4200
+	2		 4500   5400 		5100   6000
+
+
+Coût production unitaire 
+			Usine 1 			Usine 2
+      Produit 	Process 1 / Process 2	 	Process 1 / Process 2
+	1		 62   59 			61   65
+	2		 78   85				 89   86
+
+
+Taux de production 
+				Usine 1 			Usine 2
+       Produit		 Process 1 / Process 2 		Process 1 / Process 2
+	1 			100   140 			130   110
+	2 			120   150 			160   130
+;
+
+MODEL:
+SETS:
+PRODUITS /@OLE('philbrick.xlsx')/:revenu,cout_stock;
+MOIS/@OLE('philbrick.xlsx')/:jours_prod;
+USINES/@OLE('philbrick.xlsx')/:;
+REGION   /@OLE('philbrick.xlsx')/:cap;
+PROCEDES   /@OLE('philbrick.xlsx')/:;
+
+ARC1(PRODUITS,REGION,MOIS):demande;
+ARC2(PRODUITS,USINES,REGION):cout_transport;
+ARC3(PRODUITS,USINES,PROCEDES):cout_prod,taux_prod;
+ARC4(PRODUITS,MOIS,USINES,REGION,PROCEDES):X;!nombre de produits p fabriques par l'usine u pour le mois m pour etre envoyes dans la region r avec le process pr;
+ARC5(PRODUITS,USINES):stock;
+ENDSETS
+
+[Objfunc] MAX = @SUM(PRODUITS(p):revenu(p)*@SUM(MOIS(m):@SUM(USINES(u):@SUM(REGION(r):@SUM(PROCEDES(pr):X(p,m,u,r,pr))))))
+                -@SUM(ARC2(p,u,r):cout_transport(p,u,r)*@SUM(MOIS(m):@SUM(PROCEDES(pr):X(p,m,u,r,pr))))!cout de transport;
+                -@SUM(PRODUITS(p):cout_stock(p)*@SUM(USINES(u):stock(p,u)))!couts de stockage;
+                -@SUM(ARC3(p,u,pr):cout_prod(p,u,pr)*@SUM(MOIS(m):@SUM(REGION(r):X(p,m,u,r,pr))));!couts de production;
+
+!CONTRAINTES;
+!sur la demande;
+@FOR(PRODUITS(p):@FOR(REGION(r):@SUM(USINES(u):@SUM(PROCEDES(pr):X(p,1,u,r,pr))-stock(p,u))<=demande(p,r,1)));
+@FOR(PRODUITS(p):@FOR(REGION(r):@SUM(USINES(u):@SUM(PROCEDES(pr):X(p,2,u,r,pr))+stock(p,u))<=demande(p,r,2)));
+!sur la capacite de production;
+@FOR(MOIS(m):@FOR(USINES(u):@SUM(PRODUITS(p):@SUM(PROCEDES(pr):1/taux_prod(p,u,pr)*@SUM(REGION(r):X(p,m,u,r,pr))))<=jours_prod(m)));
+!sur la capacite de stockage;
+@FOR(USINES(u):@SUM(PRODUITS(p):stock(p,u))<=cap);
+
+DATA:
+revenu, cout_transport, cout_stock, jours_prod,cap,demande,cout_prod,taux_prod=@OLE('philbrick.xlsx');
+@OLE('philbrick.xlsx',"X")=X;
+@OLE('philbrick.xlsx',"stock")=stock;
+@OLE('philbrick.xlsx',"Objfunc")=Objfunc;
+ENDDATA
+
+
+END

@@ -1,0 +1,47 @@
+!ENONCE:
+Un avion cargo a trois compartiments pour ranger la cargaison : avant, centre et arrière. Ces
+compartiments ont des limites de capacité en termes de poids et d’espace. De plus, le poids de
+la cargaison doit être réparti dans les compartiments respectifs selon leurs capacités respectives pour assurer la stabilité de l’avion. Quatre cargaisons ont été proposées
+pour un vol à venir.
+Toute ou partie de ces cargaisons peut être chargée. L’objectif est de déterminer quelle quantité de
+chaque cargaison doit être acceptée et comment la distribuer.
+Compartiment Tonnage (t) 	Volume(m3)
+Avant 		12 		7000
+Centre 		18 		9000
+Arrière 		10 		5000
+Cargaison Poids (t) Volume(m3/t) 	Profit(/t)
+1 	    20 		500 		320
+2 	    16 		700 		400
+3 	    25 		600 		360
+4 	    13 		400 		290;
+
+SETS:
+COMPARTIMENTS:cap_poids, cap_volume;
+CHARGES:poids, volume, gain;
+ARC(COMPARTIMENTS,CHARGES):X;
+ENDSETS
+
+DATA:
+cap_poids,cap_volume,poids,volume,gain=@OLE('cargo.xlsx');
+ENDDATA
+
+!FO;
+[FO] MAX=@SUM(ARC(c,j):gain(J)*X(c,j));
+
+!Contraintes;
+!Capacite en poids des compartiments a ne pas dépasser;
+@FOR(COMPARTIMENTS(c):[Comp_Poids] @SUM(CHARGES(j):X(c,j))<=cap_poids(c));
+
+!Capacite en volume des compartiments a ne pas dépasser;
+@FOR(COMPARTIMENTS(c):[Comp_vol] @SUM(CHARGES(j):volume(j)*X(c,j))<=cap_volume(c));
+
+!Charge totale disponible;
+@FOR(CHARGES(j):[Charge_Poids] @SUM(COMPARTIMENTS(c):X(c,j))<=poids(j));
+
+
+@FOR(COMPARTIMENTS(c) : @sum(COMPARTIMENTS(u):cap_poids(u))*@SUM(CHARGES(j):X(c,j))=cap_poids(c)*@SUM(arc(t,j) :X(t,j)));
+
+!ecriture dans excel;
+DATA:
+@OLE('cargo.xlsx')=X,FO,Comp_Poids, Charge_Poids, Comp_vol;
+ENDDATA
