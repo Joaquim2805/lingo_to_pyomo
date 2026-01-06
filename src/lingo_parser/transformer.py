@@ -7,7 +7,6 @@ sys.path.append(src_path)
 
 from lingo_parser.parser import *
 from lingo_parser.transformer import *
-from lingo_parser.json_parser import *
 
 
 class LingoModelTransformer2(Transformer):

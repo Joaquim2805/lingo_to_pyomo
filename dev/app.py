@@ -12,13 +12,15 @@ sys.path.insert(0, str(SRC_DIR))
 
 from lingo_parser.parser import *
 from lingo_parser.transformer import *
-from pyomo_generator.json_parser import *
 from notebook_generator.notebook_construct import *
+from pyomo_generator.json_parser import *
+
 
 app = Flask(__name__)
 
-DATA_FOLDER = "../data"  # dossier avec tes fichiers .lng
-OUTPUT_FOLDER = "notebooks"  # dossier pour les notebooks générés
+DATA_FOLDER = PROJECT_ROOT / "data"
+OUTPUT_FOLDER = PROJECT_ROOT / "notebooks"
+
 os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 
 

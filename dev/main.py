@@ -8,7 +8,6 @@ from lingo_parser.parser import *
 from lingo_parser.transformer import *
 
 
-from pyomo_generator.json_parser import *
 from notebook_generator.notebook_construct import *
 
 
