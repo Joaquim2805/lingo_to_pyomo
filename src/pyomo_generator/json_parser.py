@@ -15,6 +15,29 @@ from lingo_parser.transformer import *
 import re
 
 
+def replace_lingo_calls(expr):
+    """
+    Remplace les appels LINGO du type f(i) ou f(i,j)
+    par des accès Pyomo model.f[i] ou model.f[i,j]
+    """
+
+    # f(i,j) → model.f[i,j]
+    expr = re.sub(
+        r"\b([A-Za-z_]\w*)\s*\(\s*([A-Za-z_]\w*)\s*,\s*([A-Za-z_]\w*)\s*\)",
+        r"model.\1[\2,\3]",
+        expr,
+    )
+
+    # f(i) → model.f[i]
+    expr = re.sub(
+        r"\b([A-Za-z_]\w*)\s*\(\s*([A-Za-z_]\w*)\s*\)",
+        r"model.\1[\2]",
+        expr,
+    )
+
+    return expr
+
+
 def translate_sum_to_pyomo(expr, sets, cartesian_sets):
     """
     Traduit une expression LINGO de la forme @SUM(...) en une expression Pyomo.
@@ -57,17 +80,13 @@ def translate_sum_to_pyomo(expr, sets, cartesian_sets):
         gen_clause = f"for {alias_tuple} in model.{setname}"
 
         # remplacement des variables par model.xxx[i,j]
-        for var in re.findall(r"\b[A-Za-z_]\w*\b", inner_expr):
-            inner_expr = inner_expr.replace(
-                var, f"model.{var}[" + ",".join(i[0].lower() for i in indices) + "]"
-            )
+        inner_expr = replace_lingo_calls(inner_expr)
 
     elif setname in sets:
         idx = alias or setname[0].lower()
         gen_clause = f"for {idx} in model.{setname}"
 
-        for var in re.findall(r"\b[A-Za-z_]\w*\b", inner_expr):
-            inner_expr = inner_expr.replace(var, f"model.{var}[{idx}]")
+        inner_expr = replace_lingo_calls(inner_expr)
 
     else:
         raise ValueError(f"Set {setname} inconnu dans @SUM.")
@@ -339,6 +358,27 @@ def safe_replace_variables(expr, variables):
 
     return re.sub(r"\b[A-Za-z_]\w*\b", repl, expr)
 
+import re
+
+def translate_constraint_with_sum(c, sets, cartesian_sets, declared_vars, scalar_vars, declared_params):
+    """
+    Traduit une contrainte LINGO avec @SUM en Pyomo, en gardant l'opérateur et le côté droit.
+    """
+    # Recherche de l'opérateur
+    m = re.match(r"(.+?)(<=|>=|=)(.+)", c.replace(" ", ""))
+    if not m:
+        raise ValueError(f"Impossible de détecter l'opérateur dans : {c}")
+    lhs, op, rhs = m.group(1), m.group(2), m.group(3)
+
+    # Traduction de la partie LHS
+    lhs_pyomo = translate_sum_to_pyomo(lhs, sets, cartesian_sets)
+
+    # Traduction du RHS (variables ou paramètres)
+    rhs_pyomo = safe_replace_variables(rhs, set(list(declared_vars) + scalar_vars + list(declared_params)))
+
+    return f"{lhs_pyomo} {op} {rhs_pyomo}"
+
+
 
 def generate_pyomo_code(model_json):
     (
@@ -383,9 +423,20 @@ def generate_pyomo_code(model_json):
                 plutôt que de faire échouer la génération dans la plupart des cas.
     """
 
+    def add_section(title):
+        lines.append("")
+        lines.append("#" + "=" * 78)
+        lines.append(f"# {title}")
+        lines.append("#" + "=" * 78)
+        lines.append("")
+
     lines = []
     lines.append("from pyomo.environ import *\n")
     lines.append("model = ConcreteModel()\n")
+    add_section("SETS")
+
+
+    
 
     # --- Conversion automatique des types (int ou str)
     def _convert_type(val):
@@ -413,57 +464,74 @@ def generate_pyomo_code(model_json):
             )
 
     # === Paramètres ===
+    # === Paramètres ===
+    # === PARAMÈTRES ===
+    add_section("PARAMETERS")
     declared_params = set()
 
     for (setname, attr), values in params.items():
         declared_params.add(attr)
 
-        if setname in cartesian_sets:
-            idx_sets = cartesian_sets[setname]
-            dims = ", ".join(f"model.{idx}" for idx in idx_sets)
+        # Param scalaire si setname absent
+        if setname not in sets and setname not in cartesian_sets:
+            val = float(values[0]) if isinstance(values, list) else float(values)
+            lines.append(f"model.{attr} = Param(initialize={val}, within=NonNegativeReals)")
 
-            if isinstance(values, list):
-                dim_sizes = [len(sets[idx]) for idx in idx_sets]
-                # construction prudente des clés (int si possible, sinon str)
-                keys = []
-                for i in range(dim_sizes[0]):
-                    for j in range(dim_sizes[1]):
-                        k = (
-                            _convert_type(sets[idx_sets[0]][i]),
-                            _convert_type(sets[idx_sets[1]][j]),
-                        )
-                        keys.append(k)
-                data_dict = {
-                    k: float(values[i]) for i, k in enumerate(keys) if i < len(values)
-                }
-                lines.append(
-                    f"model.{attr} = Param({dims}, initialize={data_dict}, within=NonNegativeReals)"
-                )
-            else:
-                lines.append(
-                    f"model.{attr} = Param({dims}, initialize={values}, within=NonNegativeReals)"
-                )
-
+        # Param indexé
         else:
-            dims = f"model.{setname}"
-            if isinstance(values, list):
-                typed_keys = [_convert_type(e) for e in sets[setname]]
-                data_dict = {
-                    typed_keys[i]: float(values[i]) for i in range(len(values))
-                }
-                lines.append(
-                    f"model.{attr} = Param({dims}, initialize={data_dict}, within=NonNegativeReals)"
-                )
+            if isinstance(values, list) and len(values) == 1:
+                val = float(values[0])
+                lines.append(f"model.{attr} = Param(initialize={val}, within=NonNegativeReals)")
+            elif isinstance(values, (int, float)):
+                lines.append(f"model.{attr} = Param(initialize={values}, within=NonNegativeReals)")
             else:
-                lines.append(
-                    f"model.{attr} = Param({dims}, initialize={values}, within=NonNegativeReals)"
-                )
+                from itertools import product
 
-    # === Variables ===
+                if setname in cartesian_sets:
+                    idx_sets = cartesian_sets[setname]
+                    dims = ", ".join(f"model.{idx}" for idx in idx_sets)
+
+                    # 🔴 CORRECTION CRITIQUE ICI
+                    cart_keys = list(product(*(sets[idx] for idx in idx_sets)))
+                    typed_keys = [
+                        tuple(_convert_type(e) for e in k)
+                        for k in cart_keys
+                    ]
+
+                    data_dict = {
+                        typed_keys[i]: float(values[i])
+                        for i in range(len(typed_keys))
+                    }
+
+                    lines.append(
+                        f"model.{attr} = Param({dims}, initialize={data_dict}, within=NonNegativeReals)"
+                    )
+
+                else:
+                    dims = f"model.{setname}"
+                    typed_keys = [_convert_type(e) for e in sets[setname]]
+
+                    data_dict = {
+                        typed_keys[i]: float(values[i])
+                        for i in range(len(values))
+                    }
+
+                    lines.append(
+                        f"model.{attr} = Param({dims}, initialize={data_dict}, within=NonNegativeReals)"
+                    )
+
+    for key, val in model_json['data'].items():
+        # Si le param n'est pas déjà indexé sur un set
+        if key not in declared_params:
+            scalar_val = float(val[0]) if isinstance(val, list) else float(val)
+            lines.append(f"model.{key} = Param(initialize={scalar_val}, within=NonNegativeReals)")
+            declared_params.add(key)  # marque comme param déjà déclaré
+    # === VARIABLES ===
     declared_vars = set()
+    add_section("VARIABLES")
 
     for setname, attr in variables:
-        # Évite les collisions avec Param ou Set
+        # Évite collisions avec Param ou Set
         if attr in declared_params or attr in all_set_names:
             safe_attr = f"{attr}_var"
         else:
@@ -478,56 +546,78 @@ def generate_pyomo_code(model_json):
 
         lines.append(f"model.{safe_attr} = Var({dims}, domain=NonNegativeReals)")
 
-    # === Variables scalaires (détectées dans contraintes / objectif)
+    # === Paramètres scalaires non indexés ===
+    
+
+
+    # === Variables scalaires (détectées dans contraintes / objectif) ===
+    # ⚠️ Exclure :
+    #   - Param déjà déclarés
+    #   - alias de @SUM/@FOR (on suppose qu'ils sont en minuscules dans alias_set)
     scalar_vars = detect_scalar_variables(constraints, objective)
+    aliases = set()
+    for c in constraints + for_loops:
+        aliases.update(re.findall(r"\b([a-z])\b", c))  # simple heuristique pour les alias
+
     for var in scalar_vars:
-        if (
-            var not in declared_vars
-            and var not in declared_params
-            and var not in all_set_names
-        ):
+        if var not in declared_vars and var not in declared_params and var not in all_set_names and var not in aliases:
             lines.append(f"model.{var} = Var(domain=NonNegativeReals)")
 
-    # --- motif LINGO à détecter (SUM/FOR/BIN) (insensible à la casse)
-    lingo_pattern = re.compile(r"@(?:SUM|FOR|BIN)\b", flags=re.IGNORECASE)
 
     # === Contraintes ===
+    add_section("CONSTRAINTS")
+
+
     for i, c in enumerate(constraints):
-        # Si la contrainte contient des constructions LINGO (@SUM/@FOR/@BIN...), on la commente
-        if c and lingo_pattern.search(c):
-            # On commente la ligne entière, et on ajoute un TODO pour traduction
-            lines.append(
-                f"# Constraint {i} not translated (contains LINGO constructs):"
-            )
+        if not c:
+            continue
+
+        c_upper = c.upper()
+        if "@FOR" in c_upper or "@BIN" in c_upper:
+            lines.append(f"# Constraint {i} not translated (contains FOR/BIN):")
             lines.append(f"#    Original LINGO: {c}")
-            lines.append(
-                f"#    TODO: translate this constraint from LINGO (@SUM/@FOR/...) to Pyomo."
-            )
+            lines.append(f"#    TODO: translate this constraint from LINGO to Pyomo.")
         else:
-            # safe_replace accepte ensembles de noms, on passe la liste complète des variables détectées
-            expr = safe_replace_variables(
-                c, set(list(declared_vars) + scalar_vars + list(declared_params))
-            )
-            lines.append(f"model.c{i} = Constraint(expr={expr})")
+            try:
+                if "@SUM" in c_upper:
+                    pyomo_expr = translate_constraint_with_sum(
+                        c, sets, cartesian_sets, declared_vars, scalar_vars, declared_params
+                    )
+                else:
+                    pyomo_expr = safe_replace_variables(
+                        c, set(list(declared_vars) + scalar_vars + list(declared_params))
+                    )
+                lines.append(f"model.c{i} = Constraint(expr={pyomo_expr})")
+            except Exception as e:
+                lines.append(f"# FAILED to translate constraint {i}: {e}")
+                lines.append(f"# Original: {c}")
+
+
+
 
     # === Boucles FOR === (toujours commentées tant qu'on n'a pas de traducteur)
+    # === Boucles FOR ===
     # === Boucles FOR ===
     for i, f in enumerate(for_loops):
         try:
             setname, alias, body = translate_for_to_pyomo(f, sets, cartesian_sets)
 
-            rule_name = f"rule_for_{i}"
-            lines.append(f"def {rule_name}(model, {alias}):")
-            lines.append(f"    return {body}")
-            lines.append(
-                f"model.c_for_{i} = Constraint(model.{setname}, rule={rule_name})"
-            )
+            cl_name = f"c_for_{i}"
+            lines.append(f"model.{cl_name} = ConstraintList()")
+            lines.append(f"for {alias} in model.{setname}:")
+            lines.append(f"    model.{cl_name}.add({body})")
 
         except Exception as e:
             lines.append(f"# FAILED to translate FOR-loop {i}: {e}")
             lines.append(f"# Original: {f}")
 
+
     # === Objectif ===
+    add_section("OBJECTIVE")
+    # Motif pour détecter SUM/FOR/BIN dans l'objectif
+    lingo_pattern = re.compile(r"@(?:SUM|FOR|BIN)\b", flags=re.IGNORECASE)
+
+
     if objective and lingo_pattern.search(objective):
         try:
             pyomo_obj = translate_sum_to_pyomo(

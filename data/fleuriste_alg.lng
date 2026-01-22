@@ -21,7 +21,7 @@ Compo= 10,10,
 
 ENDDATA
 !Fonction objectif;
-[Revenu] MAX = @SUM(BOUQUETS:Prix * X);
+[Revenu] MAX = @SUM(BOUQUETS(b):Prix(b) * X(b));
 !Contrainte: ne pas depasser le nombre de fleurs disponibles;
 @FOR(FLEURS(f):    @SUM(  BOUQUETS(b): Compo(f,b) * X(b)  ) <=Dispo(f)      );
 END

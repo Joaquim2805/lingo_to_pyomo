@@ -27,7 +27,7 @@ ENDDATA
 
 !CONTRAINTES;
 !sur l engagement;
-@FOR(PRODUITS:X>=engagement);
+@FOR(PRODUITS(p):X(p)>=engagement(p));
 ! sur la disponibilite;
 @FOR(MATIERES(m):@SUM(PRODUITS(p):utilisation(m,p)*X(p))<=dispo(m));
 

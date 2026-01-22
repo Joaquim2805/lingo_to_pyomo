@@ -8,8 +8,40 @@ sys.path.append(src_path)
 from lingo_parser.parser import *
 from lingo_parser.transformer import *
 
+"""
+Transformer LINGO → représentation intermédiaire Python.
+
+Ce module contient la classe `LingoModelTransformer2`, un Transformer Lark
+chargé de convertir un arbre syntaxique LINGO en une structure Python
+exploitable pour la génération automatique de modèles Pyomo.
+
+Le Transformer gère :
+- Les ensembles (simples et indexés)
+- Les blocs de données
+- La fonction objectif (MIN / MAX)
+- Les contraintes classiques
+- Les boucles @FOR
+- Les expressions algébriques (@SUM, @BIN, etc.)
+
+"""
+
 
 class LingoModelTransformer2(Transformer):
+    """
+    Transformer Lark pour la conversion de modèles LINGO.
+
+    Cette classe parcourt l'arbre syntaxique produit par Lark
+    et construit une représentation intermédiaire du modèle LINGO
+    sous forme de dictionnaires Python.
+
+    Cette représentation est ensuite utilisée pour :
+    - Générer automatiquement du code Pyomo
+    - Produire un notebook Jupyter exécutable
+    - Signaler les erreurs ou éléments non traduisibles
+
+    Hérite de :
+        lark.Transformer
+    """
     def model_decl(self, items):
         return {"model": str(items[0])}
 
@@ -21,6 +53,22 @@ class LingoModelTransformer2(Transformer):
         return {"sets": sets}
 
     def set_decl(self, items):
+        """
+        Traite une déclaration d'ensemble LINGO.
+
+        Supporte :
+        - Les ensembles simples avec éléments et attributs
+        - Les ensembles indexés (ex: ARC(PRODUCTION, CLIENTS): cost, cap)
+
+        Args:
+            items (list): Liste des tokens et sous-arbres produits par Lark.
+
+        Returns:
+            dict: Dictionnaire représentant la déclaration de l'ensemble,
+            avec son nom, ses indices éventuels, ses éléments et attributs.
+        """
+
+
         name = str(items[0])
 
         # Cas avec indices entre parenthèses : ARC(PRODUCTION,CLIENTS):...
@@ -112,9 +160,19 @@ class LingoModelTransformer2(Transformer):
 
     def objective(self, items):
         """
-        items peut contenir éventuellement un token MIN ou MAX, un token '=',
-        et un Tree(expr). On accepte MIN ou MAX (quel que soit la casse).
-        Retourne {"objective": "MAX = <expr>"} ou {"objective": "MIN = <expr>"}.
+        Traite la fonction objectif du modèle LINGO.
+
+        Détecte automatiquement :
+        - Le sens de l'optimisation (MIN ou MAX)
+        - L'expression algébrique associée
+
+        En cas d'absence explicite de direction, MAX est utilisé par défaut.
+
+        Args:
+            items (list): Tokens et sous-arbres correspondant à l'objectif.
+
+        Returns:
+            dict: Dictionnaire contenant l'objectif sous forme textuelle.
         """
         # Détecter MIN ou MAX (s'il est présent)
         dir_tok = None
@@ -151,8 +209,22 @@ class LingoModelTransformer2(Transformer):
         return {"objective": f"{dir_tok} = {expr_str}"}
 
     def constraint(self, items):
-        # items = [expr, comp_op, expr, (optional SEMICOLON)]
-        # Filtrer les tokens SEMICOLON
+        """
+        Traite une contrainte du modèle.
+
+        Supporte :
+        - Les contraintes algébriques classiques
+        - Les contraintes définies via des boucles @FOR
+
+        Args:
+            items (list): Éléments syntaxiques composant la contrainte.
+
+        Returns:
+            dict: Dictionnaire représentant la contrainte ou la boucle associée.
+
+        Raises:
+            ValueError: Si la structure de la contrainte est inattendue.
+        """
         filtered = [
             item
             for item in items
@@ -232,6 +304,18 @@ class LingoModelTransformer2(Transformer):
 
     # --------------- Expression Formatting ----------------
     def _expr_to_str(self, tree):
+        """
+        Convertit récursivement une expression LINGO en chaîne de caractères.
+
+        Cette méthode est utilisée pour reconstruire des expressions algébriques
+        à partir de l'arbre syntaxique Lark (sommes, binaires, références indexées).
+
+        Args:
+            tree (Tree | Token): Nœud de l'arbre syntaxique Lark.
+
+        Returns:
+            str: Expression LINGO reconstruite sous forme de chaîne.
+        """
         if isinstance(tree, Token):
             if tree.type in {"PLUS", "MINUS", "TIMES", "DIVIDE", "LE", "GE", "EQ"}:
                 return str(tree)
@@ -300,6 +384,22 @@ class LingoModelTransformer2(Transformer):
         return " ".join(parts)
 
     def start(self, items):
+        """
+        Point d'entrée du Transformer.
+
+        Agrège l'ensemble des éléments du modèle LINGO :
+        - Ensembles
+        - Données
+        - Objectif
+        - Contraintes
+        - Boucles @FOR
+
+        Args:
+            items (list): Liste des éléments transformés du modèle.
+
+        Returns:
+            dict: Représentation complète du modèle LINGO.
+        """
         model = {
             "sets": [],
             "data": {},
