@@ -710,6 +710,24 @@ def generate_pyomo_code(model_json):
                 sets,
                 cartesian_sets,
             )
+            # Ajouter model. aux paramètres scalaires et variables non-indexées restants
+            for_aliases = set(re.findall(r'\bfor\s+([A-Za-z_]\w*)\s+in\s+', pyomo_obj))
+            exclude_from_replace = for_aliases.copy()
+            
+            def smart_replace(match):
+                name = match.group(0)
+                if name in exclude_from_replace:
+                    return name
+                # Vérifier si le nom est déjà préfixé par model.
+                start_pos = match.start()
+                if start_pos >= 6 and pyomo_obj[start_pos-6:start_pos] == "model.":
+                    return name
+                # Vérifier si c'est un paramètre scalaire ou une variable déclarée
+                if name in (declared_vars | set(scalar_vars) | declared_params):
+                    return f"model.{name}"
+                return name
+            
+            pyomo_obj = re.sub(r"\b[A-Za-z_]\w*\b", smart_replace, pyomo_obj)
             lines.append(f"model.obj = Objective(expr={pyomo_obj}, sense={direction})")
         except Exception as e:
             lines.append(f"# Objective translation failed: {e}")
