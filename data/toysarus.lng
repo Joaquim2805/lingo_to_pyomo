@@ -15,7 +15,7 @@ ponderation=0.02,0.025,
 prod_max=500,700;
 ENDDATA
 
-MAX=@SUM(JOUETS:revenu*x-cout_dem*y);
+MAX=@SUM(JOUETS(j):revenu(j)*x(j)-cout_dem(j)*y(j));
 
 ! Capacité des machines
 @FOR(USINES(u): @SUM(JOUETS(j): ponderation(u,j)*x(j)) <= prod_max(u) + bigM*(1 - z(u)));

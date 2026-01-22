@@ -198,9 +198,16 @@ def translate_for_to_pyomo(expr, sets, cartesian_sets):
                     break
 
     # 3️⃣ Remplacer les Param 1D ou Var 1D : Dispo(f) -> model.Dispo[f]
+    # Mais pas les paramètres scalaires comme bigM
     constraint_expr = re.sub(
         r"\b([A-Za-z_]\w*)\s*\(\s*([A-Za-z_]\w*)\s*\)", r"model.\1[\2]", constraint_expr
     )
+    
+    # Ensuite ajouter model. aux paramètres scalaires qui n'ont pas d'arguments
+    # (ex: bigM -> model.bigM)
+    from pyomo_generator.json_parser import safe_replace_variables
+    # Cette ligne sera gérée dans le contexte de generate_pyomo_code
+    # où on a la liste complète des paramètres et variables
 
     return setname, alias, constraint_expr
 
@@ -409,6 +416,10 @@ def translate_constraint_with_sum(c, sets, cartesian_sets, declared_vars, scalar
 
     # Traduction du RHS (variables ou paramètres)
     rhs_pyomo = safe_replace_variables(rhs, set(list(declared_vars) + scalar_vars + list(declared_params)))
+
+    # Convertir = en == pour Pyomo
+    if op == "=":
+        op = "=="
 
     return f"{lhs_pyomo} {op} {rhs_pyomo}"
 
@@ -645,6 +656,29 @@ def generate_pyomo_code(model_json):
         
         try:
             setname, alias, body = translate_for_to_pyomo(f, sets, cartesian_sets)
+
+            # Ajouter model. aux paramètres scalaires (ex: bigM -> model.bigM)
+            # Mais exclure les alias et les variables dans les clauses "for"
+            exclude_from_replace = {alias} if alias else set()
+            # Aussi exclure les alias dans les clauses "for" comme "for j in model.JOUETS"
+            for_aliases = set(re.findall(r'\bfor\s+([A-Za-z_]\w*)\s+in\s+', body))
+            exclude_from_replace.update(for_aliases)
+            
+            # Ne remplacer que les noms qui ne sont PAS déjà préfixés par "model."
+            def smart_replace(match):
+                name = match.group(0)
+                if name in exclude_from_replace:
+                    return name
+                # Vérifier si le nom est déjà préfixé par model.
+                start_pos = match.start()
+                if start_pos >= 6 and body[start_pos-6:start_pos] == "model.":
+                    return name
+                # Vérifier si c'est un paramètre scalaire ou une variable déclarée
+                if name in (list(declared_vars) + scalar_vars + list(declared_params)):
+                    return f"model.{name}"
+                return name
+            
+            body = re.sub(r"\b[A-Za-z_]\w*\b", smart_replace, body)
 
             cl_name = f"c_for_{i}"
             lines.append(f"model.{cl_name} = ConstraintList()")

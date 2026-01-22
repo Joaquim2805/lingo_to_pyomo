@@ -23,7 +23,7 @@ MAX = @SUM (PRODUITS(p):
 );
 
 @FOR(USINES(u): 
-   @SUM(PRODUITS(P):
+   @SUM(PRODUITS(p):
         utilisation(u,p)*x(p))<=disp(u)
 );
 
