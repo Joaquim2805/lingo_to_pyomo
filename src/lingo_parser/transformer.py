@@ -358,9 +358,8 @@ class LingoModelTransformer2(Transformer):
 
         if tree.data == "bin_expr":
             # exemple: @BIN(x)
-            inner = self._expr_to_str(
-                tree.children[1]
-            )  # children: [BIN, LPAR, expr, RPAR]
+            # children: [BIN token, LPAR token, expr tree, RPAR token]
+            inner = self._expr_to_str(tree.children[2])
             return f"@BIN({inner})"
 
         if tree.data == "sum_expr" and any(

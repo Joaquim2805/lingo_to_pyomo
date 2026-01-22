@@ -22,7 +22,7 @@ dispo=150000,200000;
 ENDDATA
 
 ! Fonction objectif;
-[Objfunc] MAX = @SUM(PRODUITS:gain * X);
+[Objfunc] MAX = @SUM(PRODUITS(p):gain(p) * X(p));
                
 
 !CONTRAINTES;

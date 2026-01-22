@@ -102,10 +102,11 @@ def translate_for_to_pyomo(expr, sets, cartesian_sets):
 
     Convertit une boucle LINGO @FOR(...) en une triple (setname, alias, expression Pyomo).
 
-    La fonction identifie la boucle `@FOR(Set(alias): <contrainte>)`, remplace les @SUM imbriqués
-    par des compréhensions `sum(... for ... in model.Set)` et produit une expression prête à
-    être utilisée comme corps d'une contrainte Pyomo (ou renvoie les informations pour construire
-    une contrainte par règle).
+    La fonction identifie la boucle `@FOR(Set(alias): <contrainte>)` ou `@FOR(Set: <contrainte>)`,
+    remplace les @SUM imbriqués par des compréhensions `sum(... for ... in model.Set)` et produit 
+    une expression prête à être utilisée comme corps d'une contrainte Pyomo.
+    
+    Gère aussi les directives @BIN() pour déclarer des variables binaires.
 
     Args:
         expr (str): Chaîne LINGO contenant la construction @FOR(...).
@@ -113,7 +114,7 @@ def translate_for_to_pyomo(expr, sets, cartesian_sets):
         cartesian_sets (dict): Dictionnaire des ensembles cartésiens.
 
     Returns:
-        tuple: (setname (str), alias (str), constraint_expr (str)) où `constraint_expr` est
+        tuple: (setname (str), alias (str or None), constraint_expr (str)) où `constraint_expr` est
             une expression Pyomo valide (ex. "sum(...) + model.Param[a] <= model.B[b]").
 
     Raises:
@@ -122,18 +123,31 @@ def translate_for_to_pyomo(expr, sets, cartesian_sets):
 
     expr = expr.strip().rstrip(";")
 
-    # 1️⃣ Capture @FOR(SetName(alias): constraint_expr)
+    # 1️⃣ Capture @FOR(SetName(alias): constraint_expr) ou @FOR(SetName: constraint_expr)
+    # Essayer d'abord avec alias
     m = re.match(
         r"@FOR\s*\(\s*([A-Za-z_]\w*)\s*\(\s*([A-Za-z_]\w*)\s*\)\s*:\s*(.+)\)",
         expr,
         flags=re.IGNORECASE,
     )
+    
     if not m:
-        raise ValueError(f"Format @FOR non reconnu : {expr}")
-
-    setname = m.group(1)
-    alias = m.group(2)
-    constraint_expr = m.group(3).strip()
+        # Essayer sans alias
+        m = re.match(
+            r"@FOR\s*\(\s*([A-Za-z_]\w*)\s*:\s*(.+)\)",
+            expr,
+            flags=re.IGNORECASE,
+        )
+        if not m:
+            raise ValueError(f"Format @FOR non reconnu : {expr}")
+        
+        setname = m.group(1)
+        alias = None  # Pas d'alias fourni
+        constraint_expr = m.group(2).strip()
+    else:
+        setname = m.group(1)
+        alias = m.group(2)
+        constraint_expr = m.group(3).strip()
 
     # 2️⃣ Remplacer les @SUM imbriqués
     def replace_sum(sum_expr):
@@ -189,6 +203,26 @@ def translate_for_to_pyomo(expr, sets, cartesian_sets):
     )
 
     return setname, alias, constraint_expr
+
+
+def detect_binary_variables(for_loops):
+    """
+    Détecte les variables binaires déclarées avec @BIN() dans les boucles @FOR.
+    
+    Args:
+        for_loops (list): Liste des chaînes @FOR.
+    
+    Returns:
+        set: Ensemble des noms de variables binaires détectées.
+    """
+    binary_vars = set()
+    for loop in for_loops:
+        # Cherche @BIN(variable_name ...) - capture le premier identifiant après @BIN(
+        # Gère les cas : @BIN(x), @BIN(x(i)), @BIN(x ( i )), etc.
+        matches = re.findall(r"@BIN\s*\(\s*([A-Za-z_]\w*)", loop, flags=re.IGNORECASE)
+        binary_vars.update(matches)
+    return binary_vars
+
 
 
 def translate_single_sum(sum_expr, outer_alias, sets, cartesian_sets):
@@ -529,6 +563,9 @@ def generate_pyomo_code(model_json):
     # === VARIABLES ===
     declared_vars = set()
     add_section("VARIABLES")
+    
+    # Détection des variables binaires
+    binary_vars = detect_binary_variables(for_loops)
 
     for setname, attr in variables:
         # Évite collisions avec Param ou Set
@@ -544,7 +581,9 @@ def generate_pyomo_code(model_json):
         else:
             dims = f"model.{setname}"
 
-        lines.append(f"model.{safe_attr} = Var({dims}, domain=NonNegativeReals)")
+        # Utiliser domain=Binary si la variable est binaire
+        domain = "Binary" if safe_attr in binary_vars else "NonNegativeReals"
+        lines.append(f"model.{safe_attr} = Var({dims}, domain={domain})")
 
     # === Paramètres scalaires non indexés ===
     
@@ -595,21 +634,33 @@ def generate_pyomo_code(model_json):
 
 
 
-    # === Boucles FOR === (toujours commentées tant qu'on n'a pas de traducteur)
     # === Boucles FOR ===
-    # === Boucles FOR ===
+    # Traitement des @FOR qui ne sont pas @BIN (déjà traitées plus haut)
     for i, f in enumerate(for_loops):
+        # Ignorer les directives @BIN qui sont traitées dans les déclarations de variables
+        if "@BIN" in f.upper() and "@SUM" not in f.upper():
+            lines.append(f"# @BIN directive already handled in variable declarations")
+            lines.append(f"# Original: {f}")
+            continue
+        
         try:
             setname, alias, body = translate_for_to_pyomo(f, sets, cartesian_sets)
 
             cl_name = f"c_for_{i}"
             lines.append(f"model.{cl_name} = ConstraintList()")
-            lines.append(f"for {alias} in model.{setname}:")
-            lines.append(f"    model.{cl_name}.add({body})")
+            if alias:
+                lines.append(f"for {alias} in model.{setname}:")
+                lines.append(f"    model.{cl_name}.add({body})")
+            else:
+                # Pas d'alias : générer une boucle avec une variable implicite
+                idx = setname[0].lower()  # i, a, p, etc.
+                lines.append(f"for {idx} in model.{setname}:")
+                lines.append(f"    model.{cl_name}.add({body})")
 
         except Exception as e:
             lines.append(f"# FAILED to translate FOR-loop {i}: {e}")
             lines.append(f"# Original: {f}")
+
 
 
     # === Objectif ===

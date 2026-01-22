@@ -1,8 +1,8 @@
 MODEL:
 
 SETS:
-TACHES/marche,cuisine,vaisselle,buanderie/:tt;
-PERSONNES/Eve,Steven/:tt;
+TACHES/marche,cuisine,vaisselle,buanderie/:;
+PERSONNES/Eve,Steven/:;
 ARC(PERSONNES,TACHES):temps,x;
 ENDSETS
 
