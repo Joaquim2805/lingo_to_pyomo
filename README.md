@@ -16,18 +16,10 @@ Convertisseur automatique de modèles d'optimisation LINGO vers Jupyter Pyomo
 
 ## Description
 
-LINGO → Pyomo est un outil pédagogique conçu pour faciliter la transition entre les langages LINGO et Pyomo dans l'enseignement de l'optimisation. Cet outil convertit automatiquement des modèles d'optimisation LINGO en notebooks Jupyter Pyomo prêts à l'exécution.
+LINGO → Pyomo est un outil pédagogique conçu pour faciliter la transition entre les langages LINGO et Pyomo dans l'enseignement en optimisation et recherche opérationnelle. Cet outil convertit automatiquement des modèles d'optimisation LINGO en notebooks Jupyter Pyomo prêts à l'exécution.
 
-**Public cible:** Enseignants, chercheurs, et étudiants en optimisation numérique qui souhaitent migrer de LINGO vers l'écosystème open-source Pyomo.
 
-### Avantages principaux
 
-- Automatisation complète de la conversion sans intervention manuelle
-- Interface web intuitive et moderne
-- Support de multiples solveurs (Gurobi, CPLEX, GLPK, IPOPT)
-- Notebooks Jupyter prêts à l'emploi et exécutables
-- Gestion d'erreurs détaillée avec diagnostics complets
-- Licence open-source MIT
 
 ---
 
@@ -45,20 +37,21 @@ LINGO → Pyomo est un outil pédagogique conçu pour faciliter la transition en
 
 ---
 
-## Démarrage rapide
+## Quickstart
+
 
 ### Prérequis
 
 - Python 3.8 ou supérieur
 - Pip (gestionnaire de paquets Python)
-- Un solveur optionnel : Gurobi, CPLEX, GLPK ou IPOPT
+- Un solveur : Gurobi, CPLEX, GLPK, HIGHS...
 
 ### Installation
 
 #### 1. Cloner le dépôt
 
 ```bash
-git clone https://github.com/joaquimjusseau/lingo_to_pyomo.git
+git clone https://github.com/Joaquim2805/lingo_to_pyomo.git
 cd lingo_to_pyomo
 ```
 
@@ -91,7 +84,7 @@ python app.py
 
 Puis ouvrir votre navigateur à : http://localhost:5000
 
-#### Utilisation programmatique
+#### Exemple d'utilisation
 
 ```python
 from src.lingo_parser.parser import parse_lingo_model
@@ -186,18 +179,12 @@ Fichier LINGO (.lng)
 - Flask - Microframework web
 - Jupyter - Notebooks interactifs
 - Bootstrap 5 - Framework CSS
-- Font Awesome - Icônes vectorielles
 
-### Solveurs supportés
 
-- Gurobi (commercial, recommandé)
-- CPLEX (IBM)
-- GLPK (open-source)
-- IPOPT (optimisation non-linéaire)
 
 ---
 
-## Exemples de modèles supportés
+## Exemples de modèles
 
 ### Modèle linéaire simple
 
@@ -225,19 +212,6 @@ model.c3 = Constraint(expr=model.Y <= 6)
 
 ---
 
-## Interface web
-
-L'application web offre une interface intuitive comprenant:
-
-- Sélection de fichier parmi les modèles disponibles
-- Choix du solveur (Gurobi, CPLEX, GLPK, IPOPT)
-- Gestion des erreurs avec détails complets et stack trace
-- Téléchargement direct du notebook .ipynb
-- Design responsive compatible avec tous les appareils
-
-Pour accéder à l'interface: http://localhost:5000
-
----
 
 ## Tests
 
@@ -247,17 +221,11 @@ Exécuter la suite de tests:
 pytest src/test/ -v
 ```
 
-Exécuter un fichier de test spécifique:
 
-```bash
-pytest src/test/test_expmodel.py -v
-```
-
----
 
 ## Documentation
 
-Documentation complète disponible dans le dossier `/docs` ou générez-la avec MkDocs:
+Documentation complète disponible avec MkDocs:
 
 ```bash
 mkdocs serve
@@ -275,9 +243,6 @@ Assurez-vous que l'environnement virtuel est activé et que les dépendances son
 pip install -r requirements.txt
 ```
 
-### Erreur lors de la conversion
-
-Consultez la modale d'erreur dans l'interface web. Elle affiche la stack trace complète pour diagnostiquer le problème.
 
 ### Port 5000 déjà utilisé
 
@@ -288,25 +253,9 @@ if __name__ == "__main__":
     app.run(debug=True, port=5001)
 ```
 
----
 
-## Contribution
 
-Les contributions sont bienvenues. Pour contribuer:
 
-1. Fork le projet
-2. Créer une branche (`git checkout -b feature/nom-feature`)
-3. Commit les changements (`git commit -m 'Description du changement'`)
-4. Push vers la branche (`git push origin feature/nom-feature`)
-5. Ouvrir une Pull Request
-
----
-
-## Licence
-
-Ce projet est licensé sous la MIT License - voir le fichier [LICENSE](LICENSE) pour plus de détails.
-
----
 
 ## Auteurs
 
