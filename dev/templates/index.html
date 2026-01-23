@@ -3,95 +3,437 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Générateur de Notebook LINGO → Pyomo</title>
+    <title>Générateur LINGO → Pyomo | Outil Pédagogique</title>
     <!-- Bootstrap CSS -->
     <link
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
       rel="stylesheet"
     />
+    <!-- Font Awesome -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
     <!-- Google Fonts -->
     <link
-      href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&family=Fira+Code:wght@400;600&display=swap"
       rel="stylesheet"
     />
     <style>
+      :root {
+        --primary-color: #2563eb;
+        --secondary-color: #1e40af;
+        --accent-color: #0ea5e9;
+        --success-color: #10b981;
+        --danger-color: #ef4444;
+        --dark-bg: #0f172a;
+        --light-text: #f8fafc;
+        --border-color: #334155;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
       body {
-        font-family: "Roboto", sans-serif;
-        background: linear-gradient(to right, #667eea, #764ba2);
-        color: #fff;
+        font-family: "Poppins", sans-serif;
+        background: linear-gradient(135deg, var(--dark-bg) 0%, #1e293b 100%);
+        color: var(--light-text);
         min-height: 100vh;
-        display: flex;
-        flex-direction: column;
+        overflow-x: hidden;
       }
+
+      /* Navbar Styling */
       .navbar {
-        background-color: rgba(0, 0, 0, 0.5) !important;
+        background: rgba(15, 23, 42, 0.95) !important;
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid var(--border-color);
+        padding: 1rem 0;
       }
+
+      .navbar-brand {
+        font-size: 1.5rem;
+        font-weight: 700;
+        background: linear-gradient(135deg, var(--accent-color), var(--primary-color));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        transition: transform 0.3s ease;
+      }
+
+      .navbar-brand:hover {
+        transform: scale(1.05);
+      }
+
+      .navbar-brand i {
+        margin-right: 0.5rem;
+        color: var(--accent-color);
+      }
+
+      .nav-link {
+        color: #cbd5e1 !important;
+        font-weight: 500;
+        margin: 0 1rem;
+        position: relative;
+        transition: color 0.3s ease;
+      }
+
+      .nav-link::after {
+        content: "";
+        position: absolute;
+        bottom: -5px;
+        left: 0;
+        width: 0;
+        height: 2px;
+        background: linear-gradient(90deg, var(--accent-color), var(--primary-color));
+        transition: width 0.3s ease;
+      }
+
+      .nav-link:hover,
+      .nav-link.active {
+        color: var(--accent-color) !important;
+      }
+
+      .nav-link:hover::after,
+      .nav-link.active::after {
+        width: 100%;
+      }
+
+      /* Hero Section */
       .hero {
-        flex: 1;
+        min-height: 100vh;
         display: flex;
         flex-direction: column;
         justify-content: center;
         align-items: center;
         text-align: center;
-        padding: 100px 20px;
+        padding: 80px 20px 40px;
+        position: relative;
+        overflow: hidden;
       }
+
+      .hero::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: radial-gradient(circle at 20% 50%, rgba(37, 99, 235, 0.1) 0%, transparent 50%),
+                    radial-gradient(circle at 80% 80%, rgba(14, 165, 233, 0.1) 0%, transparent 50%);
+        pointer-events: none;
+      }
+
+      .hero-content {
+        position: relative;
+        z-index: 1;
+        max-width: 700px;
+        animation: slideInUp 0.8s ease;
+      }
+
       .hero h1 {
-        font-size: 3rem;
+        font-size: clamp(2rem, 5vw, 3.5rem);
         font-weight: 700;
-        animation: fadeInDown 1s;
+        margin-bottom: 1.5rem;
+        line-height: 1.2;
+        background: linear-gradient(135deg, var(--light-text), var(--accent-color));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
       }
-      .hero p {
-        font-size: 1.3rem;
-        margin-bottom: 40px;
-        animation: fadeInUp 1s;
+
+      .hero-subtitle {
+        font-size: clamp(1rem, 2.5vw, 1.3rem);
+        color: #cbd5e1;
+        margin-bottom: 2rem;
+        line-height: 1.6;
+        font-weight: 300;
       }
-      @keyframes fadeInDown {
-        0% {
-          opacity: 0;
-          transform: translateY(-50px);
-        }
-        100% {
-          opacity: 1;
-          transform: translateY(0);
-        }
-      }
-      @keyframes fadeInUp {
-        0% {
+
+      @keyframes slideInUp {
+        from {
           opacity: 0;
           transform: translateY(50px);
         }
-        100% {
+        to {
           opacity: 1;
           transform: translateY(0);
         }
       }
+
+      /* Form Card */
+      .form-card {
+        background: rgba(30, 41, 59, 0.8);
+        backdrop-filter: blur(20px);
+        border: 1px solid var(--border-color);
+        border-radius: 20px;
+        padding: 3rem;
+        margin-top: 2rem;
+        animation: slideInUp 1s ease;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      }
+
+      .form-group {
+        margin-bottom: 2rem;
+      }
+
+      .form-label {
+        font-weight: 600;
+        color: var(--light-text);
+        margin-bottom: 0.75rem;
+        display: block;
+        font-size: 1rem;
+      }
+
+      .form-select {
+        background: rgba(15, 23, 42, 0.5);
+        border: 2px solid var(--border-color);
+        color: var(--light-text);
+        border-radius: 12px;
+        padding: 0.75rem 1rem;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        cursor: pointer;
+      }
+
+      .form-select:focus {
+        border-color: var(--accent-color);
+        background: rgba(15, 23, 42, 0.7);
+        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+        color: var(--light-text);
+        outline: none;
+      }
+
+      .form-select option {
+        background: var(--dark-bg);
+        color: var(--light-text);
+      }
+
       .btn-generate {
-        padding: 1rem 2rem;
-        font-size: 1.2rem;
-        font-weight: bold;
-        border-radius: 50px;
-        transition: transform 0.2s;
-      }
-      .btn-generate:hover {
-        transform: scale(1.1);
-      }
-      footer {
-        text-align: center;
-        padding: 20px;
-        background-color: rgba(0, 0, 0, 0.3);
-      }
-      .card-custom {
-        background-color: rgba(255, 255, 255, 0.1);
+        background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
         border: none;
-        border-radius: 15px;
-        padding: 30px;
-        margin: 20px 0;
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
-        transition: transform 0.3s, box-shadow 0.3s;
+        color: white;
+        padding: 1rem 3rem;
+        font-size: 1.1rem;
+        font-weight: 600;
+        border-radius: 12px;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+        width: 100%;
       }
-      .card-custom:hover {
-        transform: translateY(-10px);
-        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+
+      .btn-generate::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+        transition: left 0.5s ease;
+      }
+
+      .btn-generate:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 15px 40px rgba(37, 99, 235, 0.4);
+      }
+
+      .btn-generate:hover::before {
+        left: 100%;
+      }
+
+      .btn-generate:active {
+        transform: translateY(-1px);
+      }
+
+      /* Features Section */
+      .features-section {
+        padding: 6rem 0;
+        position: relative;
+      }
+
+      .section-title {
+        font-size: 2.5rem;
+        font-weight: 700;
+        text-align: center;
+        margin-bottom: 3rem;
+        background: linear-gradient(135deg, var(--light-text), var(--accent-color));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .feature-card {
+        background: rgba(30, 41, 59, 0.6);
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
+        padding: 2.5rem;
+        text-align: center;
+        transition: all 0.3s ease;
+        height: 100%;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .feature-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+        transform: scaleX(0);
+        transform-origin: left;
+        transition: transform 0.3s ease;
+      }
+
+      .feature-card:hover {
+        transform: translateY(-8px);
+        border-color: var(--accent-color);
+        background: rgba(30, 41, 59, 0.9);
+        box-shadow: 0 20px 40px rgba(14, 165, 233, 0.2);
+      }
+
+      .feature-card:hover::before {
+        transform: scaleX(1);
+      }
+
+      .feature-icon {
+        font-size: 3rem;
+        color: var(--accent-color);
+        margin-bottom: 1.5rem;
+      }
+
+      .feature-card h3 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        color: var(--light-text);
+      }
+
+      .feature-card p {
+        color: #cbd5e1;
+        line-height: 1.6;
+        font-weight: 300;
+      }
+
+      /* How to Use Section */
+      .how-to-section {
+        padding: 6rem 0;
+        background: rgba(15, 23, 42, 0.5);
+      }
+
+      .step-card {
+        display: flex;
+        gap: 2rem;
+        margin-bottom: 2rem;
+        align-items: flex-start;
+      }
+
+      .step-number {
+        width: 50px;
+        height: 50px;
+        background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 1.5rem;
+        flex-shrink: 0;
+      }
+
+      .step-content h4 {
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        color: var(--light-text);
+      }
+
+      .step-content p {
+        color: #cbd5e1;
+        line-height: 1.6;
+      }
+
+      /* Footer */
+      footer {
+        background: rgba(15, 23, 42, 0.8);
+        border-top: 1px solid var(--border-color);
+        padding: 3rem 0;
+        margin-top: 4rem;
+      }
+
+      .footer-content {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 2rem;
+        margin-bottom: 2rem;
+      }
+
+      .footer-section h5 {
+        font-weight: 600;
+        margin-bottom: 1rem;
+        color: var(--accent-color);
+      }
+
+      .footer-section p,
+      .footer-section a {
+        color: #cbd5e1;
+        text-decoration: none;
+        line-height: 1.8;
+        font-size: 0.95rem;
+      }
+
+      .footer-section a:hover {
+        color: var(--accent-color);
+      }
+
+      .footer-bottom {
+        text-align: center;
+        padding-top: 2rem;
+        border-top: 1px solid var(--border-color);
+        color: #64748b;
+      }
+
+      /* Responsive */
+      @media (max-width: 768px) {
+        .form-card {
+          padding: 1.5rem;
+        }
+
+        .hero {
+          padding-top: 100px;
+        }
+
+        .section-title {
+          font-size: 1.8rem;
+        }
+
+        .step-card {
+          gap: 1.5rem;
+        }
+      }
+
+      /* Loading State */
+      .btn-generate:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      /* File Count Badge */
+      .file-badge {
+        display: inline-block;
+        background: rgba(14, 165, 233, 0.2);
+        border: 1px solid var(--accent-color);
+        color: var(--accent-color);
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        margin-left: 0.5rem;
       }
     </style>
   </head>
@@ -99,7 +441,9 @@
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
       <div class="container">
-        <a class="navbar-brand" href="#">LINGO → Pyomo</a>
+        <a class="navbar-brand" href="#">
+          <i class="fas fa-code"></i>LINGO → Pyomo
+        </a>
         <button
           class="navbar-toggler"
           type="button"
@@ -117,86 +461,244 @@
         >
           <ul class="navbar-nav">
             <li class="nav-item">
-              <a class="nav-link active" href="#hero">Accueil</a>
+              <a class="nav-link active" href="#hero">
+                <i class="fas fa-home"></i> Accueil
+              </a>
             </li>
             <li class="nav-item">
-              <a class="nav-link" href="#about">À propos</a>
+              <a class="nav-link" href="#features">
+                <i class="fas fa-sparkles"></i> Caractéristiques
+              </a>
             </li>
             <li class="nav-item">
-              <a class="nav-link" href="#contact">Contact</a>
+              <a class="nav-link" href="#how-to">
+                <i class="fas fa-graduation-cap"></i> Guide
+              </a>
             </li>
           </ul>
         </div>
       </div>
     </nav>
+
     <!-- Hero Section -->
     <section class="hero" id="hero">
-      <h1>Générateur de Notebook LINGO → Pyomo</h1>
-      <p>
-        Transformez vos modèles LINGO en notebooks Pyomo prêts à l’emploi, en un
-        clic !
-      </p>
-      <form action="/generate" method="post">
-        <div class="mb-3">
-          <label for="file_select" class="form-label"
-            >Sélectionnez un fichier :</label
-          >
-          <select
-            class="form-select"
-            id="file_select"
-            name="file_select"
-            required
-          >
-            {% for file in files %}
-            <option value="{{ file }}">{{ file }}</option>
-            {% endfor %}
-          </select>
+      <div class="hero-content">
+        <h1>Transformez LINGO en Pyomo</h1>
+        <p class="hero-subtitle">
+          Convertissez vos modèles d'optimisation LINGO en notebooks Jupyter
+          Pyomo prêts à l'exécution. Un outil pédagogique conçu pour les
+          enseignants.
+        </p>
+
+        <div class="form-card">
+          <form action="/generate" method="post" id="uploadForm">
+            <div class="form-group">
+              <label for="file_select" class="form-label">
+                <i class="fas fa-file-upload"></i> Sélectionnez votre modèle
+                LINGO
+                <span class="file-badge">{{ files|length }} fichier(s) disponible(s)</span>
+              </label>
+              <select
+                class="form-select"
+                id="file_select"
+                name="file_select"
+                required
+              >
+                <option value="">-- Choisissez un fichier --</option>
+                {% for file in files %}
+                <option value="{{ file }}">{{ file }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="solver_select" class="form-label">
+                <i class="fas fa-cogs"></i> Solveur
+              </label>
+              <select
+                class="form-select"
+                id="solver_select"
+                name="solver_select"
+                required
+              >
+                <option value="">-- Choisissez un solveur --</option>
+                <option value="gurobi" selected>Gurobi (recommandé)</option>
+                <option value="cplex">CPLEX</option>
+                <option value="glpk">GLPK</option>
+                <option value="highs">HIGHS</option>
+              </select>
+            </div>
+
+            <button type="submit" class="btn btn-generate" id="generateBtn">
+              <i class="fas fa-magic"></i> Générer le notebook
+            </button>
+          </form>
         </div>
-        <button class="btn btn-primary btn-lg btn-generate">
-          Générer le notebook
-        </button>
-      </form>
+      </div>
     </section>
-    <!-- About Section -->
-    <section class="container my-5" id="about">
-      <div class="row text-center">
-        <div class="col-md-4">
-          <div class="card-custom">
-            <h3>Rapide</h3>
-            <p>
-              Générez votre notebook en quelques secondes sans aucune
-              configuration compliquée.
-            </p>
+
+    <!-- Features Section -->
+    <section class="features-section" id="features">
+      <div class="container">
+        <h2 class="section-title">Pourquoi utiliser cet outil ?</h2>
+        <div class="row g-4">
+          <div class="col-md-4">
+            <div class="feature-card">
+              <div class="feature-icon">
+                <i class="fas fa-lightning-bolt"></i>
+              </div>
+              <h3>Conversion Automatique</h3>
+              <p>
+                Transformez vos modèles LINGO en syntaxe Pyomo en un seul clic,
+                sans effort manuel.
+              </p>
+            </div>
           </div>
-        </div>
-        <div class="col-md-4">
-          <div class="card-custom">
-            <h3>Fiable</h3>
-            <p>
-              Le notebook est entièrement compatible avec Pyomo, Gurobi, CPLEX,
-              prêt à l’exécution.
-            </p>
+          <div class="col-md-4">
+            <div class="feature-card">
+              <div class="feature-icon">
+                <i class="fas fa-graduation-cap"></i>
+              </div>
+              <h3>Outil Pédagogique</h3>
+              <p>
+                Idéal pour enseigner l'optimisation. Permet aux étudiants de
+                comprendre la transition entre deux formalismes.
+              </p>
+            </div>
           </div>
-        </div>
-        <div class="col-md-4">
-          <div class="card-custom">
-            <h3>Pro</h3>
-            <p>
-              Une interface moderne et simple pour effectuer votre transition de
-              Lingo à Pyomo.
-            </p>
+          <div class="col-md-4">
+            <div class="feature-card">
+              <div class="feature-icon">
+                <i class="fas fa-cogs"></i>
+              </div>
+              <h3>Compatibilité Totale</h3>
+              <p>
+                Les notebooks générés sont pleinement compatibles avec Pyomo,
+                Gurobi, CPLEX et autres solveurs.
+              </p>
+            </div>
           </div>
         </div>
       </div>
     </section>
+
+    <!-- How to Use Section -->
+    <section class="how-to-section" id="how-to">
+      <div class="container">
+        <h2 class="section-title">
+          <i class="fas fa-info-circle"></i> Comment utiliser ?
+        </h2>
+        <div class="row">
+          <div class="col-lg-8 offset-lg-2">
+            <div class="step-card">
+              <div class="step-number">1</div>
+              <div class="step-content">
+                <h4>Sélectionnez votre fichier LINGO</h4>
+                <p>
+                  Choisissez parmi les modèles disponibles dans la liste
+                  déroulante ci-dessus. Tous les fichiers .lng sont supportés.
+                </p>
+              </div>
+            </div>
+
+            <div class="step-card">
+              <div class="step-number">2</div>
+              <div class="step-content">
+                <h4>Cliquez sur "Générer le notebook"</h4>
+                <p>
+                  L'outil analyse le fichier LINGO et génère automatiquement un
+                  notebook Jupyter avec la syntaxe Pyomo équivalente.
+                </p>
+              </div>
+            </div>
+
+            <div class="step-card">
+              <div class="step-number">3</div>
+              <div class="step-content">
+                <h4>Téléchargez et utilisez le notebook</h4>
+                <p>
+                  Le fichier .ipynb est prêt à être utilisé dans Jupyter. Vous
+                  pouvez le personnaliser et l'exécuter directement avec vos
+                  solveurs préférés.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- Footer -->
-    <footer id="contact">
-      <p>
-        © 2025 Fausto Errico, Virginie Destuynder, Joaquim Jusseau – Projet
-        LINGO → Pyomo
-      </p>
+    <footer>
+      <div class="container">
+        <div class="footer-content">
+          <div class="footer-section">
+            <h5><i class="fas fa-project-diagram"></i> À propos</h5>
+            <p>
+              Un projet académique conçu pour faciliter la transition entre LINGO
+              et Pyomo dans l'enseignement de l'optimisation.
+            </p>
+          </div>
+          <div class="footer-section">
+            <h5><i class="fas fa-tools"></i> Technologies</h5>
+            <p>
+              Utilise Flask, Jupyter, Pyomo et des parseurs Lark pour une
+              conversion fiable et complète.
+            </p>
+          </div>
+          <div class="footer-section">
+            <h5><i class="fas fa-users"></i> Auteurs</h5>
+            <p>
+              Fausto Errico<br />
+              Virginie Destuynder<br />
+              Joaquim Jusseau
+            </p>
+          </div>
+          <div class="footer-section">
+            <h5><i class="fas fa-code-branch"></i> Open Source</h5>
+            <p>
+              Ce projet est <strong>open-source</strong> et disponible sur 
+              <a href="https://github.com/Joaquim2805" target="_blank">
+                <i class="fab fa-github"></i> GitHub
+              </a>
+            </p>
+          </div>
+        </div>
+        <div class="footer-bottom">
+          <p>
+            © 2025 Projet LINGO → Pyomo. Tous droits réservés.
+          </p>
+        </div>
+      </div>
     </footer>
+
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      // Form submission with visual feedback
+      document.getElementById("uploadForm").addEventListener("submit", function(e) {
+        const btn = document.getElementById("generateBtn");
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Génération en cours...';
+        
+        // Restore button state after 1 second
+        setTimeout(function() {
+          btn.disabled = false;
+          btn.innerHTML = originalText;
+        }, 1000);
+      });
+
+      // Smooth scroll for navigation links
+      document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+          e.preventDefault();
+          const target = document.querySelector(this.getAttribute('href'));
+          if (target) {
+            target.scrollIntoView({ behavior: 'smooth' });
+          }
+        });
+      });
+    </script>
   </body>
 </html>

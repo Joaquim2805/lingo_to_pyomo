@@ -21,8 +21,11 @@ for path in py_files:
     module_path = path.relative_to(root).with_suffix("")
     parts = list(module_path.parts)
 
+    # Exclure les fichiers de test et les fichiers __pycache__
     if parts[-1] == "__init__":
         parts = parts[:-1]
+    if "test" in parts or "__pycache__" in parts:
+        continue
 
     doc_path = Path("reference", *parts, "index.md")
     nav_path = ["Référence API"] + parts

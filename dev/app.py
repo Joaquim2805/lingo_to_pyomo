@@ -24,16 +24,21 @@ OUTPUT_FOLDER = PROJECT_ROOT / "notebooks"
 os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 
 
-def generate_notebook(file_path, output_path):
+def generate_notebook(file_path, output_path, solver="gurobi"):
     """
     Génère un notebook Pyomo à partir d'un fichier LINGO donné.
+    
+    Args:
+        file_path: Chemin vers le fichier LINGO
+        output_path: Chemin de sortie du notebook
+        solver: Solveur à utiliser (gurobi, cplex, glpk, ipopt) - par défaut gurobi
     """
     tree = parse_lingo_model(file_path)
     model_dict = LingoModelTransformer2().transform(tree)
     pyomo_code = generate_pyomo_code(model_dict)
 
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    generate_pyomo_notebook(pyomo_code, solver="gurobi", filename=output_path)
+    generate_pyomo_notebook(pyomo_code, solver=solver, filename=output_path)
 
 
 @app.route("/", methods=["GET"])
@@ -46,13 +51,15 @@ def index():
 @app.route("/generate", methods=["POST"])
 def generate():
     file_name = request.form.get("file_select")
+    solver = request.form.get("solver_select", "gurobi")
+    
     if not file_name:
         return "Aucun fichier sélectionné !", 400
 
     input_path = os.path.join(DATA_FOLDER, file_name)
     output_path = os.path.join(OUTPUT_FOLDER, f"{Path(file_name).stem}.ipynb")
 
-    generate_notebook(input_path, output_path)
+    generate_notebook(input_path, output_path, solver=solver)
 
     return send_file(output_path, as_attachment=True)
 
