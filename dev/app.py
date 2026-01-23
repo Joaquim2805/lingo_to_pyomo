@@ -1,7 +1,8 @@
-from flask import Flask, render_template, request, send_file
+from flask import Flask, render_template, request, send_file, jsonify
 import os
 import sys
 from pathlib import Path
+import traceback
 
 BASE_DIR = Path(__file__).resolve().parent  # dev/
 PROJECT_ROOT = BASE_DIR.parent  # Lingo_to_Pyomo/
@@ -50,18 +51,49 @@ def index():
 
 @app.route("/generate", methods=["POST"])
 def generate():
-    file_name = request.form.get("file_select")
-    solver = request.form.get("solver_select", "gurobi")
+    try:
+        file_name = request.form.get("file_select")
+        solver = request.form.get("solver_select", "gurobi")
+        
+        if not file_name:
+            return jsonify({
+                "success": False,
+                "error": "Aucun fichier sélectionné",
+                "details": "Veuillez choisir un fichier LINGO dans la liste"
+            }), 400
+
+        input_path = os.path.join(DATA_FOLDER, file_name)
+        
+        # Vérifier que le fichier existe
+        if not os.path.exists(input_path):
+            return jsonify({
+                "success": False,
+                "error": "Fichier non trouvé",
+                "details": f"Le fichier '{file_name}' n'existe pas"
+            }), 404
+        
+        output_path = os.path.join(OUTPUT_FOLDER, f"{Path(file_name).stem}.ipynb")
+
+        # Générer le notebook
+        generate_notebook(input_path, output_path, solver=solver)
+
+        return send_file(output_path, as_attachment=True)
     
-    if not file_name:
-        return "Aucun fichier sélectionné !", 400
-
-    input_path = os.path.join(DATA_FOLDER, file_name)
-    output_path = os.path.join(OUTPUT_FOLDER, f"{Path(file_name).stem}.ipynb")
-
-    generate_notebook(input_path, output_path, solver=solver)
-
-    return send_file(output_path, as_attachment=True)
+    except Exception as e:
+        # Capturer toutes les erreurs et les retourner proprement
+        error_message = str(e)
+        error_traceback = traceback.format_exc()
+        
+        print(f"Erreur lors de la conversion: {error_message}")
+        print(f"Stack trace:\n{error_traceback}")
+        
+        return jsonify({
+            "success": False,
+            "error": "Erreur lors de la conversion",
+            "details": error_message,
+            "type": type(e).__name__,
+            "traceback": error_traceback
+        }), 500
 
 
 if __name__ == "__main__":
