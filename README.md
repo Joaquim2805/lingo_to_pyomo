@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Tests](https://github.com/joaquimjusseau/lingo_to_pyomo/actions/workflows/ci.yml/badge.svg)
+![Tests](https://github.com/Joaquim2805/lingo_to_pyomo/actions/workflows/ci.yml/badge.svg)
 ![Status](https://img.shields.io/badge/status-active-success.svg)
 ![Python](https://img.shields.io/badge/Python-3.8%2B-blue)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)

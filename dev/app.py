@@ -74,10 +74,19 @@ def generate():
         
         output_path = os.path.join(OUTPUT_FOLDER, f"{Path(file_name).stem}.ipynb")
 
-        # Générer le notebook
-        generate_notebook(input_path, output_path, solver=solver)
+        # Parser et transformer le modèle
+        tree = parse_lingo_model(input_path)
+        model_dict = LingoModelTransformer2().transform(tree)
+        pyomo_code = generate_pyomo_code(model_dict)
 
-        return send_file(output_path, as_attachment=True)
+        # Retourner un aperçu du code avec les infos de téléchargement
+        return jsonify({
+            "success": True,
+            "pyomo_code": pyomo_code,
+            "file_name": Path(file_name).stem,
+            "solver": solver,
+            "output_path": output_path
+        }), 200
     
     except Exception as e:
         # Capturer toutes les erreurs et les retourner proprement
@@ -90,6 +99,46 @@ def generate():
         return jsonify({
             "success": False,
             "error": "Erreur lors de la conversion",
+            "details": error_message,
+            "type": type(e).__name__,
+            "traceback": error_traceback
+        }), 500
+
+
+@app.route("/download", methods=["POST"])
+def download():
+    """Télécharge le notebook après que l'utilisateur ait validé l'aperçu."""
+    try:
+        data = request.get_json()
+        file_name = data.get("file_name")
+        solver = data.get("solver", "gurobi")
+        pyomo_code = data.get("pyomo_code")
+        
+        if not file_name or not pyomo_code:
+            return jsonify({
+                "success": False,
+                "error": "Données manquantes",
+                "details": "Code ou nom de fichier manquant"
+            }), 400
+        
+        output_path = os.path.join(OUTPUT_FOLDER, f"{file_name}.ipynb")
+        
+        # Générer le notebook
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        generate_pyomo_notebook(pyomo_code, solver=solver, filename=output_path)
+        
+        return send_file(output_path, as_attachment=True)
+    
+    except Exception as e:
+        error_message = str(e)
+        error_traceback = traceback.format_exc()
+        
+        print(f"Erreur lors du téléchargement: {error_message}")
+        print(f"Stack trace:\n{error_traceback}")
+        
+        return jsonify({
+            "success": False,
+            "error": "Erreur lors du téléchargement",
             "details": error_message,
             "type": type(e).__name__,
             "traceback": error_traceback

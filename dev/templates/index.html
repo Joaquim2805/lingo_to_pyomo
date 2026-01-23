@@ -19,6 +19,12 @@
       href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&family=Fira+Code:wght@400;600&display=swap"
       rel="stylesheet"
     />
+    <!-- Highlight.js for code syntax highlighting -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css"
+    />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <style>
       :root {
         --primary-color: #2563eb;
@@ -558,6 +564,167 @@
           opacity: 1;
         }
       }
+
+      /* Preview Modal */
+      .preview-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(5px);
+        z-index: 9998;
+        align-items: center;
+        justify-content: center;
+        animation: fadeIn 0.3s ease;
+      }
+
+      .preview-modal.show {
+        display: flex;
+      }
+
+      .preview-modal-content {
+        background: rgba(30, 41, 59, 0.95);
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
+        width: 95%;
+        max-width: 900px;
+        height: 80vh;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        animation: slideInUp 0.3s ease;
+      }
+
+      .preview-modal-header {
+        padding: 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .preview-modal-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--light-text);
+        margin: 0;
+      }
+
+      .preview-modal-close {
+        background: none;
+        border: none;
+        color: #cbd5e1;
+        font-size: 1.5rem;
+        cursor: pointer;
+        transition: color 0.3s ease;
+      }
+
+      .preview-modal-close:hover {
+        color: var(--accent-color);
+      }
+
+      .preview-code-container {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1.5rem;
+      }
+
+      .preview-code {
+        background: #1e1e1e;
+        border-radius: 8px;
+        padding: 1rem;
+        font-family: "Fira Code", monospace;
+        font-size: 0.85rem;
+        line-height: 1.5;
+        overflow-x: auto;
+      }
+
+      .preview-code code {
+        color: #e0e0e0;
+      }
+
+      .preview-code .hljs {
+        background: transparent;
+        color: #e0e0e0;
+        padding: 0;
+      }
+
+      .preview-modal-footer {
+        padding: 1.5rem;
+        border-top: 1px solid var(--border-color);
+        display: flex;
+        gap: 1rem;
+        justify-content: flex-end;
+      }
+
+      .btn-preview-download {
+        background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+        color: white;
+        border: none;
+        padding: 0.75rem 2rem;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .btn-preview-download:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(37, 99, 235, 0.4);
+      }
+
+      .btn-preview-cancel {
+        background: transparent;
+        color: #cbd5e1;
+        border: 1px solid var(--border-color);
+        padding: 0.75rem 2rem;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .btn-preview-cancel:hover {
+        border-color: var(--accent-color);
+        color: var(--accent-color);
+      }
+
+      /* Scrollbar styling for preview code */
+      .preview-code-container::-webkit-scrollbar {
+        width: 8px;
+      }
+
+      .preview-code-container::-webkit-scrollbar-track {
+        background: rgba(51, 65, 85, 0.5);
+        border-radius: 10px;
+      }
+
+      .preview-code-container::-webkit-scrollbar-thumb {
+        background: var(--border-color);
+        border-radius: 10px;
+      }
+
+      .preview-code-container::-webkit-scrollbar-thumb:hover {
+        background: var(--accent-color);
+      }
+
+      @media (max-width: 768px) {
+        .preview-modal-content {
+          width: 98%;
+          height: 90vh;
+        }
+
+        .preview-code {
+          font-size: 0.75rem;
+        }
+
+        .preview-modal-footer {
+          flex-direction: column;
+        }
+      }
     </style>
   </head>
   <body>
@@ -770,6 +937,29 @@
       </div>
     </div>
 
+    <!-- Preview Modal -->
+    <div class="preview-modal" id="previewModal">
+      <div class="preview-modal-content">
+        <div class="preview-modal-header">
+          <h2 class="preview-modal-title">Aperçu du code Pyomo</h2>
+          <button class="preview-modal-close" onclick="closePreviewModal()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="preview-code-container">
+          <pre class="preview-code"><code class="language-python" id="previewCodeContent"></code></pre>
+        </div>
+        <div class="preview-modal-footer">
+          <button class="btn-preview-cancel" onclick="closePreviewModal()">
+            Annuler
+          </button>
+          <button class="btn-preview-download" onclick="downloadNotebook()">
+            <i class="fas fa-download"></i> Télécharger le notebook
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Footer -->
     <footer>
       <div class="container">
@@ -817,6 +1007,104 @@
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+      // Variables globales pour l'aperçu
+      let currentPreviewData = null;
+
+      // Preview modal functions
+      function showPreviewModal(pyomoCode) {
+        const modal = document.getElementById("previewModal");
+        const codeContent = document.getElementById("previewCodeContent");
+        
+        codeContent.textContent = pyomoCode;
+        
+        // Highlight the code
+        hljs.highlightElement(codeContent);
+        
+        modal.classList.add("show");
+      }
+
+      function closePreviewModal() {
+        const modal = document.getElementById("previewModal");
+        modal.classList.remove("show");
+      }
+
+      function downloadNotebook() {
+        if (!currentPreviewData) {
+          showErrorModal(
+            "Données manquantes",
+            "Les données du notebook ne sont pas disponibles",
+            null,
+            null
+          );
+          return;
+        }
+
+        const btn = document.querySelector(".btn-preview-download");
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Téléchargement...';
+
+        fetch("/download", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(currentPreviewData)
+        })
+        .then(response => {
+          if (response.ok) {
+            return response.blob().then(blob => {
+              const url = window.URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = currentPreviewData.file_name + ".ipynb";
+              document.body.appendChild(a);
+              a.click();
+              window.URL.revokeObjectURL(url);
+              document.body.removeChild(a);
+              closePreviewModal();
+            });
+          } else {
+            return response.json().then(data => {
+              throw new Error(JSON.stringify(data));
+            });
+          }
+        })
+        .catch(error => {
+          let errorData;
+          
+          if (error instanceof Error && error.message.startsWith("{")) {
+            try {
+              errorData = JSON.parse(error.message);
+            } catch (e) {
+              errorData = { error: error.message };
+            }
+          } else if (typeof error === "object" && error.error) {
+            errorData = error;
+          } else {
+            errorData = { error: String(error) };
+          }
+          
+          showErrorModal(
+            errorData.error || "Erreur inconnue",
+            errorData.details || "Une erreur s'est produite lors du téléchargement.",
+            errorData.type ? `Type: ${errorData.type}` : null,
+            errorData.traceback || null
+          );
+        })
+        .finally(() => {
+          btn.disabled = false;
+          btn.innerHTML = originalText;
+        });
+      }
+
+      // Close preview modal when clicking outside
+      document.getElementById("previewModal").addEventListener("click", function(e) {
+        if (e.target === this) {
+          closePreviewModal();
+        }
+      });
+
       // Error modal functions
       function showErrorModal(title, message, details = null, traceback = null) {
         const modal = document.getElementById("errorModal");
@@ -872,46 +1160,34 @@
           method: "POST",
           body: formData
         })
-        .then(response => {
-          if (response.ok) {
-            // Si c'est un fichier, le télécharger
-            return response.blob().then(blob => {
-              const url = window.URL.createObjectURL(blob);
-              const a = document.createElement("a");
-              a.href = url;
-              a.download = formData.get("file_select").replace(".lng", ".ipynb");
-              document.body.appendChild(a);
-              a.click();
-              window.URL.revokeObjectURL(url);
-              document.body.removeChild(a);
-            });
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            // Stocker les données pour le téléchargement
+            currentPreviewData = {
+              file_name: data.file_name,
+              solver: data.solver,
+              pyomo_code: data.pyomo_code
+            };
+            
+            // Afficher l'aperçu
+            showPreviewModal(data.pyomo_code);
           } else {
-            // Erreur, récupérer le JSON
-            return response.json().then(data => {
-              throw new Error(JSON.stringify(data));
-            });
+            // Erreur retournée
+            showErrorModal(
+              data.error || "Erreur inconnue",
+              data.details || "Une erreur s'est produite lors du traitement.",
+              data.type ? `Type: ${data.type}` : null,
+              data.traceback || null
+            );
           }
         })
         .catch(error => {
-          let errorData;
-          
-          if (error instanceof Error && error.message.startsWith("{")) {
-            try {
-              errorData = JSON.parse(error.message);
-            } catch (e) {
-              errorData = { error: error.message };
-            }
-          } else if (typeof error === "object" && error.error) {
-            errorData = error;
-          } else {
-            errorData = { error: String(error) };
-          }
-          
           showErrorModal(
-            errorData.error || "Erreur inconnue",
-            errorData.details || "Une erreur s'est produite lors du traitement.",
-            errorData.type ? `Type: ${errorData.type}` : null,
-            errorData.traceback || null
+            "Erreur de communication",
+            "Une erreur s'est produite lors de la communication avec le serveur.",
+            null,
+            error.toString()
           );
         })
         .finally(() => {
