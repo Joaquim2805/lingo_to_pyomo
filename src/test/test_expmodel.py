@@ -82,7 +82,7 @@ def test_california_optimal_value():
     model = local_vars['model']
     
     # Résout le modèle avec un solveur (par défaut glpk ou cbc)
-    solver = SolverFactory('gurobi')  # ou 'cbc' si glpk n'est pas disponible
+    solver = SolverFactory('highs')  # ou 'cbc' si glpk n'est pas disponible
     result = solver.solve(model, tee=False)
     
     # Récupère la valeur optimale
@@ -110,7 +110,7 @@ def test_forets_optimal_value():
     model = local_vars['model']
     
     # Résout le modèle avec un solveur (par défaut glpk ou cbc)
-    solver = SolverFactory('gurobi')  # ou 'cbc' si glpk n'est pas disponible
+    solver = SolverFactory('highs')  # ou 'cbc' si glpk n'est pas disponible
     result = solver.solve(model, tee=False)
     
     # Récupère la valeur optimale
@@ -137,7 +137,7 @@ def test_windor_optimal_value():
     model = local_vars['model']
     
     # Résout le modèle avec un solveur (par défaut glpk ou cbc)
-    solver = SolverFactory('gurobi')  # ou 'cbc' si glpk n'est pas disponible
+    solver = SolverFactory('highs')  # ou 'cbc' si glpk n'est pas disponible
     result = solver.solve(model, tee=False)
     
     # Récupère la valeur optimale
@@ -165,7 +165,7 @@ def test_toysarus_optimal_value():
     model = local_vars['model']
     
     # Résout le modèle avec un solveur (par défaut glpk ou cbc)
-    solver = SolverFactory('gurobi')  # ou 'cbc' si glpk n'est pas disponible
+    solver = SolverFactory('highs')  # ou 'cbc' si glpk n'est pas disponible
     result = solver.solve(model, tee=False)
     
     # Récupère la valeur optimale
@@ -193,7 +193,7 @@ def test_pastissimo_optimal_value():
     model = local_vars['model']
     
     # Résout le modèle avec un solveur (par défaut glpk ou cbc)
-    solver = SolverFactory('gurobi')  # ou 'cbc' si glpk n'est pas disponible
+    solver = SolverFactory('highs')  # ou 'cbc' si glpk n'est pas disponible
     result = solver.solve(model, tee=False)
     
     # Récupère la valeur optimale
