@@ -7,7 +7,7 @@ ARC(USINES,JOUETS):ponderation;
 ENDSETS
 
 DATA:
-bigM=1000000;!grand chiffre;
+bigM=1000000;
 revenu=10,15;
 cout_dem=50000,80000;
 ponderation=0.02,0.025,
