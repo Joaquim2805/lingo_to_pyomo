@@ -1,11 +1,9 @@
 MODEL:
 
 SETS:
-!ensemble des aliments;
-ALIMENTS: Prix,Calories,X;!X variable decisionnelle, le nombre d'aliments à consommer par jour;
-!ensemble des ingredients de base;
-INGREDIENTS: Dietejour;!la quantité de chaque ingredient a manger chaque jour;
-ARCS(ALIMENTS,INGREDIENTS):Qteing;!la quantite d'ingredient dans chaque aliment;
+ALIMENTS: Prix,Calories,X;
+INGREDIENTS: Dietejour;
+ARCS(ALIMENTS,INGREDIENTS):Qteing;
 ENDSETS
 
 DATA:
