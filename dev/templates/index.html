@@ -152,7 +152,7 @@
       .hero-content {
         position: relative;
         z-index: 1;
-        max-width: 700px;
+        max-width: 900px;
         animation: slideInUp 0.8s ease;
       }
 
@@ -200,6 +200,8 @@
         margin-top: 2rem;
         animation: slideInUp 1s ease;
         box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        max-width: 100%;
+        width: 100%;
       }
 
       .form-group {
@@ -757,6 +759,62 @@
         background: var(--accent-color);
       }
 
+      /* Styles pour les onglets */
+      .nav-tabs {
+        border: none !important;
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 0.5rem;
+        align-items: center;
+        overflow-x: auto;
+      }
+
+      .nav-tabs .nav-item {
+        flex-shrink: 0;
+      }
+
+      .nav-tabs .nav-link {
+        color: #cbd5e1 !important;
+        border: none !important;
+        border-bottom: 3px solid transparent !important;
+        font-weight: 500;
+        padding: 0.75rem 1.5rem !important;
+        transition: all 0.3s ease !important;
+        position: relative;
+        white-space: nowrap;
+        font-size: 0.95rem;
+      }
+
+      .nav-tabs .nav-link:hover {
+        color: var(--accent-color) !important;
+        border-bottom-color: var(--accent-color) !important;
+      }
+
+      .nav-tabs .nav-link.active {
+        color: var(--accent-color) !important;
+        border-bottom-color: var(--accent-color) !important;
+        background: transparent !important;
+      }
+
+      .tab-content {
+        padding: 1.5rem 0;
+      }
+
+      .tab-pane {
+        animation: fadeIn 0.3s ease-in;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
       @media (max-width: 768px) {
         .preview-modal-content {
           width: 98%;
@@ -769,6 +827,15 @@
 
         .preview-modal-footer {
           flex-direction: column;
+        }
+
+        .nav-tabs {
+          gap: 0.5rem !important;
+        }
+
+        .nav-tabs .nav-link {
+          padding: 0.5rem 1rem !important;
+          font-size: 0.9rem;
         }
       }
     </style>
@@ -827,50 +894,245 @@
         </p>
 
         <div class="form-card">
-          <form action="/generate" method="post" id="uploadForm">
-            <div class="form-group">
-              <label for="file_select" class="form-label">
-                <i class="fas fa-file-upload"></i> Sélectionnez votre modèle
-                LINGO
-                <span class="file-badge"
-                  >{{ files|length }} fichier(s) disponible(s)</span
+          <!-- Onglets de navigation -->
+          <ul
+            class="nav nav-tabs"
+            id="toolTabs"
+            role="tablist"
+            style="
+              border-bottom: 2px solid #334155;
+              margin-bottom: 2rem;
+              gap: 0.5rem;
+            "
+          >
+            <li class="nav-item" role="presentation">
+              <button
+                class="nav-link active"
+                id="generate-tab"
+                data-bs-toggle="tab"
+                data-bs-target="#generate-content"
+                type="button"
+                role="tab"
+                style="
+                  color: #cbd5e1;
+                  border: none;
+                  border-bottom: 3px solid transparent;
+                  padding: 0.75rem 1.5rem;
+                  font-weight: 500;
+                  transition: all 0.3s;
+                "
+              >
+                <i class="fas fa-magic"></i> Générer Notebook
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button
+                class="nav-link"
+                id="convert-tab"
+                data-bs-toggle="tab"
+                data-bs-target="#convert-content"
+                type="button"
+                role="tab"
+                style="
+                  color: #cbd5e1;
+                  border: none;
+                  border-bottom: 3px solid transparent;
+                  padding: 0.75rem 1.5rem;
+                  font-weight: 500;
+                  transition: all 0.3s;
+                "
+              >
+                <i class="fas fa-exchange-alt"></i> Conversion OLE
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button
+                class="nav-link"
+                id="clean-tab"
+                data-bs-toggle="tab"
+                data-bs-target="#clean-content"
+                type="button"
+                role="tab"
+                style="
+                  color: #cbd5e1;
+                  border: none;
+                  border-bottom: 3px solid transparent;
+                  padding: 0.75rem 1.5rem;
+                  font-weight: 500;
+                  transition: all 0.3s;
+                "
+              >
+                <i class="fas fa-broom"></i> Nettoyage
+              </button>
+            </li>
+          </ul>
+
+          <!-- Contenu des onglets -->
+          <div class="tab-content" id="toolTabsContent">
+            <!-- Onglet 1: Générer Notebook -->
+            <div
+              class="tab-pane fade show active"
+              id="generate-content"
+              role="tabpanel"
+            >
+              <form action="/generate" method="post" id="uploadForm">
+                <div class="form-group">
+                  <label for="file_select" class="form-label">
+                    <i class="fas fa-file-upload"></i> Sélectionnez votre modèle
+                    LINGO
+                    <span class="file-badge"
+                      >{{ files|length }} fichier(s) disponible(s)</span
+                    >
+                  </label>
+                  <select
+                    class="form-select"
+                    id="file_select"
+                    name="file_select"
+                    required
+                  >
+                    <option value="">-- Choisissez un fichier --</option>
+                    {% for file in files %}
+                    <option value="{{ file }}">{{ file }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label for="solver_select" class="form-label">
+                    <i class="fas fa-cogs"></i> Solveur
+                  </label>
+                  <select
+                    class="form-select"
+                    id="solver_select"
+                    name="solver_select"
+                    required
+                  >
+                    <option value="">-- Choisissez un solveur --</option>
+                    <option value="gurobi">Gurobi</option>
+                    <option value="cplex">CPLEX</option>
+                    <option value="glpk">GLPK</option>
+                    <option value="highs" selected>HIGHS (par défaut)</option>
+                  </select>
+                </div>
+
+                <button type="submit" class="btn btn-generate" id="generateBtn">
+                  <i class="fas fa-magic"></i> Générer le notebook
+                </button>
+              </form>
+            </div>
+
+            <!-- Onglet 2: Conversion OLE -->
+            <div class="tab-pane fade" id="convert-content" role="tabpanel">
+              <div style="margin-bottom: 1.5rem">
+                <h5 style="color: #86efac; margin-bottom: 0.75rem">
+                  <i class="fas fa-info-circle"></i> À propos
+                </h5>
+                <p style="color: #cbd5e1; font-size: 0.95rem; margin: 0">
+                  Pour les fichiers LINGO qui utilisent des appels @OLE vers un
+                  fichier Excel, cette fonctionnalité génère une version
+                  explicite du modèle en remplaçant les données dynamiques par
+                  leurs valeurs.
+                </p>
+              </div>
+              <form id="oleConversionForm">
+                <div class="form-group">
+                  <label for="file_select_ole" class="form-label">
+                    <i class="fas fa-file-arrow-up"></i> Sélectionnez un fichier
+                    LINGO avec @OLE
+                    <span class="file-badge" style="background: #16a34a">
+                      {% if ole_files %}{{ ole_files|length }} fichier(s){% else
+                      %}Aucun{% endif %}
+                    </span>
+                  </label>
+                  <select
+                    class="form-select"
+                    id="file_select_ole"
+                    name="file_select_ole"
+                    required
+                  >
+                    <option value="">-- Choisissez un fichier --</option>
+                    {% for file in ole_files %}
+                    <option value="{{ file }}">{{ file }}</option>
+                    {% endfor %}
+                  </select>
+                  {% if not ole_files %}
+                  <small
+                    style="color: #f87171; margin-top: 0.5rem; display: block"
+                  >
+                    <i class="fas fa-exclamation-circle"></i> Aucun fichier @OLE
+                    disponible
+                  </small>
+                  {% endif %}
+                </div>
+
+                <button
+                  type="submit"
+                  class="btn btn-generate"
+                  id="convertOleBtn"
+                  style="background: #16a34a; border-color: #16a34a"
                 >
-              </label>
-              <select
-                class="form-select"
-                id="file_select"
-                name="file_select"
-                required
-              >
-                <option value="">-- Choisissez un fichier --</option>
-                {% for file in files %}
-                <option value="{{ file }}">{{ file }}</option>
-                {% endfor %}
-              </select>
+                  <i class="fas fa-exchange-alt"></i> Convertir en explicite
+                </button>
+              </form>
             </div>
 
-            <div class="form-group">
-              <label for="solver_select" class="form-label">
-                <i class="fas fa-cogs"></i> Solveur
-              </label>
-              <select
-                class="form-select"
-                id="solver_select"
-                name="solver_select"
-                required
-              >
-                <option value="">-- Choisissez un solveur --</option>
-                <option value="gurobi">Gurobi</option>
-                <option value="cplex">CPLEX</option>
-                <option value="glpk">GLPK</option>
-                <option value="highs" selected>HIGHS (par défaut)</option>
-              </select>
-            </div>
+            <!-- Onglet 3: Nettoyage -->
+            <div class="tab-pane fade" id="clean-content" role="tabpanel">
+              <div style="margin-bottom: 1.5rem">
+                <h5 style="color: #fbbf24; margin-bottom: 0.75rem">
+                  <i class="fas fa-info-circle"></i> Fonctionnalités
+                </h5>
+                <ul
+                  style="
+                    margin: 0;
+                    padding-left: 1.5rem;
+                    color: #cbd5e1;
+                    font-size: 0.9rem;
+                  "
+                >
+                  <li>Supprimant les commentaires entre crochets [...]</li>
+                  <li>Enlevant les accents et caractères spéciaux</li>
+                  <li>
+                    Normalisant la casse (ensembles en MAJUSCULE,
+                    paramètres/variables en PascalCase)
+                  </li>
+                  <li>Supprimant les sections DATA ENDATA vides</li>
+                  <li>Assurant la cohérence d'écriture des identifiants</li>
+                </ul>
+              </div>
+              <form id="cleanForm">
+                <div class="form-group">
+                  <label for="file_select_clean" class="form-label">
+                    <i class="fas fa-file-import"></i> Sélectionnez un fichier
+                    LINGO à nettoyer
+                    <span class="file-badge" style="background: #f59e0b">
+                      {{ files|length }} fichier(s)
+                    </span>
+                  </label>
+                  <select
+                    class="form-select"
+                    id="file_select_clean"
+                    name="file_select_clean"
+                    required
+                  >
+                    <option value="">-- Choisissez un fichier --</option>
+                    {% for file in files %}
+                    <option value="{{ file }}">{{ file }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
 
-            <button type="submit" class="btn btn-generate" id="generateBtn">
-              <i class="fas fa-magic"></i> Générer le notebook
-            </button>
-          </form>
+                <button
+                  type="submit"
+                  class="btn btn-generate"
+                  id="cleanBtn"
+                  style="background: #f59e0b; border-color: #f59e0b"
+                >
+                  <i class="fas fa-broom"></i> Nettoyer le fichier
+                </button>
+              </form>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -1059,6 +1321,32 @@
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+      // Gestion des onglets avec styles personnalisés
+      document.addEventListener("DOMContentLoaded", function () {
+        const tabs = document.querySelectorAll("#toolTabs .nav-link");
+
+        tabs.forEach((tab) => {
+          tab.addEventListener("click", function (e) {
+            // Enlever le style actif de tous les onglets
+            tabs.forEach((t) => {
+              t.style.borderBottomColor = "transparent";
+              t.style.color = "#cbd5e1";
+            });
+
+            // Ajouter le style actif à l'onglet cliqué
+            this.style.borderBottomColor = "var(--accent-color)";
+            this.style.color = "var(--accent-color)";
+          });
+        });
+
+        // Initialiser le premier onglet comme actif
+        const firstTab = document.querySelector("#toolTabs .nav-link");
+        if (firstTab) {
+          firstTab.style.borderBottomColor = "var(--accent-color)";
+          firstTab.style.color = "var(--accent-color)";
+        }
+      });
+
       // Variables globales pour l'aperçu
       let currentPreviewData = null;
 
@@ -1265,6 +1553,256 @@
               }, 1000);
             });
         });
+
+      // OLE Conversion form submission
+      document
+        .getElementById("oleConversionForm")
+        .addEventListener("submit", function (e) {
+          e.preventDefault();
+
+          const btn = document.getElementById("convertOleBtn");
+          const originalText = btn.innerHTML;
+          btn.disabled = true;
+          btn.innerHTML =
+            '<i class="fas fa-spinner fa-spin"></i> Conversion en cours...';
+
+          const formData = new FormData(this);
+
+          fetch("/convert-ole", {
+            method: "POST",
+            body: formData,
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              if (data.success) {
+                // Afficher un modal de succès avec le fichier généré
+                showOleSuccessModal(data);
+              } else {
+                // Erreur retournée
+                showErrorModal(
+                  data.error || "Erreur inconnue",
+                  data.details ||
+                    "Une erreur s'est produite lors du traitement.",
+                  data.type ? `Type: ${data.type}` : null,
+                  data.traceback || null,
+                );
+              }
+            })
+            .catch((error) => {
+              showErrorModal(
+                "Erreur de communication",
+                "Une erreur s'est produite lors de la communication avec le serveur.",
+                null,
+                error.toString(),
+              );
+            })
+            .finally(() => {
+              // Restore button state after 1 second
+              setTimeout(() => {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+              }, 1000);
+            });
+        });
+
+      // Function to show OLE conversion success modal
+      function showOleSuccessModal(data) {
+        const modal = document.getElementById("previewModal");
+        const codeContent = document.getElementById("previewCodeContent");
+
+        codeContent.textContent = data.content_preview;
+        hljs.highlightElement(codeContent);
+
+        // Update the download button to trigger file download
+        const downloadBtn = document.querySelector(".btn-preview-download");
+        downloadBtn.innerHTML =
+          '<i class="fas fa-download"></i> Télécharger le fichier .lng';
+        downloadBtn.onclick = function () {
+          downloadOleFile(data);
+        };
+
+        modal.classList.add("show");
+      }
+
+      // Function to download OLE converted file
+      function downloadOleFile(data) {
+        const link = document.createElement("a");
+        link.href = `file://${data.output_path}`;
+
+        // Instead of direct file link, we need to use fetch to download
+        fetch("/download-ole", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            output_path: data.output_path,
+            file_name: data.file_name,
+          }),
+        })
+          .then((response) => {
+            if (response.ok) {
+              return response.blob().then((blob) => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = data.file_name;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                closePreviewModal();
+              });
+            } else {
+              throw new Error("Erreur lors du téléchargement");
+            }
+          })
+          .catch((error) => {
+            showErrorModal(
+              "Erreur de téléchargement",
+              "Impossible de télécharger le fichier: " + error.message,
+              null,
+              null,
+            );
+          });
+      }
+
+      // Clean form submission
+      document
+        .getElementById("cleanForm")
+        .addEventListener("submit", function (e) {
+          e.preventDefault();
+
+          const btn = document.getElementById("cleanBtn");
+          const originalText = btn.innerHTML;
+          btn.disabled = true;
+          btn.innerHTML =
+            '<i class="fas fa-spinner fa-spin"></i> Nettoyage en cours...';
+
+          const formData = new FormData(this);
+
+          fetch("/clean", {
+            method: "POST",
+            body: formData,
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              if (data.success) {
+                // Afficher un modal de succès avec le fichier généré
+                showCleanSuccessModal(data);
+              } else {
+                // Erreur retournée
+                showErrorModal(
+                  data.error || "Erreur inconnue",
+                  data.details ||
+                    "Une erreur s'est produite lors du traitement.",
+                  data.type ? `Type: ${data.type}` : null,
+                  data.traceback || null,
+                );
+              }
+            })
+            .catch((error) => {
+              showErrorModal(
+                "Erreur de communication",
+                "Une erreur s'est produite lors de la communication avec le serveur.",
+                null,
+                error.toString(),
+              );
+            })
+            .finally(() => {
+              // Restore button state after 1 second
+              setTimeout(() => {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+              }, 1000);
+            });
+        });
+
+      // Function to show clean success modal
+      function showCleanSuccessModal(data) {
+        const modal = document.getElementById("previewModal");
+        const codeContent = document.getElementById("previewCodeContent");
+
+        codeContent.textContent = data.content_preview;
+        hljs.highlightElement(codeContent);
+
+        // Update the download button to trigger file download
+        const downloadBtn = document.querySelector(".btn-preview-download");
+        downloadBtn.innerHTML =
+          '<i class="fas fa-download"></i> Télécharger le fichier nettoyé';
+        downloadBtn.onclick = function () {
+          downloadCleanFile(data);
+        };
+
+        // Add info about file size reduction
+        const previewHeader = document.querySelector(".preview-modal-header");
+        const statsDiv =
+          document.querySelector(".preview-stats") ||
+          document.createElement("div");
+        statsDiv.className = "preview-stats";
+        statsDiv.style.cssText =
+          "color: #cbd5e1; font-size: 0.9rem; margin-top: 1rem; padding: 0.5rem; background: rgba(255,255,255,0.05); border-radius: 8px;";
+        const reduction = Math.round(
+          (1 - data.cleaned_size / data.original_size) * 100,
+        );
+        statsDiv.innerHTML = `
+          <i class="fas fa-chart-pie" style="color: #fbbf24;"></i> 
+          Taille originale: ${(data.original_size / 1024).toFixed(2)} KB → 
+          Taille nettoyée: ${(data.cleaned_size / 1024).toFixed(2)} KB 
+          <strong style="color: #fbbf24;">(${reduction}% de réduction)</strong>
+        `;
+
+        if (!document.querySelector(".preview-stats")) {
+          const codeContainer = document.querySelector(
+            ".preview-code-container",
+          );
+          codeContainer.parentNode.insertBefore(statsDiv, codeContainer);
+        } else {
+          document.querySelector(".preview-stats").innerHTML =
+            statsDiv.innerHTML;
+        }
+
+        modal.classList.add("show");
+      }
+
+      // Function to download clean file
+      function downloadCleanFile(data) {
+        fetch("/download-ole", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            output_path: data.output_path,
+            file_name: data.file_name,
+          }),
+        })
+          .then((response) => {
+            if (response.ok) {
+              return response.blob().then((blob) => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = data.file_name;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                closePreviewModal();
+              });
+            } else {
+              throw new Error("Erreur lors du téléchargement");
+            }
+          })
+          .catch((error) => {
+            showErrorModal(
+              "Erreur de téléchargement",
+              "Impossible de télécharger le fichier: " + error.message,
+              null,
+              null,
+            );
+          });
+      }
 
       // Smooth scroll for navigation links
       document.querySelectorAll('a[href^="#"]').forEach((anchor) => {

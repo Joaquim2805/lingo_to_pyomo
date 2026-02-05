@@ -42,6 +42,7 @@ class LingoModelTransformer2(Transformer):
     Hérite de :
         lark.Transformer
     """
+
     def model_decl(self, items):
         return {"model": str(items[0])}
 
@@ -67,7 +68,6 @@ class LingoModelTransformer2(Transformer):
             dict: Dictionnaire représentant la déclaration de l'ensemble,
             avec son nom, ses indices éventuels, ses éléments et attributs.
         """
-
 
         name = str(items[0])
 
@@ -369,7 +369,8 @@ class LingoModelTransformer2(Transformer):
                 (
                     c
                     for c in tree.children
-                    if isinstance(c, Tree) and c.data in ("indexset", "indexed_set")
+                    if isinstance(c, Tree)
+                    and c.data in ("indexset", "indexed_set", "indexed_set2")
                 ),
                 None,
             )

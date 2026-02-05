@@ -14,9 +14,9 @@ temps=3.2,2.4,
 ENDDATA
 
 !FO;
-[FO] MAX=@SUM(PRODUITS:gain*x);
+MAX=@SUM(PRODUITS(p):gain(p)*x(p));
 
-@FOR(MACHINES(m):@SUM(ARC:temps(m,p)*x(p))<=disponibilite(m));
+@FOR(MACHINES(m):@SUM(PRODUITS(p):temps(m,p)*x(p))<=disponibilite(m));
 !variables entieres;
 !@FOR(PRODUITS(x):@GIN(x));
 END

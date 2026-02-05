@@ -99,6 +99,7 @@ factor: NUMBER
 
 indexset: NAME
         | NAME LPAR NAME RPAR      -> indexed_set
+        | NAME LPAR NAME COMMA NAME RPAR -> indexed_set2
 
 comp_op: LE | GE | EQ
 
