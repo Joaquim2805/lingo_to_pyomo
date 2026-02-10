@@ -11,12 +11,12 @@ ALIMENTS, INGREDIENTS, Prix, Calories, DIETEJOUR, QTEING= @OLE('regime.xlsx');
 
 ENDDATA
 !Fonction objectif;
- MIN = @SUM(ALIMENTS:Prix * X);
+ MIN = @SUM(ALIMENTS(a):Prix(a) * X(a));
 !Contrainte;
 @FOR(INGREDIENTS(i): @SUM(ALIMENTS(a):QTEING(a,i) * X(a))>=DIETEJOUR(i)
 );
 
-@SUM(ALIMENTS: Calories * X)>=500;
+@SUM(ALIMENTS(a): Calories(a) * X(a))>=500;
 
 DATA:
 @OLE('regime.xlsx')=X, regimeeco;

@@ -499,7 +499,108 @@ def translate_constraint_with_sum(
     return f"{lhs_pyomo} {op} {rhs_pyomo}"
 
 
-def generate_pyomo_code(model_json):
+def prepare_pyomo_data_dict(model_json, external_data=False):
+    """
+    Prépare un dictionnaire contenant toutes les données (sets, params) pour externalisation JSON.
+
+    Args:
+        model_json (dict): JSON décrivant le modèle LINGO
+        external_data (bool): Si True, retourne les données prêtes pour JSON
+
+    Returns:
+        dict: Dictionnaire avec structure {sets: {...}, params: {...}, cartesian_data: {...}}
+    """
+    (
+        sets,
+        cartesian_sets,
+        params,
+        _,
+        _,
+        _,
+        _,
+        _,
+    ) = parse_lingo_json(model_json)
+
+    data_dict = {"sets": {}, "params": {}, "cartesian_data": {}}
+
+    # Conversion des types
+    def _convert_type(val):
+        try:
+            return int(val)
+        except Exception:
+            return str(val)
+
+    # Externaliser les sets
+    for setname, elements in sets.items():
+        data_dict["sets"][setname] = [_convert_type(e) for e in elements]
+
+    # Externaliser les params indexés et scalaires
+    for (setname, attr), values in params.items():
+        if setname not in sets and setname not in cartesian_sets:
+            # Param scalaire
+            data_dict["params"][attr] = (
+                float(values[0]) if isinstance(values, list) else float(values)
+            )
+        else:
+            # Param indexé
+            if isinstance(values, list) and len(values) == 1:
+                val = float(values[0])
+                data_dict["params"][attr] = val
+            elif isinstance(values, (int, float)):
+                data_dict["params"][attr] = values
+            else:
+                from itertools import product
+
+                if setname in cartesian_sets:
+                    idx_sets = cartesian_sets[setname]
+                    cart_keys = list(product(*(sets[idx] for idx in idx_sets)))
+                    typed_keys = [tuple(_convert_type(e) for e in k) for k in cart_keys]
+                    data_dict["cartesian_data"][attr] = {
+                        str(k): float(values[i]) for i, k in enumerate(typed_keys)
+                    }
+                else:
+                    typed_keys = [_convert_type(e) for e in sets[setname]]
+                    data_dict["params"][attr] = {
+                        str(typed_keys[i]): float(values[i]) for i in range(len(values))
+                    }
+
+    # Params supplémentaires du JSON
+    for key, val in model_json["data"].items():
+        if key not in data_dict["params"] and key not in [p[1] for p in params.keys()]:
+            scalar_val = float(val[0]) if isinstance(val, list) else float(val)
+            data_dict["params"][key] = scalar_val
+
+    return data_dict
+
+
+def save_pyomo_data_to_json(model_json, output_path="./data/pyomo_data.json"):
+    """
+    Sauvegarde les données du modèle LINGO dans un fichier JSON.
+
+    Args:
+        model_json (dict): JSON décrivant le modèle LINGO
+        output_path (str): Chemin du fichier JSON à créer (par défaut: ./data/pyomo_data.json)
+
+    Returns:
+        str: Chemin du fichier créé
+    """
+    import json
+    from pathlib import Path
+
+    data_dict = prepare_pyomo_data_dict(model_json, external_data=True)
+
+    output_file = Path(output_path)
+    output_file.parent.mkdir(parents=True, exist_ok=True)
+
+    with open(output_file, "w") as f:
+        json.dump(data_dict, f, indent=2)
+
+    return str(output_file)
+
+
+def generate_pyomo_code(
+    model_json, external_data=False, data_filename="./data/pyomo_data.json"
+):
     (
         sets,
         cartesian_sets,
@@ -550,6 +651,52 @@ def generate_pyomo_code(model_json):
         lines.append("")
 
     lines = []
+
+    # Si external_data=True, ajouter le chargement des données depuis JSON
+    if external_data:
+        lines.append("import json")
+        lines.append(f"with open('{data_filename}') as f:")
+        lines.append(f"    data = json.load(f)")
+        lines.append("")
+        # Ajouter une fonction helper pour convertir les indices JSON
+        lines.append(
+            "# Helper function to convert JSON string keys back to proper types"
+        )
+        lines.append("def _convert_json_keys(data_dict, set_data):")
+        lines.append('    """Convertit les clés strings du JSON aux types corrects"""')
+        lines.append("    if not data_dict:")
+        lines.append("        return data_dict")
+        lines.append("    result = {}")
+        lines.append("    for key_str, value in data_dict.items():")
+        lines.append(
+            "        # Détecter le type en regardant le premier élément du set"
+        )
+        lines.append("        if isinstance(set_data[0], int):")
+        lines.append("            key = int(key_str)")
+        lines.append("        else:")
+        lines.append("            key = key_str")
+        lines.append("        result[key] = value")
+        lines.append("    return result")
+        lines.append("")
+        lines.append("def _convert_json_tuples(data_dict, set_indices):")
+        lines.append(
+            '    """Convertit les clés tuple strings du JSON aux tuples typés"""'
+        )
+        lines.append("    if not data_dict:")
+        lines.append("        return data_dict")
+        lines.append("    import ast")
+        lines.append("    result = {}")
+        lines.append("    for key_str, value in data_dict.items():")
+        lines.append("        # Parser le tuple depuis sa représentation en string")
+        lines.append("        # De '(1, 'prod')' à (1, 'prod')")
+        lines.append("        try:")
+        lines.append("            key = ast.literal_eval(key_str)")
+        lines.append("        except:")
+        lines.append("            key = key_str")
+        lines.append("        result[key] = value")
+        lines.append("    return result")
+        lines.append("")
+
     lines.append("from pyomo.environ import *\n")
     lines.append("model = ConcreteModel()\n")
     add_section("SETS")
@@ -564,8 +711,11 @@ def generate_pyomo_code(model_json):
     # === Déclaration des sets ===
     all_set_names = set()
     for setname, elements in sets.items():
-        typed_elems = [_convert_type(e) for e in elements]
-        lines.append(f"model.{setname} = Set(initialize={typed_elems})")
+        if external_data:
+            lines.append(f"model.{setname} = Set(initialize=data['sets']['{setname}'])")
+        else:
+            typed_elems = [_convert_type(e) for e in elements]
+            lines.append(f"model.{setname} = Set(initialize={typed_elems})")
         all_set_names.add(setname)
 
     for name, indices in cartesian_sets.items():
@@ -590,22 +740,37 @@ def generate_pyomo_code(model_json):
 
         # Param scalaire si setname absent
         if setname not in sets and setname not in cartesian_sets:
-            val = float(values[0]) if isinstance(values, list) else float(values)
-            lines.append(
-                f"model.{attr} = Param(initialize={val}, within=NonNegativeReals)"
-            )
+            if external_data:
+                lines.append(
+                    f"model.{attr} = Param(initialize=data['params']['{attr}'], within=NonNegativeReals)"
+                )
+            else:
+                val = float(values[0]) if isinstance(values, list) else float(values)
+                lines.append(
+                    f"model.{attr} = Param(initialize={val}, within=NonNegativeReals)"
+                )
 
         # Param indexé
         else:
             if isinstance(values, list) and len(values) == 1:
                 val = float(values[0])
-                lines.append(
-                    f"model.{attr} = Param(initialize={val}, within=NonNegativeReals)"
-                )
+                if external_data:
+                    lines.append(
+                        f"model.{attr} = Param(initialize=data['params']['{attr}'], within=NonNegativeReals)"
+                    )
+                else:
+                    lines.append(
+                        f"model.{attr} = Param(initialize={val}, within=NonNegativeReals)"
+                    )
             elif isinstance(values, (int, float)):
-                lines.append(
-                    f"model.{attr} = Param(initialize={values}, within=NonNegativeReals)"
-                )
+                if external_data:
+                    lines.append(
+                        f"model.{attr} = Param(initialize=data['params']['{attr}'], within=NonNegativeReals)"
+                    )
+                else:
+                    lines.append(
+                        f"model.{attr} = Param(initialize={values}, within=NonNegativeReals)"
+                    )
             else:
                 from itertools import product
 
@@ -613,37 +778,55 @@ def generate_pyomo_code(model_json):
                     idx_sets = cartesian_sets[setname]
                     dims = ", ".join(f"model.{idx}" for idx in idx_sets)
 
-                    # 🔴 CORRECTION CRITIQUE ICI
-                    cart_keys = list(product(*(sets[idx] for idx in idx_sets)))
-                    typed_keys = [tuple(_convert_type(e) for e in k) for k in cart_keys]
+                    if external_data:
+                        lines.append(
+                            f"model.{attr} = Param({dims}, initialize=_convert_json_tuples(data['cartesian_data']['{attr}'], None), within=NonNegativeReals)"
+                        )
+                    else:
+                        # 🔴 CORRECTION CRITIQUE ICI
+                        cart_keys = list(product(*(sets[idx] for idx in idx_sets)))
+                        typed_keys = [
+                            tuple(_convert_type(e) for e in k) for k in cart_keys
+                        ]
 
-                    data_dict = {
-                        typed_keys[i]: float(values[i]) for i in range(len(typed_keys))
-                    }
+                        data_dict = {
+                            typed_keys[i]: float(values[i])
+                            for i in range(len(typed_keys))
+                        }
 
-                    lines.append(
-                        f"model.{attr} = Param({dims}, initialize={data_dict}, within=NonNegativeReals)"
-                    )
+                        lines.append(
+                            f"model.{attr} = Param({dims}, initialize={data_dict}, within=NonNegativeReals)"
+                        )
 
                 else:
                     dims = f"model.{setname}"
-                    typed_keys = [_convert_type(e) for e in sets[setname]]
 
-                    data_dict = {
-                        typed_keys[i]: float(values[i]) for i in range(len(values))
-                    }
-
-                    lines.append(
-                        f"model.{attr} = Param({dims}, initialize={data_dict}, within=NonNegativeReals)"
-                    )
+                    if external_data:
+                        set_elements = [_convert_type(e) for e in sets[setname]]
+                        lines.append(
+                            f"model.{attr} = Param({dims}, initialize=_convert_json_keys(data['params']['{attr}'], {set_elements}), within=NonNegativeReals)"
+                        )
+                    else:
+                        typed_keys = [_convert_type(e) for e in sets[setname]]
+                        data_dict = {
+                            typed_keys[i]: float(values[i]) for i in range(len(values))
+                        }
+                        lines.append(
+                            f"model.{attr} = Param({dims}, initialize={data_dict}, within=NonNegativeReals)"
+                        )
 
     for key, val in model_json["data"].items():
         # Si le param n'est pas déjà indexé sur un set
         if key not in declared_params:
-            scalar_val = float(val[0]) if isinstance(val, list) else float(val)
-            lines.append(
-                f"model.{key} = Param(initialize={scalar_val}, within=NonNegativeReals)"
-            )
+            if external_data:
+                lines.append(
+                    f"model.{key} = Param(initialize=data['params']['{key}'], within=NonNegativeReals)"
+                )
+            else:
+                scalar_val = float(val[0]) if isinstance(val, list) else float(val)
+                lines.append(
+                    f"model.{key} = Param(initialize={scalar_val}, within=NonNegativeReals)"
+                )
             declared_params.add(key)  # marque comme param déjà déclaré
     # === VARIABLES ===
     declared_vars = set()

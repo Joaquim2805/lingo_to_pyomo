@@ -1,0 +1,30 @@
+{
+  "sets": {
+    "MACHINES": [
+      1,
+      2
+    ],
+    "PRODUITS": [
+      "remorcage",
+      "stabilisateur"
+    ]
+  },
+  "params": {
+    "DISPONIBILITE": {
+      "1": 16.0,
+      "2": 15.0
+    },
+    "Gain": {
+      "remorcage": 130.0,
+      "stabilisateur": 150.0
+    }
+  },
+  "cartesian_data": {
+    "TEMPS": {
+      "(1, 'remorcage')": 3.2,
+      "(1, 'stabilisateur')": 2.4,
+      "(2, 'remorcage')": 2.0,
+      "(2, 'stabilisateur')": 3.0
+    }
+  }
+}

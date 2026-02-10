@@ -13,11 +13,11 @@ DIETEJOUR = 500,6,10,8;
 QTEING = 400,3,2,2,200,2,2,4,150,0,4,1,500,0,4,5;
 ENDDATA
 !Fonction objectif;
- MIN = @SUM(ALIMENTS:Prix * X);
+ MIN = @SUM(ALIMENTS(a):Prix(a) * X(a));
 !Contrainte;
 @FOR(INGREDIENTS(i): @SUM(ALIMENTS(a):QTEING(a,i) * X(a))>=DIETEJOUR(i)
 );
 
-@SUM(ALIMENTS: Calories * X)>=500;
+@SUM(ALIMENTS: Calories(a) * X(a))>=500;
 
 END

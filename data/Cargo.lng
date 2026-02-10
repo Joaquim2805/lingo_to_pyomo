@@ -11,7 +11,7 @@ cap_poids,cap_volume,poids,volume,gain=@OLE('cargo.xlsx');
 ENDDATA
 
 !FO;
-MAX=@SUM(ARC(c,j):gain(J)*X(c,j));
+MAX=@SUM(COMPARTIMENTS(c):@SUM(CHARGES(j):(gain(j)*X(c,j))));
 
 !Contraintes;
 !Capacite en poids des compartiments a ne pas dépasser;
@@ -24,7 +24,7 @@ MAX=@SUM(ARC(c,j):gain(J)*X(c,j));
 @FOR(CHARGES(j): @SUM(COMPARTIMENTS(c):X(c,j))<=poids(j));
 
 
-@FOR(COMPARTIMENTS(c) : @sum(COMPARTIMENTS(u):cap_poids(u))*@SUM(CHARGES(j):X(c,j))=cap_poids(c)*@SUM(arc(t,j) :X(t,j)));
+@FOR(COMPARTIMENTS(c) : @SUM(COMPARTIMENTS(u):cap_poids(u))*@SUM(CHARGES(j):X(c,j))=cap_poids(c)*@SUM(arc(t,j) :X(t,j)));
 
 
 END

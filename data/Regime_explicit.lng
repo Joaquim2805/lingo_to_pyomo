@@ -13,12 +13,12 @@ DIetejour = 500,6,10,8;
 Qteing = 400,3,2,2,200,2,2,4,150,0,4,1,500,0,4,5;
 ENDDATA
 !Fonction objectif;
-[regimeeco] MIN = @SUM(ALIMENTS:Prix * X);
+[regimeeco] MIN = @SUM(ALIMENTS(a):Prix(a) * X(a));
 !Contrainte;
 @FOR(INGREDIENTS(i):[mangerdetout] @SUM(ALIMENTS(a):Qteing(a,i) * X(a))>=Dietejour(i)
 );
 
-@SUM(ALIMENTS: Calories * X)>=500;
+@SUM(ALIMENTS: Calories(a) * X(a))>=500;
 
 DATA:
 
