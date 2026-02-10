@@ -95,11 +95,19 @@ def generate():
         model_dict = LingoModelTransformer2().transform(tree)
         pyomo_code = generate_pyomo_code(model_dict)
 
+        # Lire le contenu LINGO original pour la comparaison
+        try:
+            with open(input_path, "r", encoding="utf-8", errors="ignore") as f:
+                lingo_original = f.read()
+        except Exception:
+            lingo_original = None
+
         # Retourner un aperçu du code avec les infos de téléchargement
         return jsonify(
             {
                 "success": True,
                 "pyomo_code": pyomo_code,
+                "lingo_original": lingo_original,
                 "file_name": Path(file_name).stem,
                 "solver": solver,
                 "output_path": output_path,
@@ -178,12 +186,16 @@ def clean():
             else cleaned_content
         )
 
+        # Aperçu du contenu original
+        original_preview = content[:1500] + "..." if len(content) > 1500 else content
+
         return jsonify(
             {
                 "success": True,
                 "file_name": output_name,
                 "output_path": output_path,
                 "content_preview": preview,
+                "original_content": original_preview,
                 "original_size": len(content),
                 "cleaned_size": len(cleaned_content),
             }
@@ -240,9 +252,20 @@ def convert_ole():
         # Appeler la fonction de conversion
         output_path = convert_lingo_ole_to_explicit(input_path)
 
+        # Lire le fichier original
+        with open(input_path, "r", encoding="utf-8") as f:
+            original_content = f.read()
+
         # Lire le fichier généré
         with open(output_path, "r", encoding="utf-8") as f:
             explicit_content = f.read()
+
+        # Aperçu du contenu original
+        original_preview = (
+            original_content[:1500] + "..."
+            if len(original_content) > 1500
+            else original_content
+        )
 
         # Retourner le contenu et le chemin
         return jsonify(
@@ -250,9 +273,10 @@ def convert_ole():
                 "success": True,
                 "file_name": os.path.basename(output_path),
                 "output_path": output_path,
-                "content_preview": explicit_content[:1000] + "..."
-                if len(explicit_content) > 1000
+                "content_preview": explicit_content[:1500] + "..."
+                if len(explicit_content) > 1500
                 else explicit_content,
+                "original_content": original_preview,
             }
         ), 200
 

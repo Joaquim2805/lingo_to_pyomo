@@ -633,9 +633,10 @@
         background: rgba(30, 41, 59, 0.95);
         border: 1px solid var(--border-color);
         border-radius: 16px;
-        width: 95%;
-        max-width: 900px;
-        height: 80vh;
+        width: 96%;
+        max-width: 1600px;
+        height: 88vh;
+        max-height: none;
         display: flex;
         flex-direction: column;
         box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
@@ -759,6 +760,273 @@
         background: var(--accent-color);
       }
 
+      /* Toast Notifications */
+      .toast-container {
+        position: fixed;
+        top: 80px;
+        right: 20px;
+        z-index: 10000;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .toast {
+        background: rgba(30, 41, 59, 0.98);
+        border: 1px solid var(--border-color);
+        border-left: 4px solid var(--success-color);
+        border-radius: 12px;
+        padding: 1rem 1.5rem;
+        min-width: 320px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        animation:
+          slideInRight 0.4s ease,
+          fadeOut 0.4s ease 2.6s forwards;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      .toast.error {
+        border-left-color: var(--danger-color);
+      }
+
+      .toast-icon {
+        font-size: 1.5rem;
+        color: var(--success-color);
+      }
+
+      .toast.error .toast-icon {
+        color: var(--danger-color);
+      }
+
+      .toast-content {
+        flex: 1;
+      }
+
+      .toast-title {
+        font-weight: 600;
+        color: var(--light-text);
+        margin-bottom: 0.25rem;
+      }
+
+      .toast-message {
+        font-size: 0.85rem;
+        color: #cbd5e1;
+      }
+
+      @keyframes slideInRight {
+        from {
+          transform: translateX(400px);
+          opacity: 0;
+        }
+        to {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
+
+      @keyframes fadeOut {
+        to {
+          opacity: 0;
+          transform: translateX(400px);
+        }
+      }
+
+      /* Version Badge */
+      .version-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: rgba(14, 165, 233, 0.15);
+        border: 1px solid var(--accent-color);
+        color: var(--accent-color);
+        padding: 0.35rem 0.85rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        margin-left: 1rem;
+        animation: pulse 2s ease-in-out infinite;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          box-shadow: 0 0 0 0 rgba(14, 165, 233, 0.4);
+        }
+        50% {
+          box-shadow: 0 0 0 6px rgba(14, 165, 233, 0);
+        }
+      }
+
+      /* Tooltips */
+      .tooltip-wrapper {
+        position: relative;
+        display: inline-block;
+      }
+
+      .tooltip-icon {
+        color: var(--accent-color);
+        cursor: help;
+        margin-left: 0.5rem;
+        font-size: 0.9rem;
+      }
+
+      .tooltip-content {
+        visibility: hidden;
+        position: absolute;
+        bottom: 125%;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(15, 23, 42, 0.98);
+        border: 1px solid var(--accent-color);
+        color: var(--light-text);
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        font-size: 0.85rem;
+        white-space: nowrap;
+        z-index: 1000;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        opacity: 0;
+        transition:
+          opacity 0.3s ease,
+          visibility 0.3s ease;
+      }
+
+      .tooltip-content::after {
+        content: "";
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        border: 6px solid transparent;
+        border-top-color: rgba(15, 23, 42, 0.98);
+      }
+
+      .tooltip-wrapper:hover .tooltip-content {
+        visibility: visible;
+        opacity: 1;
+      }
+
+      /* Comparison View */
+      .comparison-view {
+        display: none;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem;
+        flex: 1;
+        overflow: hidden;
+      }
+
+      .comparison-view.active {
+        display: grid;
+      }
+
+      .comparison-panel {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        overflow: hidden;
+      }
+
+      .comparison-header {
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid var(--border-color);
+        background: rgba(15, 23, 42, 0.5);
+        font-weight: 600;
+        color: var(--accent-color);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.9rem;
+      }
+
+      .comparison-code {
+        flex: 1;
+        overflow-y: auto;
+        background: #1e1e1e;
+        padding: 0.75rem;
+        font-family: "Fira Code", monospace;
+        font-size: 0.7rem;
+        line-height: 1.4;
+      }
+
+      .comparison-code::-webkit-scrollbar {
+        width: 6px;
+      }
+
+      .comparison-code::-webkit-scrollbar-track {
+        background: rgba(51, 65, 85, 0.5);
+      }
+
+      .comparison-code::-webkit-scrollbar-thumb {
+        background: var(--border-color);
+        border-radius: 3px;
+      }
+
+      .comparison-code::-webkit-scrollbar-thumb:hover {
+        background: var(--accent-color);
+      }
+
+      .view-toggle-btn {
+        background: transparent;
+        border: 1px solid var(--border-color);
+        color: #cbd5e1;
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .view-toggle-btn:hover {
+        border-color: var(--accent-color);
+        color: var(--accent-color);
+      }
+
+      .view-toggle-btn.active {
+        background: var(--accent-color);
+        border-color: var(--accent-color);
+        color: white;
+      }
+
+      /* Enhanced Feature Cards */
+      .feature-card:hover .feature-icon {
+        transform: scale(1.1) rotate(5deg);
+        transition: transform 0.3s ease;
+      }
+
+      .feature-icon {
+        transition: transform 0.3s ease;
+      }
+
+      /* File Badge Enhancement */
+      .file-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: rgba(14, 165, 233, 0.2);
+        border: 1px solid var(--accent-color);
+        color: var(--accent-color);
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        margin-left: 0.5rem;
+        animation: badge-pulse 3s ease-in-out infinite;
+      }
+
+      @keyframes badge-pulse {
+        0%,
+        100% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.05);
+        }
+      }
+
       /* Styles pour les onglets */
       .nav-tabs {
         border: none !important;
@@ -817,12 +1085,13 @@
 
       @media (max-width: 768px) {
         .preview-modal-content {
-          width: 98%;
-          height: 90vh;
+          width: 95%;
+          height: 85vh;
+          max-height: none;
         }
 
         .preview-code {
-          font-size: 0.75rem;
+          font-size: 0.7rem;
         }
 
         .preview-modal-footer {
@@ -837,15 +1106,28 @@
           padding: 0.5rem 1rem !important;
           font-size: 0.9rem;
         }
+
+        .view-toggle-btn {
+          padding: 0.4rem 0.75rem;
+          font-size: 0.75rem;
+        }
+
+        .comparison-code {
+          font-size: 0.65rem;
+        }
       }
     </style>
   </head>
   <body>
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
       <div class="container">
         <a class="navbar-brand" href="#">
           <i class="fas fa-code"></i>LINGO → Pyomo
+          <span class="version-badge"> <i class="fas fa-star"></i> v2.0 </span>
         </a>
         <button
           class="navbar-toggler"
@@ -1000,6 +1282,12 @@
                 <div class="form-group">
                   <label for="solver_select" class="form-label">
                     <i class="fas fa-cogs"></i> Solveur
+                    <span class="tooltip-wrapper">
+                      <i class="fas fa-info-circle tooltip-icon"></i>
+                      <span class="tooltip-content"
+                        >Le solveur utilisé pour résoudre le modèle</span
+                      >
+                    </span>
                   </label>
                   <select
                     class="form-select"
@@ -1255,15 +1543,55 @@
     <div class="preview-modal" id="previewModal">
       <div class="preview-modal-content">
         <div class="preview-modal-header">
-          <h2 class="preview-modal-title">Aperçu du code Pyomo</h2>
+          <div style="flex: 1">
+            <h2 class="preview-modal-title">Aperçu du code</h2>
+          </div>
+          <div style="display: flex; gap: 0.5rem; align-items: center">
+            <button
+              class="view-toggle-btn"
+              id="singleViewBtn"
+              onclick="toggleComparisonView(false)"
+            >
+              <i class="fas fa-file-code"></i> Vue Simple
+            </button>
+            <button
+              class="view-toggle-btn"
+              id="compareViewBtn"
+              onclick="toggleComparisonView(true)"
+            >
+              <i class="fas fa-columns"></i> Comparaison
+            </button>
+          </div>
           <button class="preview-modal-close" onclick="closePreviewModal()">
             <i class="fas fa-times"></i>
           </button>
         </div>
-        <div class="preview-code-container">
+
+        <!-- Single View -->
+        <div class="preview-code-container" id="singleView">
           <pre
             class="preview-code"
           ><code class="language-python" id="previewCodeContent"></code></pre>
+        </div>
+
+        <!-- Comparison View -->
+        <div class="comparison-view" id="comparisonView">
+          <div class="comparison-panel">
+            <div class="comparison-header" id="leftPanelHeader">
+              <i class="fas fa-file-alt"></i>
+              <span id="leftPanelTitle">Avant</span>
+            </div>
+            <pre
+              class="comparison-code"
+            ><code id="leftPanelCode">Code pas disponible</code></pre>
+          </div>
+          <div class="comparison-panel">
+            <div class="comparison-header" id="rightPanelHeader">
+              <i class="fas fa-file-code"></i>
+              <span id="rightPanelTitle">Après</span>
+            </div>
+            <pre class="comparison-code"><code id="rightPanelCode"></code></pre>
+          </div>
         </div>
         <div class="preview-modal-footer">
           <button class="btn-preview-cancel" onclick="closePreviewModal()">
@@ -1349,16 +1677,94 @@
 
       // Variables globales pour l'aperçu
       let currentPreviewData = null;
+      let currentComparisonData = { left: null, right: null };
+      let isComparisonView = false;
+
+      // Toast Notification System
+      function showToast(title, message, type = "success") {
+        const container = document.getElementById("toastContainer");
+        const toast = document.createElement("div");
+        toast.className = `toast ${type}`;
+
+        const icon =
+          type === "success" ? "fa-check-circle" : "fa-exclamation-circle";
+
+        toast.innerHTML = `
+          <i class="fas ${icon} toast-icon"></i>
+          <div class="toast-content">
+            <div class="toast-title">${title}</div>
+            <div class="toast-message">${message}</div>
+          </div>
+        `;
+
+        container.appendChild(toast);
+
+        // Auto-remove after 3 seconds
+        setTimeout(() => {
+          toast.remove();
+        }, 3000);
+      }
+
+      // Toggle Comparison View
+      function toggleComparisonView(showComparison) {
+        isComparisonView = showComparison;
+        const singleView = document.getElementById("singleView");
+        const comparisonView = document.getElementById("comparisonView");
+        const singleBtn = document.getElementById("singleViewBtn");
+        const compareBtn = document.getElementById("compareViewBtn");
+
+        if (showComparison) {
+          singleView.style.display = "none";
+          comparisonView.classList.add("active");
+          singleBtn.classList.remove("active");
+          compareBtn.classList.add("active");
+
+          // Load comparison content
+          if (currentComparisonData.left) {
+            document.getElementById("leftPanelCode").textContent =
+              currentComparisonData.left;
+            hljs.highlightElement(document.getElementById("leftPanelCode"));
+          }
+          if (currentComparisonData.right) {
+            document.getElementById("rightPanelCode").textContent =
+              currentComparisonData.right;
+            hljs.highlightElement(document.getElementById("rightPanelCode"));
+          }
+        } else {
+          singleView.style.display = "block";
+          comparisonView.classList.remove("active");
+          singleBtn.classList.add("active");
+          compareBtn.classList.remove("active");
+        }
+      }
 
       // Preview modal functions
-      function showPreviewModal(pyomoCode) {
+      function showPreviewModal(
+        rightCode,
+        leftCode = null,
+        leftTitle = "LINGO Original",
+        rightTitle = "Pyomo Généré",
+      ) {
         const modal = document.getElementById("previewModal");
         const codeContent = document.getElementById("previewCodeContent");
 
-        codeContent.textContent = pyomoCode;
+        codeContent.textContent = rightCode;
+
+        // Setup comparison data
+        currentComparisonData = {
+          left: leftCode,
+          right: rightCode,
+        };
+
+        // Update panel titles
+        document.getElementById("leftPanelTitle").textContent = leftTitle;
+        document.getElementById("rightPanelTitle").textContent = rightTitle;
 
         // Highlight the code
         hljs.highlightElement(codeContent);
+
+        // Reset to single view
+        toggleComparisonView(false);
 
         modal.classList.add("show");
       }
@@ -1524,8 +1930,19 @@
                   pyomo_code: data.pyomo_code,
                 };
 
-                // Afficher l'aperçu
-                showPreviewModal(data.pyomo_code);
+                showToast(
+                  "Succès!",
+                  `Notebook généré pour ${data.file_name}`,
+                  "success",
+                );
+
+                // Afficher l'aperçu avec le code LINGO original si disponible
+                showPreviewModal(
+                  data.pyomo_code,
+                  data.lingo_original || null,
+                  "LINGO Original",
+                  "Pyomo Généré",
+                );
               } else {
                 // Erreur retournée
                 showErrorModal(
@@ -1575,6 +1992,11 @@
             .then((response) => response.json())
             .then((data) => {
               if (data.success) {
+                showToast(
+                  "Conversion OLE réussie!",
+                  `Fichier ${data.file_name} généré`,
+                  "success",
+                );
                 // Afficher un modal de succès avec le fichier généré
                 showOleSuccessModal(data);
               } else {
@@ -1607,11 +2029,16 @@
 
       // Function to show OLE conversion success modal
       function showOleSuccessModal(data) {
-        const modal = document.getElementById("previewModal");
-        const codeContent = document.getElementById("previewCodeContent");
+        // Store for download
+        window.currentOleData = data;
 
-        codeContent.textContent = data.content_preview;
-        hljs.highlightElement(codeContent);
+        // Show with comparison if original is available
+        showPreviewModal(
+          data.content_preview,
+          data.original_content || null,
+          "LINGO avec @OLE",
+          "LINGO Explicite",
+        );
 
         // Update the download button to trigger file download
         const downloadBtn = document.querySelector(".btn-preview-download");
@@ -1620,8 +2047,6 @@
         downloadBtn.onclick = function () {
           downloadOleFile(data);
         };
-
-        modal.classList.add("show");
       }
 
       // Function to download OLE converted file
@@ -1688,6 +2113,11 @@
             .then((response) => response.json())
             .then((data) => {
               if (data.success) {
+                showToast(
+                  "Nettoyage réussi!",
+                  `Fichier ${data.file_name} nettoyé`,
+                  "success",
+                );
                 // Afficher un modal de succès avec le fichier généré
                 showCleanSuccessModal(data);
               } else {
@@ -1720,11 +2150,16 @@
 
       // Function to show clean success modal
       function showCleanSuccessModal(data) {
-        const modal = document.getElementById("previewModal");
-        const codeContent = document.getElementById("previewCodeContent");
+        // Store for download
+        window.currentCleanData = data;
 
-        codeContent.textContent = data.content_preview;
-        hljs.highlightElement(codeContent);
+        // Show with comparison if original is available
+        showPreviewModal(
+          data.content_preview,
+          data.original_content || null,
+          "LINGO Original",
+          "LINGO Nettoyé",
+        );
 
         // Update the download button to trigger file download
         const downloadBtn = document.querySelector(".btn-preview-download");
@@ -1741,7 +2176,7 @@
           document.createElement("div");
         statsDiv.className = "preview-stats";
         statsDiv.style.cssText =
-          "color: #cbd5e1; font-size: 0.9rem; margin-top: 1rem; padding: 0.5rem; background: rgba(255,255,255,0.05); border-radius: 8px;";
+          "color: #cbd5e1; font-size: 0.85rem; margin: 0.75rem 1.5rem; padding: 0.75rem; background: rgba(255,255,255,0.05); border-radius: 8px; border-left: 3px solid #fbbf24;";
         const reduction = Math.round(
           (1 - data.cleaned_size / data.original_size) * 100,
         );
@@ -1761,8 +2196,6 @@
           document.querySelector(".preview-stats").innerHTML =
             statsDiv.innerHTML;
         }
-
-        modal.classList.add("show");
       }
 
       // Function to download clean file
