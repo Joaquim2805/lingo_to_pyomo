@@ -377,5 +377,187 @@ def download_ole():
         ), 500
 
 
+@app.route("/pipeline", methods=["POST"])
+def pipeline():
+    """Pipeline complet: détection Excel, conversion OLE, cleaning, génération notebook avec données externes."""
+    try:
+        file_name = request.form.get("file_select_pipeline")
+        solver = request.form.get("solver_select_pipeline", "gurobi")
+        do_clean = request.form.get("do_clean") == "true"
+        external_data = request.form.get("external_data") == "true"
+
+        if not file_name:
+            return jsonify(
+                {
+                    "success": False,
+                    "error": "Aucun fichier sélectionné",
+                    "details": "Veuillez choisir un fichier LINGO dans la liste",
+                }
+            ), 400
+
+        input_path = str(DATA_FOLDER / file_name)
+
+        # Vérifier que le fichier existe
+        if not os.path.exists(input_path):
+            return jsonify(
+                {
+                    "success": False,
+                    "error": "Fichier non trouvé",
+                    "details": f"Le fichier '{file_name}' n'existe pas",
+                }
+            ), 404
+
+        pipeline_steps = []
+        current_file = input_path
+
+        # Lire le contenu original
+        with open(current_file, "r", encoding="utf-8", errors="ignore") as f:
+            original_content = f.read()
+
+        # Étape 1: Détecter et convertir @OLE si présent
+        has_ole = "@OLE" in original_content
+        if has_ole:
+            pipeline_steps.append("🔄 Détection @OLE: Conversion en format explicite")
+            ole_output = convert_lingo_ole_to_explicit(current_file)
+            current_file = ole_output
+            with open(current_file, "r", encoding="utf-8", errors="ignore") as f:
+                current_content = f.read()
+        else:
+            pipeline_steps.append("✓ Aucun @OLE détecté")
+            current_content = original_content
+
+        # Étape 2: Nettoyage si demandé
+        if do_clean:
+            pipeline_steps.append("🧹 Nettoyage du fichier LINGO")
+            cleaned_content = clean_lingo_content(current_content)
+
+            # Sauvegarder le fichier nettoyé
+            file_stem = Path(file_name).stem
+            cleaned_filename = f"{file_stem}_pipeline_clean.lng"
+            cleaned_path = str(DATA_FOLDER / cleaned_filename)
+            with open(cleaned_path, "w", encoding="utf-8") as f:
+                f.write(cleaned_content)
+            current_file = cleaned_path
+            current_content = cleaned_content
+        else:
+            pipeline_steps.append("○ Nettoyage non demandé")
+
+        # Étape 3: Parser et transformer le modèle
+        pipeline_steps.append("🔍 Parsing du modèle LINGO")
+        tree = parse_lingo_model(current_file)
+        model_dict = LingoModelTransformer2().transform(tree)
+
+        # Étape 4: Génération du code Pyomo
+        pipeline_steps.append(
+            f"⚙️ Génération du code Pyomo (données {'externes' if external_data else 'intégrées'})"
+        )
+
+        json_path = None
+        if external_data:
+            # Sauvegarder les données en JSON
+            json_filename = f"{Path(file_name).stem}_data.json"
+            json_path = str(DATA_FOLDER / json_filename)
+            save_pyomo_data_to_json(model_dict, json_path)
+            pipeline_steps.append(f"💾 Données exportées: {json_filename}")
+
+            # Générer le code avec external_data=True
+            pyomo_code = generate_pyomo_code(
+                model_dict, external_data=True, data_filename=f"../data/{json_filename}"
+            )
+        else:
+            pyomo_code = generate_pyomo_code(model_dict, external_data=False)
+
+        # Étape 5: Générer le notebook
+        notebook_filename = f"{Path(file_name).stem}_pipeline.ipynb"
+        notebook_path = str(OUTPUT_FOLDER / notebook_filename)
+        pipeline_steps.append(f"📓 Génération du notebook: {notebook_filename}")
+
+        generate_pyomo_notebook(
+            pyomo_code,
+            solver=solver,
+            filename=notebook_path,
+            external_data=external_data,
+            json_data_filename=f"../data/{Path(file_name).stem}_data.json"
+            if external_data
+            else None,
+        )
+
+        return jsonify(
+            {
+                "success": True,
+                "pipeline_steps": pipeline_steps,
+                "notebook_path": notebook_path,
+                "notebook_filename": notebook_filename,
+                "json_path": json_path,
+                "json_filename": Path(json_path).name if json_path else None,
+                "has_ole": has_ole,
+                "was_cleaned": do_clean,
+                "has_external_data": external_data,
+                "pyomo_code_preview": pyomo_code[:1000] + "..."
+                if len(pyomo_code) > 1000
+                else pyomo_code,
+            }
+        ), 200
+
+    except Exception as e:
+        error_message = str(e)
+        error_traceback = traceback.format_exc()
+
+        print(f"Erreur lors du pipeline: {error_message}")
+        print(f"Stack trace:\n{error_traceback}")
+
+        return jsonify(
+            {
+                "success": False,
+                "error": "Erreur lors du pipeline",
+                "details": error_message,
+                "type": type(e).__name__,
+                "traceback": error_traceback,
+            }
+        ), 500
+
+
+@app.route("/download-pipeline", methods=["POST"])
+def download_pipeline():
+    """Télécharge les fichiers générés par le pipeline (notebook + JSON si applicable)."""
+    try:
+        data = request.get_json()
+        notebook_path = data.get("notebook_path")
+        json_path = data.get("json_path")
+        download_type = data.get("download_type", "notebook")  # "notebook" ou "json"
+
+        if download_type == "notebook":
+            if not notebook_path or not os.path.exists(notebook_path):
+                return jsonify({"success": False, "error": "Notebook non trouvé"}), 404
+            return send_file(notebook_path, as_attachment=True)
+
+        elif download_type == "json":
+            if not json_path or not os.path.exists(json_path):
+                return jsonify(
+                    {"success": False, "error": "Fichier JSON non trouvé"}
+                ), 404
+            return send_file(json_path, as_attachment=True)
+
+        else:
+            return jsonify(
+                {"success": False, "error": "Type de téléchargement invalide"}
+            ), 400
+
+    except Exception as e:
+        error_message = str(e)
+        error_traceback = traceback.format_exc()
+
+        print(f"Erreur lors du téléchargement pipeline: {error_message}")
+        print(f"Stack trace:\n{error_traceback}")
+
+        return jsonify(
+            {
+                "success": False,
+                "error": "Erreur lors du téléchargement",
+                "details": error_message,
+            }
+        ), 500
+
+
 if __name__ == "__main__":
     app.run(debug=True)

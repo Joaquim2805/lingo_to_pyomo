@@ -66,3 +66,13 @@ def test_excel_cargo():
     f2 = normalize_lingo("./data/Cargo_explicit_test.lng")
 
     assert f1 == f2
+
+
+def test_excel_delivery():
+
+    convert_lingo_ole_to_explicit("./data/Delivery.lng")
+
+    f1 = normalize_lingo("./data/Delivery_explicit.lng")
+    f2 = normalize_lingo("./data/Delivery_explicit_test.lng")
+
+    assert f1 == f2

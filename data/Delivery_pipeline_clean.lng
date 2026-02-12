@@ -1,0 +1,26 @@
+MODEL :
+SETS:
+ROUTES /1,2,3,4,5,6,7,8,9,10/:Temps,X;
+NOEUDS /A,B,C,D,E,F,G,H,I/:;
+ARC(NOEUDS,ROUTES):CONNEXION;
+ENDSETS
+
+DATA:
+Temps = 6,4,7,5,4,6,5,3,7,6;
+CONNEXION = 0,1,0,1,0,1,0,0,1,1,0,0,1,1,0,0,1,0,1,0,1,0,0,0,0,1,0,1,0,0,0,0,1,1,0,1,0,0,0,0,0,1,0,0,1,0,0,0,0,0,1,0,0,0,0,0,1,1,0,1,0,0,1,0,1,0,0,0,0,1,0,1,0,1,0,0,1,0,0,0;
+ENDDATA
+
+!FO:minimiser le Temps total;
+ MIN=@SUM(ROUTES:Temps*X);
+
+!SAC;
+!Tous les noeuds doivent etre desservis exactement une fois;
+@FOR(NOEUDS(n):@SUM(ROUTES(r):CONNEXION(n,r)*X(r))=1);
+
+!les points doivent etre delivres par trois livreurs;
+@SUM(ROUTES:X)=3;
+
+!Binaires;
+@FOR(ROUTES:@BIN(X));
+
+END

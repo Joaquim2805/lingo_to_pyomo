@@ -1,0 +1,32 @@
+MODEL:
+
+SETS:
+COMPARTIMENTS /Front,Center,Back/:CapPoids, CAP_VOLUME;
+CHARGES /1,2,3,4/:Poids, Volume, GAIN;
+ARC(COMPARTIMENTS,CHARGES):X;
+ENDSETS
+
+DATA:
+CapPoids = 12,18,10;
+CAP_VOLUME = 7000,9000,5000;
+Poids = 20,16,25,13;
+Volume = 500,700,600,400;
+GAIN = 320,400,360,290;
+ENDDATA
+
+!FO;
+MAX=@SUM(COMPARTIMENTS(c):@SUM(CHARGES(j):(GAIN(j)*X(c,j))));
+
+!Contraintes;
+!Capacite en Poids des compartiments a ne pas depasser;
+@FOR(COMPARTIMENTS(c): @SUM(CHARGES(j):X(c,j))<=CapPoids(c));
+
+!Capacite en Volume des compartiments a ne pas depasser;
+@FOR(COMPARTIMENTS(c):@SUM(CHARGES(j):Volume(j)*X(c,j))<=CAP_VOLUME(c));
+
+!Charge totale disponible;
+@FOR(CHARGES(j): @SUM(COMPARTIMENTS(c):X(c,j))<=Poids(j));
+
+@FOR(COMPARTIMENTS(c) : @SUM(COMPARTIMENTS(u):CapPoids(u))*@SUM(CHARGES(j):X(c,j))=CapPoids(c)*@SUM(ARC(t,j) :X(t,j)));
+
+END

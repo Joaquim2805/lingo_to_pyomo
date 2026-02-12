@@ -186,15 +186,10 @@ def translate_sum_to_pyomo(expr, sets, cartesian_sets):
         raise ValueError(f"Set {setname} inconnu dans @SUM.")
 
     # Remplacer uniquement les appels de fonctions LINGO, pas les noms seuls
-    # f(i,j) → model.f[i,j]
+    # f(i,j) ou f(5,5) ou f(i,5) → model.f[i,j] ou model.f[5,5] ou model.f[i,5]
+    # Gérer tous les types d'indices (alphabétiques et numériques)
     inner_expr = re.sub(
-        r"\b([A-Za-z_]\w*)\s*\(\s*([A-Za-z_]\w*)\s*,\s*([A-Za-z_]\w*)\s*\)",
-        r"model.\1[\2,\3]",
-        inner_expr,
-    )
-    # f(i) → model.f[i]
-    inner_expr = re.sub(
-        r"\b([A-Za-z_]\w*)\s*\(\s*([A-Za-z_]\w*)\s*\)",
+        r"\b([A-Za-z_]\w*)\s*\(\s*([A-Za-z_0-9,\s]+)\s*\)",
         r"model.\1[\2]",
         inner_expr,
     )
@@ -215,15 +210,16 @@ def translate_for_to_pyomo(expr, sets, cartesian_sets):
     une expression prête à être utilisée comme corps d'une contrainte Pyomo.
 
     Gère aussi les directives @BIN() pour déclarer des variables binaires.
+    Gère maintenant les boucles @FOR imbriquées récursivement.
 
     Args:
-        expr (str): Chaîne LINGO contenant la construction @FOR(...).
+        expr (str): Ch\u00e2ine LINGO contenant la construction @FOR(...).
         sets (dict): Dictionnaire des ensembles simples.
         cartesian_sets (dict): Dictionnaire des ensembles cartésiens.
 
     Returns:
-        tuple: (setname (str), alias (str or None), constraint_expr (str)) où `constraint_expr` est
-            une expression Pyomo valide (ex. "sum(...) + model.Param[a] <= model.B[b]").
+        tuple: (setname (str), alias (str or None), constraint_expr (str), nested_fors (list)) où `constraint_expr` est
+            une expression Pyomo valide et nested_fors est une liste de tuples (setname, alias) pour les boucles imbriquées.
 
     Raises:
         ValueError: Si la syntaxe @FOR ou @SUM imbriquée n'est pas respectée.
@@ -257,6 +253,25 @@ def translate_for_to_pyomo(expr, sets, cartesian_sets):
         alias = m.group(2)
         constraint_expr = m.group(3).strip()
 
+    # 1b️⃣ Vérifier s'il y a un @FOR imbriqué
+    nested_fors = []
+    if "@FOR" in constraint_expr.upper():
+        # Traiter récursivement le @FOR imbriqué
+        try:
+            inner_setname, inner_alias, inner_constraint_expr, inner_nested = (
+                translate_for_to_pyomo(constraint_expr, sets, cartesian_sets)
+            )
+            nested_fors.append((inner_setname, inner_alias))
+            nested_fors.extend(inner_nested)
+            constraint_expr = inner_constraint_expr
+        except Exception as e:
+            # Si ça échoue, afficher l'erreur et continuer
+            print(f"⚠️ Erreur lors du traitement du @FOR imbriqué: {e}")
+            print(f"   Expression: {constraint_expr}")
+            import traceback
+
+            traceback.print_exc()
+
     # 2️⃣ Remplacer les @SUM imbriquées en utilisant convert_nested_sums()
     # qui gère correctement tous les formats de @SUM y compris ceux avec des indices
     # multi-dimensionnels et des espaces supplémentaires
@@ -267,19 +282,21 @@ def translate_for_to_pyomo(expr, sets, cartesian_sets):
     # Chercher = qui n'est pas suivi de > ou < ou =
     constraint_expr = re.sub(r"(?<![<>!=])\s*=\s*(?![>=])", " == ", constraint_expr)
 
-    # 3️⃣ Remplacer les Param 1D ou Var 1D : Dispo(f) -> model.Dispo[f]
-    # Mais pas les paramètres scalaires comme bigM
+    # 3️⃣ Remplacer les Param/Var avec indices : x(e,t) -> model.x[e,t] ou x(5,5) -> model.x[5,5]
+    # Gère les indices multiples séparés par des virgules, alphanumériques
     constraint_expr = re.sub(
-        r"\b([A-Za-z_]\w*)\s*\(\s*([A-Za-z_]\w*)\s*\)", r"model.\1[\2]", constraint_expr
+        r"\b([A-Za-z_]\w*)\s*\(\s*([A-Za-z_0-9,\s]+)\s*\)",
+        r"model.\1[\2]",
+        constraint_expr,
     )
 
     # Ensuite ajouter model. aux paramètres scalaires qui n'ont pas d'arguments
     # (ex: bigM -> model.bigM)
     from pyomo_generator.json_parser import safe_replace_variables
-    # Cette ligne sera gérée dans le contexte de generate_pyomo_code
+    # Cette ligne será gérée dans le contexte de generate_pyomo_code
     # où on a la liste complète des paramètres et variables
 
-    return setname, alias, constraint_expr
+    return setname, alias, constraint_expr, nested_fors
 
 
 def detect_binary_variables(for_loops):
@@ -906,8 +923,13 @@ def generate_pyomo_code(
                         declared_params,
                     )
                 else:
+                    # Convertir d'abord les indices avec parenthèses vers des crochets
+                    # x(5,5) -> x[5,5], x(e,t) -> x[e,t]
+                    c_processed = re.sub(
+                        r"\b([A-Za-z_]\w*)\s*\(\s*([A-Za-z_0-9,\s]+)\s*\)", r"\1[\2]", c
+                    )
                     pyomo_expr = safe_replace_variables(
-                        c,
+                        c_processed,
                         set(list(declared_vars) + scalar_vars + list(declared_params)),
                     )
                 lines.append(f"model.c{i} = Constraint(expr={pyomo_expr})")
@@ -925,11 +947,17 @@ def generate_pyomo_code(
             continue
 
         try:
-            setname, alias, body = translate_for_to_pyomo(f, sets, cartesian_sets)
+            setname, alias, body, nested_fors = translate_for_to_pyomo(
+                f, sets, cartesian_sets
+            )
 
             # Ajouter model. aux paramètres scalaires (ex: bigM -> model.bigM)
             # Mais exclure les alias et les variables dans les clauses "for"
             exclude_from_replace = {alias} if alias else set()
+            # Aussi exclure les alias des boucles imbriquées
+            for inner_setname, inner_alias in nested_fors:
+                if inner_alias:
+                    exclude_from_replace.add(inner_alias)
             # Aussi exclure les alias dans les clauses "for" comme "for j in model.JOUETS"
             for_aliases = set(re.findall(r"\bfor\s+([A-Za-z_]\w*)\s+in\s+", body))
             exclude_from_replace.update(for_aliases)
@@ -952,14 +980,31 @@ def generate_pyomo_code(
 
             cl_name = f"c_for_{i}"
             lines.append(f"model.{cl_name} = ConstraintList()")
+
+            # Générer les boucles imbriquées
+            indent = ""
             if alias:
                 lines.append(f"for {alias} in model.{setname}:")
-                lines.append(f"    model.{cl_name}.add({body})")
+                indent = "    "
             else:
                 # Pas d'alias : générer une boucle avec une variable implicite
                 idx = setname[0].lower()  # i, a, p, etc.
                 lines.append(f"for {idx} in model.{setname}:")
-                lines.append(f"    model.{cl_name}.add({body})")
+                indent = "    "
+                exclude_from_replace.add(idx)
+
+            # Ajouter les boucles imbriquées
+            for inner_setname, inner_alias in nested_fors:
+                if inner_alias:
+                    lines.append(f"{indent}for {inner_alias} in model.{inner_setname}:")
+                    indent += "    "
+                else:
+                    inner_idx = inner_setname[0].lower()
+                    lines.append(f"{indent}for {inner_idx} in model.{inner_setname}:")
+                    indent += "    "
+                    exclude_from_replace.add(inner_idx)
+
+            lines.append(f"{indent}model.{cl_name}.add({body})")
 
         except Exception as e:
             lines.append(f"# FAILED to translate FOR-loop {i}: {e}")

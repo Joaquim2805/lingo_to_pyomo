@@ -254,14 +254,21 @@ class LingoModelTransformer2(Transformer):
         expr = None
 
         for it in items:
-            if isinstance(it, Tree) and it.data in ("indexset", "indexed_set"):
+            if isinstance(it, Tree) and it.data in (
+                "indexset",
+                "indexed_set",
+                "indexed_set2",
+            ):
                 indexset = it
             elif isinstance(it, Tree) and it.data in (
                 "expr_with_comp",
                 "expr",
                 "bin_expr",
+                "for_loop_inner",
             ):
                 expr = it
+            elif isinstance(it, Tree) and it.data == "for_loop_body":
+                expr = it.children[0] if it.children else None
             elif isinstance(it, Tree) and it.data == "bin_expr":
                 expr = it
 
@@ -271,6 +278,32 @@ class LingoModelTransformer2(Transformer):
         idx_str = self._expr_to_str(indexset)
         expr_str = self._expr_to_str(expr)
         return {"for_loop": f"@FOR({idx_str}: {expr_str})"}
+
+    def for_loop_inner(self, items):
+        indexset = None
+        expr = None
+
+        for it in items:
+            if isinstance(it, Tree) and it.data in (
+                "indexset",
+                "indexed_set",
+                "indexed_set2",
+            ):
+                indexset = it
+            elif isinstance(it, Tree) and it.data in (
+                "expr_with_comp",
+                "expr",
+                "bin_expr",
+                "for_loop_inner",
+            ):
+                expr = it
+            elif isinstance(it, Tree) and it.data == "for_loop_body":
+                expr = it.children[0] if it.children else None
+
+        if indexset is None or expr is None:
+            raise ValueError(f"for_loop_inner: structure inattendue: {items}")
+
+        return Tree("for_loop_inner", [indexset, expr])
 
     def comp_op(self, items):
         if not items:
@@ -282,14 +315,30 @@ class LingoModelTransformer2(Transformer):
             raise ValueError(f"expr_with_comp mal formée: {items}")
         return Tree("expr_with_comp", items)
 
+    def index_value(self, items):
+        if len(items) != 1:
+            raise ValueError(f"index_value mal formé: {items}")
+        return items[0]
+
     def param_ref(self, items):
-        return Tree("param_ref", items)
+        parts = [
+            tok
+            for tok in items
+            if isinstance(tok, Token) and tok.type in ("NAME", "NUMBER")
+        ]
+        if len(parts) != 2:
+            raise ValueError(f"param_ref mal formé: {items}")
+        return Tree("param_ref", parts)
 
     def param_ref2(self, items):
-        names = [tok for tok in items if isinstance(tok, Token) and tok.type == "NAME"]
-        if len(names) != 3:
+        parts = [
+            tok
+            for tok in items
+            if isinstance(tok, Token) and tok.type in ("NAME", "NUMBER")
+        ]
+        if len(parts) != 3:
             raise ValueError(f"param_ref2 mal formé: {items}")
-        return Tree("param_ref2", names)
+        return Tree("param_ref2", parts)
 
     def indexed_set(self, items):
         # Extraire seulement les noms (ignorer les parenthèses)
@@ -297,6 +346,13 @@ class LingoModelTransformer2(Transformer):
         if len(names) != 2:
             raise ValueError(f"indexed_set mal formé: {items}")
         return Tree("indexed_set", names)
+
+    def indexed_set2(self, items):
+        # Extraire seulement les noms (ignorer les parenthèses)
+        names = [tok for tok in items if isinstance(tok, Token) and tok.type == "NAME"]
+        if len(names) != 3:
+            raise ValueError(f"indexed_set2 mal formé: {items}")
+        return Tree("indexed_set2", names)
 
     def statement(self, items):
         """Décapsule le contenu du statement"""
@@ -338,6 +394,13 @@ class LingoModelTransformer2(Transformer):
             idx = self._expr_to_str(tree.children[1])
             return f"{name}({idx})"
 
+        if tree.data == "param_ref":
+            if len(tree.children) < 2:
+                raise ValueError(f"param_ref nécessite 2 enfants: {tree.children}")
+            name = self._expr_to_str(tree.children[0])
+            idx = self._expr_to_str(tree.children[1])
+            return f"{name}({idx})"
+
         if tree.data == "param_ref2":
             if len(tree.children) < 3:
                 raise ValueError(f"param_ref2 nécessite 3 enfants: {tree.children}")
@@ -345,6 +408,13 @@ class LingoModelTransformer2(Transformer):
             i = self._expr_to_str(tree.children[1])
             j = self._expr_to_str(tree.children[2])
             return f"{name}({i},{j})"
+
+        if tree.data == "for_loop_inner":
+            if len(tree.children) < 2:
+                raise ValueError(f"for_loop_inner nécessite 2 enfants: {tree.children}")
+            idx_str = self._expr_to_str(tree.children[0])
+            expr_str = self._expr_to_str(tree.children[1])
+            return f"@FOR({idx_str}: {expr_str})"
 
         if tree.data == "indexed_set":
             print("DEBUG _expr_to_str indexed_set children:", tree.children)
@@ -355,6 +425,15 @@ class LingoModelTransformer2(Transformer):
                 raise ValueError(f"indexed_set mal formé: {tree.children}")
             name, idx = children
             return f"{name}({idx})"
+
+        if tree.data == "indexed_set2":
+            children = [
+                c for c in tree.children if isinstance(c, Token) and c.type == "NAME"
+            ]
+            if len(children) != 3:
+                raise ValueError(f"indexed_set2 mal formé: {tree.children}")
+            name, idx1, idx2 = children
+            return f"{name}({idx1},{idx2})"
 
         if tree.data == "bin_expr":
             # exemple: @BIN(x)

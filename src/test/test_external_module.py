@@ -28,9 +28,12 @@ fichiers = [
     "Regime_clean_explicit_test.lng",
     "Cargo_explicit_test.lng",
     "Cardoza_clean.lng",
+    "Delivery_explicit_test.lng",
+    "tp11.lng",
+    "Eve-Steven.lng",
 ]
 
-valeurs_optimales = [17, 22333, 36, 230000, 23090, 90, 13330, 825]
+valeurs_optimales = [17, 22333, 36, 230000, 23090, 90, 13330, 825, 12, 173, 18]
 
 
 def test_external():

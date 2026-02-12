@@ -1,0 +1,33 @@
+{
+  "sets": {
+    "VILLES": [
+      "LA",
+      "SF",
+      "SD"
+    ]
+  },
+  "params": {
+    "GainUsine": {
+      "LA": 9.0,
+      "SF": 5.0,
+      "SD": 7.0
+    },
+    "GainMagasin": {
+      "LA": 6.0,
+      "SF": 4.0,
+      "SD": 5.0
+    },
+    "CapitalUsine": {
+      "LA": 6.0,
+      "SF": 3.0,
+      "SD": 4.0
+    },
+    "CapitalMagasin": {
+      "LA": 5.0,
+      "SF": 2.0,
+      "SD": 3.0
+    },
+    "Dispo": 10.0
+  },
+  "cartesian_data": {}
+}

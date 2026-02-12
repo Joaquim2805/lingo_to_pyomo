@@ -1116,6 +1116,77 @@
           font-size: 0.65rem;
         }
       }
+
+      /* Toggle Switch Style (Apple-like) */
+      .toggle-switch {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1rem;
+        padding: 0.75rem;
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 12px;
+        transition: background 0.3s ease;
+      }
+
+      .toggle-switch:hover {
+        background: rgba(255, 255, 255, 0.05);
+      }
+
+      .toggle-switch-input {
+        position: relative;
+        width: 52px;
+        height: 32px;
+        appearance: none;
+        background: #4b5563;
+        border-radius: 50px;
+        outline: none;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        flex-shrink: 0;
+      }
+
+      .toggle-switch-input::before {
+        content: "";
+        position: absolute;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        top: 2px;
+        left: 2px;
+        background: white;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      }
+
+      .toggle-switch-input:checked {
+        background: linear-gradient(135deg, #10b981, #059669);
+      }
+
+      .toggle-switch-input:checked::before {
+        transform: translateX(20px);
+      }
+
+      .toggle-switch-input:hover {
+        box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
+      }
+
+      .toggle-switch-input:active::before {
+        width: 32px;
+      }
+
+      .toggle-switch-label {
+        flex: 1;
+        font-size: 1rem;
+        color: #cbd5e1;
+        cursor: pointer;
+        user-select: none;
+        line-height: 1.5;
+      }
+
+      .toggle-switch-label .icon {
+        margin-right: 0.5rem;
+      }
     </style>
   </head>
   <body>
@@ -1148,6 +1219,16 @@
             <li class="nav-item">
               <a class="nav-link active" href="#hero">
                 <i class="fas fa-home"></i> Accueil
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="#hero">
+                <i class="fas fa-tools"></i> Outils
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="#pipeline">
+                <i class="fas fa-rocket"></i> Pipeline
               </a>
             </li>
             <li class="nav-item">
@@ -1425,6 +1506,190 @@
       </div>
     </section>
 
+    <!-- Pipeline Section -->
+    <section
+      class="tools-section"
+      id="pipeline"
+      style="
+        background: linear-gradient(
+          135deg,
+          rgba(14, 165, 233, 0.05),
+          rgba(37, 99, 235, 0.05)
+        );
+        padding: 4rem 0;
+      "
+    >
+      <div class="container">
+        <div
+          class="section-header"
+          style="text-align: center; margin-bottom: 3rem"
+        >
+          <div
+            style="
+              display: inline-block;
+              background: linear-gradient(135deg, #0ea5e9, #2563eb);
+              padding: 0.75rem 1.5rem;
+              border-radius: 50px;
+              margin-bottom: 1rem;
+            "
+          >
+            <i
+              class="fas fa-rocket"
+              style="color: white; font-size: 1.5rem"
+            ></i>
+          </div>
+          <h2
+            style="
+              font-size: 2.5rem;
+              font-weight: 700;
+              background: linear-gradient(135deg, #0ea5e9, #2563eb);
+              -webkit-background-clip: text;
+              -webkit-text-fill-color: transparent;
+              background-clip: text;
+              margin-bottom: 1rem;
+            "
+          >
+            Pipeline Complet
+          </h2>
+          <p
+            style="
+              font-size: 1.2rem;
+              color: #94a3b8;
+              max-width: 700px;
+              margin: 0 auto;
+            "
+          >
+            Automatisation end-to-end : de votre fichier LINGO au notebook Pyomo
+            prêt à l'emploi
+          </p>
+        </div>
+
+        <div
+          class="tool-card"
+          style="
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 2.5rem;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+          "
+        >
+          <!-- Pipeline Content -->
+          <div>
+            <div
+              class="alert alert-info"
+              style="
+                background: rgba(14, 165, 233, 0.1);
+                border: 1px solid rgba(14, 165, 233, 0.3);
+                color: #0ea5e9;
+              "
+            >
+              <i class="fas fa-info-circle"></i>
+              <strong>Pipeline Complet</strong> - Automatisation complète du
+              processus :
+              <ul style="margin-top: 0.5rem; margin-bottom: 0">
+                <li>🔍 Détection automatique des fichiers Excel (@OLE)</li>
+                <li>🔄 Conversion OLE → Explicite (si nécessaire)</li>
+                <li>🧹 Nettoyage optionnel du code LINGO</li>
+                <li>⚙️ Génération du notebook Pyomo</li>
+                <li>💾 Externalisation optionnelle des données en JSON</li>
+                <li>📥 Téléchargement du notebook + JSON</li>
+              </ul>
+            </div>
+            <form id="pipelineForm">
+              <div class="form-group">
+                <label for="file_select_pipeline" class="form-label">
+                  <i class="fas fa-file-upload"></i> Sélectionnez votre modèle
+                  LINGO
+                  <span class="file-badge"
+                    >{{ files|length }} fichier(s) disponible(s)</span
+                  >
+                </label>
+                <select
+                  class="form-select"
+                  id="file_select_pipeline"
+                  name="file_select_pipeline"
+                  required
+                >
+                  <option value="">-- Choisissez un fichier --</option>
+                  {% for file in files %}
+                  <option value="{{ file }}">{{ file }}</option>
+                  {% endfor %}
+                </select>
+                <div
+                  id="ole-detection"
+                  style="margin-top: 0.5rem; font-size: 0.9rem; color: #94a3b8"
+                ></div>
+              </div>
+
+              <div class="form-group">
+                <label for="solver_select_pipeline" class="form-label">
+                  <i class="fas fa-cogs"></i> Solveur d'optimisation
+                </label>
+                <select
+                  class="form-select"
+                  id="solver_select_pipeline"
+                  name="solver_select_pipeline"
+                >
+                  <option value="gurobi">Gurobi (recommandé)</option>
+                  <option value="cplex">CPLEX</option>
+                  <option value="glpk">GLPK (open source)</option>
+                  <option value="highs">HiGHS (open source)</option>
+                  <option value="ipopt">IPOPT (non-linéaire)</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label"
+                  ><i class="fas fa-sliders-h"></i> Options du pipeline</label
+                >
+                <div class="toggle-switch">
+                  <input
+                    type="checkbox"
+                    id="do_clean"
+                    name="do_clean"
+                    class="toggle-switch-input"
+                  />
+                  <label for="do_clean" class="toggle-switch-label">
+                    <span class="icon">🧹</span>
+                    Nettoyer le fichier LINGO (suppression commentaires,
+                    normalisation)
+                  </label>
+                </div>
+                <div class="toggle-switch">
+                  <input
+                    type="checkbox"
+                    id="external_data"
+                    name="external_data"
+                    class="toggle-switch-input"
+                    checked
+                  />
+                  <label for="external_data" class="toggle-switch-label">
+                    <span class="icon">💾</span>
+                    Externaliser les données en JSON (recommandé pour grands
+                    modèles)
+                  </label>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                class="btn btn-generate"
+                id="pipelineBtn"
+                style="
+                  background: linear-gradient(135deg, #0ea5e9, #2563eb);
+                  border: none;
+                "
+              >
+                <i class="fas fa-rocket"></i> Lancer le Pipeline
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- Features Section -->
     <section class="features-section" id="features">
       <div class="container">
@@ -1601,6 +1866,13 @@
             <i class="fas fa-download"></i> Télécharger le notebook
           </button>
         </div>
+      </div>
+    </div>
+
+    <!-- Pipeline Success Modal -->
+    <div class="preview-modal" id="pipelineModal" style="display: none">
+      <div class="preview-modal-content" id="pipelineModalContent">
+        <!-- Content will be dynamically generated -->
       </div>
     </div>
 
@@ -2181,9 +2453,9 @@
           (1 - data.cleaned_size / data.original_size) * 100,
         );
         statsDiv.innerHTML = `
-          <i class="fas fa-chart-pie" style="color: #fbbf24;"></i> 
-          Taille originale: ${(data.original_size / 1024).toFixed(2)} KB → 
-          Taille nettoyée: ${(data.cleaned_size / 1024).toFixed(2)} KB 
+          <i class="fas fa-chart-pie" style="color: #fbbf24;"></i>
+          Taille originale: ${(data.original_size / 1024).toFixed(2)} KB →
+          Taille nettoyée: ${(data.cleaned_size / 1024).toFixed(2)} KB
           <strong style="color: #fbbf24;">(${reduction}% de réduction)</strong>
         `;
 
@@ -2235,6 +2507,229 @@
               null,
             );
           });
+      }
+
+      // ============================================
+      // Pipeline Form Handler
+      // ============================================
+      document.getElementById("pipelineForm").addEventListener("submit", function (e) {
+        e.preventDefault();
+
+        const form = e.target;
+        const formData = new FormData(form);
+
+        // Add checkbox values explicitly
+        formData.set("do_clean", document.getElementById("do_clean").checked ? "true" : "false");
+        formData.set("external_data", document.getElementById("external_data").checked ? "true" : "false");
+
+        const btn = document.getElementById("pipelineBtn");
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Pipeline en cours...';
+
+        fetch("/pipeline", {
+          method: "POST",
+          body: formData,
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.success) {
+              showToast(
+                "Pipeline réussi!",
+                `Notebook ${data.notebook_filename} généré`,
+                "success"
+              );
+              showPipelineSuccessModal(data);
+            } else {
+              showErrorModal(
+                data.error || "Erreur inconnue",
+                data.details || "Une erreur s'est produite lors du traitement.",
+                data.type ? `Type: ${data.type}` : null,
+                data.traceback || null
+              );
+            }
+          })
+          .catch((error) => {
+            showErrorModal(
+              "Erreur de communication",
+              "Une erreur s'est produite lors de la communication avec le serveur.",
+              null,
+              error.toString()
+            );
+          })
+          .finally(() => {
+            setTimeout(() => {
+              btn.disabled = false;
+              btn.innerHTML = originalText;
+            }, 1000);
+          });
+      });
+
+      // Function to show pipeline success modal
+      function showPipelineSuccessModal(data) {
+        window.currentPipelineData = data;
+
+        // Create custom modal content
+        const modal = document.getElementById("pipelineModal");
+        const modalContent = document.getElementById("pipelineModalContent");
+
+        modalContent.innerHTML = `
+          <div class="preview-modal-header" style="background: linear-gradient(135deg, #0ea5e9, #2563eb); padding: 1.5rem; border-radius: 12px 12px 0 0;">
+            <h5 style="font-size: 1.5rem; font-weight: 700; margin: 0; color: white;">
+              <i class="fas fa-check-circle"></i> Pipeline Complété avec Succès
+            </h5>
+            <button onclick="closePipelineModal()" style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; position: absolute; right: 1.5rem; top: 1.5rem;">×</button>
+          </div>
+
+          <div class="preview-modal-body" style="padding: 1.5rem; max-height: 70vh; overflow-y: auto;">
+            <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
+              <h6 style="color: #10b981; margin-bottom: 0.75rem;"><i class="fas fa-tasks"></i> Étapes du Pipeline</h6>
+              <ol style="margin: 0; padding-left: 1.5rem; color: #cbd5e1;">
+                ${data.pipeline_steps.map(step => `<li style="margin-bottom: 0.25rem;">${step}</li>`).join('')}
+              </ol>
+            </div>
+
+            ${data.has_ole ? `
+              <div style="background: rgba(14, 165, 233, 0.1); border: 1px solid rgba(14, 165, 233, 0.3); border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
+                <i class="fas fa-info-circle" style="color: #0ea5e9;"></i>
+                <span style="color: #cbd5e1;">Fichier Excel détecté et converti en format explicite</span>
+              </div>
+            ` : ''}
+
+            ${data.was_cleaned ? `
+              <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
+                <i class="fas fa-broom" style="color: #f59e0b;"></i>
+                <span style="color: #cbd5e1;">Fichier nettoyé (commentaires supprimés, normalisation effectuée)</span>
+              </div>
+            ` : ''}
+
+            <div style="background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
+              <h6 style="color: #8b5cf6; margin-bottom: 0.75rem;"><i class="fas fa-file-code"></i> Fichiers Générés</h6>
+              <ul style="margin: 0; padding-left: 1.5rem; color: #cbd5e1;">
+                <li>📓 Notebook: <strong>${data.notebook_filename}</strong></li>
+                ${data.has_external_data ? `<li>💾 Données JSON: <strong>${data.json_filename}</strong></li>` : ''}
+              </ul>
+            </div>
+
+            <div style="background: rgba(255, 255, 255, 0.05); border-radius: 8px; padding: 1rem;">
+              <h6 style="color: #cbd5e1; margin-bottom: 0.75rem;"><i class="fas fa-code"></i> Aperçu du Code Pyomo</h6>
+              <pre style="background: #0f172a; padding: 1rem; border-radius: 6px; overflow-x: auto; max-height: 300px;"><code class="language-python">${escapeHtml(data.pyomo_code_preview)}</code></pre>
+            </div>
+          </div>
+
+          <div class="preview-modal-footer" style="padding: 1rem 1.5rem; border-top: 1px solid rgba(255, 255, 255, 0.1); display: flex; gap: 1rem; justify-content: flex-end;">
+            ${data.has_external_data ? `
+              <button onclick="downloadPipelineFile('json')" class="btn" style="background: #8b5cf6; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                <i class="fas fa-download"></i> Télécharger JSON
+              </button>
+            ` : ''}
+            <button onclick="downloadPipelineFile('notebook')" class="btn" style="background: linear-gradient(135deg, #0ea5e9, #2563eb); color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 600; cursor: pointer;">
+              <i class="fas fa-download"></i> Télécharger Notebook
+            </button>
+          </div>
+        `;
+
+        modal.style.display = "flex";
+
+        // Re-highlight code
+        document.querySelectorAll('pre code').forEach((block) => {
+          hljs.highlightElement(block);
+        });
+      }
+
+      // Function to close pipeline modal
+      function closePipelineModal() {
+        const modal = document.getElementById("pipelineModal");
+        modal.style.display = "none";
+      }
+
+      // Function to download pipeline files
+      function downloadPipelineFile(type) {
+        const data = window.currentPipelineData;
+
+        fetch("/download-pipeline", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            notebook_path: data.notebook_path,
+            json_path: data.json_path,
+            download_type: type
+          }),
+        })
+          .then((response) => {
+            if (response.ok) {
+              return response.blob().then((blob) => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = type === "notebook" ? data.notebook_filename : data.json_filename;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+
+                if (type === "notebook" && !data.has_external_data) {
+                  // Close modal if no JSON to download
+                  setTimeout(() => closePipelineModal(), 500);
+                }
+              });
+            } else {
+              throw new Error("Erreur lors du téléchargement");
+            }
+          })
+          .catch((error) => {
+            showErrorModal(
+              "Erreur de téléchargement",
+              "Impossible de télécharger le fichier: " + error.message,
+              null,
+              null
+            );
+          });
+      }
+
+      // Detect OLE when file is selected in pipeline
+      document.getElementById("file_select_pipeline").addEventListener("change", function(e) {
+        const fileName = e.target.value;
+        const detectionDiv = document.getElementById("ole-detection");
+
+        if (!fileName) {
+          detectionDiv.innerHTML = "";
+          return;
+        }
+
+        // Check if file is in ole_files list (passed from backend)
+        // @ts-ignore - Jinja2 template syntax
+        const oleFiles = {{ ole_files|tojson }};
+
+        if (oleFiles.includes(fileName)) {
+          detectionDiv.innerHTML = `
+            <div style="background: rgba(14, 165, 233, 0.1); border: 1px solid rgba(14, 165, 233, 0.3); border-radius: 6px; padding: 0.5rem; display: inline-flex; align-items: center; gap: 0.5rem;">
+              <i class="fas fa-file-excel" style="color: #0ea5e9;"></i>
+              <span style="color: #0ea5e9;">Fichier Excel détecté - Conversion automatique activée</span>
+            </div>
+          `;
+        } else {
+          detectionDiv.innerHTML = `
+            <div style="background: rgba(148, 163, 184, 0.1); border: 1px solid rgba(148, 163, 184, 0.3); border-radius: 6px; padding: 0.5rem; display: inline-flex; align-items: center; gap: 0.5rem;">
+              <i class="fas fa-info-circle" style="color: #94a3b8;"></i>
+              <span style="color: #94a3b8;">Aucun fichier Excel détecté</span>
+            </div>
+          `;
+        }
+      });
+
+      // Helper function to escape HTML
+      function escapeHtml(text) {
+        const map = {
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#039;'
+        };
+        return text.replace(/[&<>"']/g, m => map[m]);
       }
 
       // Smooth scroll for navigation links

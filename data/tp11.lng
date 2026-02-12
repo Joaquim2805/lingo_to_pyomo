@@ -1,7 +1,7 @@
 MODEL :
 SETS:
-employes/1,2,3,4,5/:z;
-taches/1,2,3,4,5/:zz;
+employes/1,2,3,4,5/:;
+taches/1,2,3,4,5/:;
 ARC(employes,taches):c,x;
 ENDSETS
 
@@ -14,9 +14,11 @@ c=39,65,69,66,57,
 ENDDATA
 
 MIN = @SUM(ARC(e,t):c(e,t)*x(e,t));
-@for(taches(t):@sum(employes(e):x(e,t))=1);
+@FOR(taches(t):@SUM(employes(e):x(e,t))=1);
 !@for(employes(e):@sum(taches(t):x(e,t))=1);
-@for(ARC(e,t):x(e,t)<=1);
+!@FOR(ARC(e,t):x(e,t)<=1);
+
+@FOR(employes(e):@FOR(taches(t):x(e,t) <= 1));
 
 x(5,5)<=0;x(5,2)>=1;
 !x(5,2)<=0;!x(5,5)>=1;

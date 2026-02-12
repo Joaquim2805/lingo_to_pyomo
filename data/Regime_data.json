@@ -1,0 +1,56 @@
+{
+  "sets": {
+    "ALIMENTS": [
+      "Brownie",
+      "Cremeglacee",
+      "Cola",
+      "Gateau"
+    ],
+    "INGREDIENTS": [
+      "Calories",
+      "Chocolat",
+      "Sucre",
+      "Matieregrasse"
+    ]
+  },
+  "params": {
+    "Prix": {
+      "Brownie": 50.0,
+      "Cremeglacee": 20.0,
+      "Cola": 30.0,
+      "Gateau": 80.0
+    },
+    "Calories": {
+      "Brownie": 400.0,
+      "Cremeglacee": 200.0,
+      "Cola": 150.0,
+      "Gateau": 500.0
+    },
+    "DIETEJOUR": {
+      "Calories": 500.0,
+      "Chocolat": 6.0,
+      "Sucre": 10.0,
+      "Matieregrasse": 8.0
+    }
+  },
+  "cartesian_data": {
+    "QTEING": {
+      "('Brownie', 'Calories')": 400.0,
+      "('Brownie', 'Chocolat')": 3.0,
+      "('Brownie', 'Sucre')": 2.0,
+      "('Brownie', 'Matieregrasse')": 2.0,
+      "('Cremeglacee', 'Calories')": 200.0,
+      "('Cremeglacee', 'Chocolat')": 2.0,
+      "('Cremeglacee', 'Sucre')": 2.0,
+      "('Cremeglacee', 'Matieregrasse')": 4.0,
+      "('Cola', 'Calories')": 150.0,
+      "('Cola', 'Chocolat')": 0.0,
+      "('Cola', 'Sucre')": 4.0,
+      "('Cola', 'Matieregrasse')": 1.0,
+      "('Gateau', 'Calories')": 500.0,
+      "('Gateau', 'Chocolat')": 0.0,
+      "('Gateau', 'Sucre')": 4.0,
+      "('Gateau', 'Matieregrasse')": 5.0
+    }
+  }
+}

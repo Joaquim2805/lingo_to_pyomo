@@ -35,7 +35,11 @@ def split_pyomo_sections(pyomo_code: str):
 
 
 def generate_pyomo_notebook(
-    pyomo_code: str, solver: str = "gurobi", filename: str = "model.ipynb"
+    pyomo_code: str,
+    solver: str = "gurobi",
+    filename: str = "model.ipynb",
+    external_data: bool = False,
+    json_data_filename: str = "./data/pyomo_data.json",
 ):
     """
     Génère un notebook Jupyter structuré avec une cellule par composant Pyomo.
@@ -56,8 +60,61 @@ def generate_pyomo_notebook(
         )
     )
 
+    # ✨ CELLULE DONNÉES - Ajouter la fonction load_pyomo_data() directement si external_data=True
+    if external_data:
+        nb_cells.append(new_markdown_cell("## 💾 Charger les données"))
+        load_data_code = f'''import json
+import ast
+from pathlib import Path
+
+def load_pyomo_data(input_path="{json_data_filename}"):
+    """Charge les données JSON et convertit les clés string en types natifs."""
+    input_file = Path(input_path)
+    with open(input_file, "r") as f:
+        data = json.load(f)
+
+    def _convert_key(key):
+        if not isinstance(key, str):
+            return key
+        if key.startswith("(") and key.endswith(")"):
+            try:
+                return ast.literal_eval(key)
+            except Exception:
+                return key
+        try:
+            return int(key)
+        except Exception:
+            return key
+
+    # Convertir les dictionnaires de parametres indexes
+    params = data.get("params", {{}})
+    for pname, pval in list(params.items()):
+        if isinstance(pval, dict):
+            params[pname] = {{_convert_key(k): v for k, v in pval.items()}}
+
+    cartesian = data.get("cartesian_data", {{}})
+    for cname, cval in list(cartesian.items()):
+        if isinstance(cval, dict):
+            cartesian[cname] = {{_convert_key(k): v for k, v in cval.items()}}
+
+    data["params"] = params
+    data["cartesian_data"] = cartesian
+    return data
+
+# Charger les données
+data = load_pyomo_data()'''
+        nb_cells.append(new_code_cell(load_data_code))
+
     # Découpage du code Pyomo
-    sections = split_pyomo_sections(pyomo_code)
+    # Nettoyer le code pour supprimer les imports problématiques
+    cleaned_code = "\n".join(
+        line
+        for line in pyomo_code.split("\n")
+        if "from pyomo_generator.json_parser import load_pyomo_data" not in line
+        and "data = load_pyomo_data(" not in line
+    )
+
+    sections = split_pyomo_sections(cleaned_code)
 
     for title, code in sections:
         if not code.strip():

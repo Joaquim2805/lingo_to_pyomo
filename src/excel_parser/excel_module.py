@@ -69,29 +69,76 @@ def _format_list(values):
     return ",".join(str(v) for v in values)
 
 
-def _format_matrix_row_major(df: pd.DataFrame):
-    values = df.values.flatten().tolist()
-    values = [v for v in values if pd.notna(v)]
+def _format_matrix_row_major(df: pd.DataFrame, expected_rows=None, expected_cols=None):
+    """Formate une matrice en row-major order en préservant toutes les valeurs."""
+    # Ne PAS nettoyer pour les matrices - chaque cellule compte
+    actual_rows, actual_cols = df.shape
+    
+    if expected_rows is not None and expected_cols is not None:
+        if actual_rows != expected_rows or actual_cols != expected_cols:
+            print(f"⚠️ Avertissement: Dimensions Excel ({actual_rows}×{actual_cols}) != dimensions attendues ({expected_rows}×{expected_cols})")
+    
+    # Remplacer NaN par 0 pour les matrices (important pour matrices de connectivité)
+    values = df.fillna(0).values.flatten().tolist()
+    # Convertir en int si ce sont des entiers
+    values = [int(v) if isinstance(v, (int, float)) and v == int(v) else v for v in values]
     return ",".join(str(v) for v in values)
 
 
 def _strip_headers(df: pd.DataFrame, row_labels=None, col_labels=None) -> pd.DataFrame:
-    df2 = _clean_df(df)
+    """Supprime les en-têtes de ligne/colonne d'une matrice Excel en préservant toutes les données."""
+    # Ne pas nettoyer au début pour ne pas perdre de données
+    df2 = df.copy()
+    
     if row_labels:
         row_labels = [_sanitize_elem(v) for v in row_labels]
     if col_labels:
         col_labels = [_sanitize_elem(v) for v in col_labels]
-    if col_labels is not None and len(df2.index) > 0:
+    
+    # Détecter si les dimensions sont inversées dans Excel
+    if row_labels is not None and col_labels is not None and len(df2.index) > 0 and len(df2.columns) > 0:
         first_row = df2.iloc[0].astype(str).str.strip().tolist()
         first_row = [_sanitize_elem(v) for v in first_row]
-        if any(v in col_labels for v in first_row):
-            df2 = df2.iloc[1:, :]
-    if row_labels is not None and len(df2.columns) > 0:
         first_col = df2.iloc[:, 0].astype(str).str.strip().tolist()
         first_col = [_sanitize_elem(v) for v in first_col]
-        if any(v in row_labels for v in first_col):
+        
+        # Si première ligne contient row_labels et première colonne contient col_labels, transposer
+        if any(v in row_labels for v in first_row) and any(v in col_labels for v in first_col):
+            df2 = df2.T  # Transposer
+            first_row = df2.iloc[0].astype(str).str.strip().tolist()
+            first_row = [_sanitize_elem(v) for v in first_row]
+            first_col = df2.iloc[:, 0].astype(str).str.strip().tolist()
+            first_col = [_sanitize_elem(v) for v in first_col]
+    
+    # Supprimer la première ligne si elle contient des en-têtes de colonnes
+    # CRITÈRE STRICT: La majorité (>50%) des éléments doivent correspondre aux col_labels
+    if col_labels is not None and len(df2.index) > 0:
+        first_row = df2.iloc[0].astype(str).str.strip().tolist()
+        first_row_clean = [_sanitize_elem(v) for v in first_row]
+        matches = sum(1 for v in first_row_clean if v in col_labels)
+        match_ratio = matches / len(first_row_clean) if len(first_row_clean) > 0 else 0
+        
+        # Ligne d'en-tête seulement si >50% des éléments sont dans col_labels
+        if match_ratio > 0.5:
+            df2 = df2.iloc[1:, :]
+    
+    # Supprimer la première colonne si elle contient des en-têtes de lignes
+    # CRITÈRE STRICT: La majorité (>50%) des éléments doivent correspondre aux row_labels
+    if row_labels is not None and len(df2.columns) > 0:
+        first_col = df2.iloc[:, 0].astype(str).str.strip().tolist()
+        first_col_clean = [_sanitize_elem(v) for v in first_col]
+        matches = sum(1 for v in first_col_clean if v in row_labels)
+        match_ratio = matches / len(first_col_clean) if len(first_col_clean) > 0 else 0
+        
+        # Colonne d'en-tête seulement si >50% des éléments sont dans row_labels
+        if match_ratio > 0.5:
             df2 = df2.iloc[:, 1:]
-    return _clean_df(df2)
+    
+    # Réinitialiser les index pour avoir des index numériques propres
+    df2 = df2.reset_index(drop=True)
+    df2.columns = range(len(df2.columns))
+    
+    return df2
 
 
 def _lingo_value_from_zone(df: pd.DataFrame, row_labels=None, col_labels=None) -> str:
@@ -102,7 +149,11 @@ def _lingo_value_from_zone(df: pd.DataFrame, row_labels=None, col_labels=None) -
     if df.shape[0] == 1 or df.shape[1] == 1:
         vals = [v for v in df.values.flatten().tolist() if pd.notna(v)]
         return _format_list(vals)
-    return _format_matrix_row_major(df)
+    
+    # Pour les matrices 2D, calculer les dimensions attendues
+    expected_rows = len(row_labels) if row_labels else None
+    expected_cols = len(col_labels) if col_labels else None
+    return _format_matrix_row_major(df, expected_rows, expected_cols)
 
 
 def _parse_ole_args(ole_args: str):

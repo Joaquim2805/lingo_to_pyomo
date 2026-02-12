@@ -289,3 +289,87 @@ def test_cardoza_optimal_value():
     assert (int(optimal_value)) == 825, (
         f"La valeur optimale devrait être 825, mais elle est {optimal_value}"
     )
+
+
+def test_delivery_optimal_value():
+    """Test que Pastissimo.lng traduit et résolu donne une valeur optimale de 17."""
+
+    # Parse le fichier LINGO
+    tree = parse_lingo_model("./data/Delivery_explicit_test.lng")
+    model_dict = LingoModelTransformer2().transform(tree)
+
+    # Génère le code Pyomo
+    pyomo_code = generate_pyomo_code(model_dict)
+
+    # Exécute le code Pyomo (crée le modèle)
+    local_vars = {}
+    exec(pyomo_code, local_vars)
+    model = local_vars["model"]
+
+    # Résout le modèle avec un solveur (par défaut glpk ou cbc)
+    solver = SolverFactory("highs")  # ou 'cbc' si glpk n'est pas disponible
+    result = solver.solve(model, tee=False)
+
+    # Récupère la valeur optimale
+    optimal_value = value(model.obj)
+
+    # Vérifie que la valeur optimale est 12
+    assert (int(optimal_value)) == 12, (
+        f"La valeur optimale devrait être 12, mais elle est {optimal_value}"
+    )
+
+
+def test_tp11_optimal_value():
+    """Test que Pastissimo.lng traduit et résolu donne une valeur optimale de 17."""
+
+    # Parse le fichier LINGO
+    tree = parse_lingo_model("./data/tp11.lng")
+    model_dict = LingoModelTransformer2().transform(tree)
+
+    # Génère le code Pyomo
+    pyomo_code = generate_pyomo_code(model_dict)
+
+    # Exécute le code Pyomo (crée le modèle)
+    local_vars = {}
+    exec(pyomo_code, local_vars)
+    model = local_vars["model"]
+
+    # Résout le modèle avec un solveur (par défaut glpk ou cbc)
+    solver = SolverFactory("highs")  # ou 'cbc' si glpk n'est pas disponible
+    result = solver.solve(model, tee=False)
+
+    # Récupère la valeur optimale
+    optimal_value = value(model.obj)
+
+    # Vérifie que la valeur optimale est 173
+    assert (int(optimal_value)) == 173, (
+        f"La valeur optimale devrait être 173, mais elle est {optimal_value}"
+    )
+
+
+def test_evesteven_optimal_value():
+    """Test que Pastissimo.lng traduit et résolu donne une valeur optimale de 17."""
+
+    # Parse le fichier LINGO
+    tree = parse_lingo_model("./data/Eve-Steven.lng")
+    model_dict = LingoModelTransformer2().transform(tree)
+
+    # Génère le code Pyomo
+    pyomo_code = generate_pyomo_code(model_dict)
+
+    # Exécute le code Pyomo (crée le modèle)
+    local_vars = {}
+    exec(pyomo_code, local_vars)
+    model = local_vars["model"]
+
+    # Résout le modèle avec un solveur (par défaut glpk ou cbc)
+    solver = SolverFactory("highs")  # ou 'cbc' si glpk n'est pas disponible
+    result = solver.solve(model, tee=False)
+
+    # Récupère la valeur optimale
+    optimal_value = value(model.obj)
+
+    # Vérifie que la valeur optimale est 173
+    assert (optimal_value) == 18.4, (
+        f"La valeur optimale devrait être 18.4, mais elle est {optimal_value}"
+    )

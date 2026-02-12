@@ -63,6 +63,7 @@ set_block: SETS COLON set_decl+ ENDSETS
 set_decl: NAME LPAR NAME COMMA NAME RPAR COLON name_list SEMICOLON
         | NAME "/" name_list "/" COLON name_list SEMICOLON
         | NAME "/" name_list "/" COLON NAME SEMICOLON
+        | NAME "/" name_list "/" COLON SEMICOLON
         | NAME "/" name_list "/" SEMICOLON
 
 name_list: (NAME | NUMBER) (COMMA (NAME | NUMBER))*
@@ -76,7 +77,9 @@ objective: (MAX | MIN) EQ expr SEMICOLON
 constraint: for_loop
           | expr comp_op expr SEMICOLON
 
-for_loop: FOR LPAR indexset COLON (expr | expr_with_comp) RPAR SEMICOLON
+for_loop: FOR LPAR indexset COLON for_loop_body RPAR SEMICOLON
+for_loop_body: expr_with_comp | expr | for_loop_inner
+for_loop_inner: FOR LPAR indexset COLON for_loop_body RPAR
 
 expr_with_comp: expr comp_op expr
 
@@ -91,8 +94,8 @@ term: factor ((TIMES | DIVIDE) factor)*
 
 factor: NUMBER
       | NAME
-      | NAME LPAR NAME RPAR         -> param_ref
-      | NAME LPAR NAME COMMA NAME RPAR -> param_ref2
+      | NAME LPAR index_value RPAR         -> param_ref
+      | NAME LPAR index_value COMMA index_value RPAR -> param_ref2
       | SUM LPAR indexset COLON expr RPAR -> sum_expr
       | BIN LPAR expr RPAR           -> bin_expr
       | LPAR expr RPAR
@@ -100,6 +103,8 @@ factor: NUMBER
 indexset: NAME
         | NAME LPAR NAME RPAR      -> indexed_set
         | NAME LPAR NAME COMMA NAME RPAR -> indexed_set2
+
+index_value: NAME | NUMBER
 
 comp_op: LE | GE | EQ
 
