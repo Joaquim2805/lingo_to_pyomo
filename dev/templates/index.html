@@ -32,9 +32,11 @@
         --accent-color: #0ea5e9;
         --success-color: #10b981;
         --danger-color: #ef4444;
-        --dark-bg: #0f172a;
-        --light-text: #f8fafc;
-        --border-color: #334155;
+        --dark-bg: #f8fafc;
+        --light-text: #1e293b;
+        --border-color: #e2e8f0;
+        --card-bg: #ffffff;
+        --secondary-bg: #f1f5f9;
       }
 
       * {
@@ -45,7 +47,7 @@
 
       body {
         font-family: "Poppins", sans-serif;
-        background: linear-gradient(135deg, var(--dark-bg) 0%, #1e293b 100%);
+        background: linear-gradient(135deg, #f8fafc 0%, #e0e7ff 100%);
         color: var(--light-text);
         min-height: 100vh;
         overflow-x: hidden;
@@ -53,10 +55,11 @@
 
       /* Navbar Styling */
       .navbar {
-        background: rgba(15, 23, 42, 0.95) !important;
+        background: rgba(255, 255, 255, 0.95) !important;
         backdrop-filter: blur(10px);
         border-bottom: 1px solid var(--border-color);
         padding: 1rem 0;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
       }
 
       .navbar-brand {
@@ -83,7 +86,7 @@
       }
 
       .nav-link {
-        color: #cbd5e1 !important;
+        color: #475569 !important;
         font-weight: 500;
         margin: 0 1rem;
         position: relative;
@@ -138,12 +141,12 @@
         background:
           radial-gradient(
             circle at 20% 50%,
-            rgba(37, 99, 235, 0.1) 0%,
+            rgba(37, 99, 235, 0.08) 0%,
             transparent 50%
           ),
           radial-gradient(
             circle at 80% 80%,
-            rgba(14, 165, 233, 0.1) 0%,
+            rgba(14, 165, 233, 0.08) 0%,
             transparent 50%
           );
         pointer-events: none;
@@ -173,10 +176,10 @@
 
       .hero-subtitle {
         font-size: clamp(1rem, 2.5vw, 1.3rem);
-        color: #cbd5e1;
+        color: #334155;
         margin-bottom: 2rem;
         line-height: 1.6;
-        font-weight: 300;
+        font-weight: 400;
       }
 
       @keyframes slideInUp {
@@ -192,14 +195,14 @@
 
       /* Form Card */
       .form-card {
-        background: rgba(30, 41, 59, 0.8);
+        background: rgba(255, 255, 255, 0.95);
         backdrop-filter: blur(20px);
         border: 1px solid var(--border-color);
         border-radius: 20px;
         padding: 3rem;
         margin-top: 2rem;
         animation: slideInUp 1s ease;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
         max-width: 100%;
         width: 100%;
       }
@@ -210,14 +213,14 @@
 
       .form-label {
         font-weight: 600;
-        color: var(--light-text);
+        color: #0f172a;
         margin-bottom: 0.75rem;
         display: block;
         font-size: 1rem;
       }
 
       .form-select {
-        background: rgba(15, 23, 42, 0.5);
+        background: #ffffff;
         border: 2px solid var(--border-color);
         color: var(--light-text);
         border-radius: 12px;
@@ -229,14 +232,14 @@
 
       .form-select:focus {
         border-color: var(--accent-color);
-        background: rgba(15, 23, 42, 0.7);
+        background: #ffffff;
         box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
         color: var(--light-text);
         outline: none;
       }
 
       .form-select option {
-        background: var(--dark-bg);
+        background: #ffffff;
         color: var(--light-text);
       }
 
@@ -310,7 +313,7 @@
       }
 
       .feature-card {
-        background: rgba(30, 41, 59, 0.6);
+        background: rgba(255, 255, 255, 0.9);
         border: 1px solid var(--border-color);
         border-radius: 16px;
         padding: 2.5rem;
@@ -319,6 +322,7 @@
         height: 100%;
         position: relative;
         overflow: hidden;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
       }
 
       .feature-card::before {
@@ -341,8 +345,8 @@
       .feature-card:hover {
         transform: translateY(-8px);
         border-color: var(--accent-color);
-        background: rgba(30, 41, 59, 0.9);
-        box-shadow: 0 20px 40px rgba(14, 165, 233, 0.2);
+        background: rgba(255, 255, 255, 1);
+        box-shadow: 0 15px 35px rgba(14, 165, 233, 0.15);
       }
 
       .feature-card:hover::before {
@@ -359,19 +363,19 @@
         font-size: 1.5rem;
         font-weight: 600;
         margin-bottom: 1rem;
-        color: var(--light-text);
+        color: #0f172a;
       }
 
       .feature-card p {
-        color: #cbd5e1;
+        color: #475569;
         line-height: 1.6;
-        font-weight: 300;
+        font-weight: 400;
       }
 
       /* How to Use Section */
       .how-to-section {
         padding: 6rem 0;
-        background: rgba(15, 23, 42, 0.5);
+        background: rgba(241, 245, 249, 0.5);
       }
 
       .step-card {
@@ -401,11 +405,11 @@
       .step-content h4 {
         font-weight: 600;
         margin-bottom: 0.5rem;
-        color: var(--light-text);
+        color: #0f172a;
       }
 
       .step-content p {
-        color: #cbd5e1;
+        color: #475569;
         line-height: 1.6;
       }
 
@@ -507,7 +511,7 @@
       }
 
       .error-modal-content {
-        background: rgba(30, 41, 59, 0.95);
+        background: rgba(255, 255, 255, 0.98);
         border: 2px solid var(--danger-color);
         border-radius: 16px;
         padding: 2.5rem;
@@ -532,23 +536,23 @@
       .error-modal-title {
         font-size: 1.5rem;
         font-weight: 700;
-        color: var(--light-text);
+        color: #0f172a;
         margin: 0;
       }
 
       .error-modal-message {
-        background: rgba(239, 68, 68, 0.1);
+        background: rgba(239, 68, 68, 0.05);
         border-left: 4px solid var(--danger-color);
         padding: 1rem;
         border-radius: 8px;
         margin-bottom: 1.5rem;
-        color: #f1f5f9;
+        color: #334155;
         line-height: 1.6;
         font-size: 0.95rem;
       }
 
       .error-modal-details {
-        background: rgba(15, 23, 42, 0.8);
+        background: #f8fafc;
         border: 1px solid var(--border-color);
         padding: 1rem;
         border-radius: 8px;
@@ -557,7 +561,7 @@
         overflow-y: auto;
         font-family: "Fira Code", monospace;
         font-size: 0.85rem;
-        color: #cbd5e1;
+        color: #475569;
         white-space: pre-wrap;
         word-wrap: break-word;
       }
@@ -630,7 +634,7 @@
       }
 
       .preview-modal-content {
-        background: rgba(30, 41, 59, 0.95);
+        background: rgba(255, 255, 255, 0.98);
         border: 1px solid var(--border-color);
         border-radius: 16px;
         width: 96%;
@@ -639,7 +643,7 @@
         max-height: none;
         display: flex;
         flex-direction: column;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
         animation: slideInUp 0.3s ease;
       }
 
@@ -649,19 +653,20 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
+        background: #f8fafc;
       }
 
       .preview-modal-title {
         font-size: 1.5rem;
         font-weight: 700;
-        color: var(--light-text);
+        color: #0f172a;
         margin: 0;
       }
 
       .preview-modal-close {
         background: none;
         border: none;
-        color: #cbd5e1;
+        color: #64748b;
         font-size: 1.5rem;
         cursor: pointer;
         transition: color 0.3s ease;
@@ -806,13 +811,13 @@
 
       .toast-title {
         font-weight: 600;
-        color: var(--light-text);
+        color: #0f172a;
         margin-bottom: 0.25rem;
       }
 
       .toast-message {
         font-size: 0.85rem;
-        color: #cbd5e1;
+        color: #475569;
       }
 
       @keyframes slideInRight {
@@ -931,7 +936,7 @@
       .comparison-header {
         padding: 0.75rem 1rem;
         border-bottom: 1px solid var(--border-color);
-        background: rgba(15, 23, 42, 0.5);
+        background: #f8fafc;
         font-weight: 600;
         color: var(--accent-color);
         display: flex;
@@ -970,7 +975,7 @@
       .view-toggle-btn {
         background: transparent;
         border: 1px solid var(--border-color);
-        color: #cbd5e1;
+        color: #475569;
         padding: 0.5rem 1rem;
         border-radius: 8px;
         font-size: 0.85rem;
@@ -1178,7 +1183,7 @@
       .toggle-switch-label {
         flex: 1;
         font-size: 1rem;
-        color: #cbd5e1;
+        color: #334155;
         cursor: pointer;
         user-select: none;
         line-height: 1.5;
@@ -1263,7 +1268,7 @@
             id="toolTabs"
             role="tablist"
             style="
-              border-bottom: 2px solid #334155;
+              border-bottom: 2px solid #e2e8f0;
               margin-bottom: 2rem;
               gap: 0.5rem;
             "
@@ -1277,7 +1282,7 @@
                 type="button"
                 role="tab"
                 style="
-                  color: #cbd5e1;
+                  color: #475569;
                   border: none;
                   border-bottom: 3px solid transparent;
                   padding: 0.75rem 1.5rem;
@@ -1297,7 +1302,7 @@
                 type="button"
                 role="tab"
                 style="
-                  color: #cbd5e1;
+                  color: #475569;
                   border: none;
                   border-bottom: 3px solid transparent;
                   padding: 0.75rem 1.5rem;
@@ -1317,7 +1322,7 @@
                 type="button"
                 role="tab"
                 style="
-                  color: #cbd5e1;
+                  color: #475569;
                   border: none;
                   border-bottom: 3px solid transparent;
                   padding: 0.75rem 1.5rem;
@@ -1393,10 +1398,10 @@
             <!-- Onglet 2: Conversion OLE -->
             <div class="tab-pane fade" id="convert-content" role="tabpanel">
               <div style="margin-bottom: 1.5rem">
-                <h5 style="color: #86efac; margin-bottom: 0.75rem">
+                <h5 style="color: #16a34a; margin-bottom: 0.75rem">
                   <i class="fas fa-info-circle"></i> À propos
                 </h5>
-                <p style="color: #cbd5e1; font-size: 0.95rem; margin: 0">
+                <p style="color: #334155; font-size: 0.95rem; margin: 0">
                   Pour les fichiers LINGO qui utilisent des appels @OLE vers un
                   fichier Excel, cette fonctionnalité génère une version
                   explicite du modèle en remplaçant les données dynamiques par
@@ -1448,14 +1453,14 @@
             <!-- Onglet 3: Nettoyage -->
             <div class="tab-pane fade" id="clean-content" role="tabpanel">
               <div style="margin-bottom: 1.5rem">
-                <h5 style="color: #fbbf24; margin-bottom: 0.75rem">
+                <h5 style="color: #d97706; margin-bottom: 0.75rem">
                   <i class="fas fa-info-circle"></i> Fonctionnalités
                 </h5>
                 <ul
                   style="
                     margin: 0;
                     padding-left: 1.5rem;
-                    color: #cbd5e1;
+                    color: #334155;
                     font-size: 0.9rem;
                   "
                 >
@@ -1508,29 +1513,26 @@
 
     <!-- Pipeline Section -->
     <section
-      class="tools-section"
+      class="pipeline-section"
       id="pipeline"
       style="
+        padding: 5rem 0;
         background: linear-gradient(
           135deg,
           rgba(14, 165, 233, 0.05),
           rgba(37, 99, 235, 0.05)
         );
-        padding: 4rem 0;
       "
     >
       <div class="container">
-        <div
-          class="section-header"
-          style="text-align: center; margin-bottom: 3rem"
-        >
+        <div class="text-center mb-5">
           <div
             style="
               display: inline-block;
               background: linear-gradient(135deg, #0ea5e9, #2563eb);
               padding: 0.75rem 1.5rem;
               border-radius: 50px;
-              margin-bottom: 1rem;
+              margin-bottom: 1.5rem;
             "
           >
             <i
@@ -1554,7 +1556,7 @@
           <p
             style="
               font-size: 1.2rem;
-              color: #94a3b8;
+              color: #475569;
               max-width: 700px;
               margin: 0 auto;
             "
@@ -1565,127 +1567,127 @@
         </div>
 
         <div
-          class="tool-card"
           style="
-            background: rgba(15, 23, 42, 0.8);
+            background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 16px;
-            padding: 2.5rem;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            border: 1px solid #e2e8f0;
+            border-radius: 20px;
+            padding: 3rem;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
           "
         >
-          <!-- Pipeline Content -->
-          <div>
-            <div
-              class="alert alert-info"
+          <div
+            class="alert alert-info"
+            style="
+              background: rgba(14, 165, 233, 0.08);
+              border: 1px solid rgba(14, 165, 233, 0.3);
+              color: #0369a1;
+              border-radius: 12px;
+              padding: 1.25rem;
+              margin-bottom: 2rem;
+            "
+          >
+            <i class="fas fa-info-circle"></i>
+            <strong style="color: #0c4a6e">Pipeline Complet</strong> -
+            Automatisation complète du processus :
+            <ul style="margin-top: 0.75rem; margin-bottom: 0; color: #0f172a">
+              <li>🔍 Détection automatique des fichiers Excel (@OLE)</li>
+              <li>🔄 Conversion OLE → Explicite (si nécessaire)</li>
+              <li>🧹 Nettoyage optionnel du code LINGO</li>
+              <li>⚙️ Génération du notebook Pyomo</li>
+              <li>💾 Externalisation optionnelle des données en JSON</li>
+              <li>📥 Téléchargement du notebook + JSON</li>
+            </ul>
+          </div>
+
+          <form id="pipelineForm">
+            <div class="form-group">
+              <label for="file_select_pipeline" class="form-label">
+                <i class="fas fa-file-upload"></i> Sélectionnez votre modèle
+                LINGO
+                <span class="file-badge"
+                  >{{ files|length }} fichier(s) disponible(s)</span
+                >
+              </label>
+              <select
+                class="form-select"
+                id="file_select_pipeline"
+                name="file_select_pipeline"
+                required
+              >
+                <option value="">-- Choisissez un fichier --</option>
+                {% for file in files %}
+                <option value="{{ file }}">{{ file }}</option>
+                {% endfor %}
+              </select>
+              <div
+                id="ole-detection"
+                style="margin-top: 0.5rem; font-size: 0.9rem; color: #475569"
+              ></div>
+            </div>
+
+            <div class="form-group">
+              <label for="solver_select_pipeline" class="form-label">
+                <i class="fas fa-cogs"></i> Solveur d'optimisation
+              </label>
+              <select
+                class="form-select"
+                id="solver_select_pipeline"
+                name="solver_select_pipeline"
+              >
+                <option value="gurobi">Gurobi (recommandé)</option>
+                <option value="cplex">CPLEX</option>
+                <option value="glpk">GLPK (open source)</option>
+                <option value="highs">HiGHS (open source)</option>
+                <option value="ipopt">IPOPT (non-linéaire)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label"
+                ><i class="fas fa-sliders-h"></i> Options du pipeline</label
+              >
+              <div class="toggle-switch">
+                <input
+                  type="checkbox"
+                  id="do_clean"
+                  name="do_clean"
+                  class="toggle-switch-input"
+                />
+                <label for="do_clean" class="toggle-switch-label">
+                  <span class="icon">🧹</span>
+                  Nettoyer le fichier LINGO (suppression commentaires,
+                  normalisation)
+                </label>
+              </div>
+              <div class="toggle-switch">
+                <input
+                  type="checkbox"
+                  id="external_data"
+                  name="external_data"
+                  class="toggle-switch-input"
+                  checked
+                />
+                <label for="external_data" class="toggle-switch-label">
+                  <span class="icon">💾</span>
+                  Externaliser les données en JSON (recommandé pour grands
+                  modèles)
+                </label>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              class="btn btn-generate"
+              id="pipelineBtn"
               style="
-                background: rgba(14, 165, 233, 0.1);
-                border: 1px solid rgba(14, 165, 233, 0.3);
-                color: #0ea5e9;
+                background: linear-gradient(135deg, #0ea5e9, #2563eb);
+                border: none;
               "
             >
-              <i class="fas fa-info-circle"></i>
-              <strong>Pipeline Complet</strong> - Automatisation complète du
-              processus :
-              <ul style="margin-top: 0.5rem; margin-bottom: 0">
-                <li>🔍 Détection automatique des fichiers Excel (@OLE)</li>
-                <li>🔄 Conversion OLE → Explicite (si nécessaire)</li>
-                <li>🧹 Nettoyage optionnel du code LINGO</li>
-                <li>⚙️ Génération du notebook Pyomo</li>
-                <li>💾 Externalisation optionnelle des données en JSON</li>
-                <li>📥 Téléchargement du notebook + JSON</li>
-              </ul>
-            </div>
-            <form id="pipelineForm">
-              <div class="form-group">
-                <label for="file_select_pipeline" class="form-label">
-                  <i class="fas fa-file-upload"></i> Sélectionnez votre modèle
-                  LINGO
-                  <span class="file-badge"
-                    >{{ files|length }} fichier(s) disponible(s)</span
-                  >
-                </label>
-                <select
-                  class="form-select"
-                  id="file_select_pipeline"
-                  name="file_select_pipeline"
-                  required
-                >
-                  <option value="">-- Choisissez un fichier --</option>
-                  {% for file in files %}
-                  <option value="{{ file }}">{{ file }}</option>
-                  {% endfor %}
-                </select>
-                <div
-                  id="ole-detection"
-                  style="margin-top: 0.5rem; font-size: 0.9rem; color: #94a3b8"
-                ></div>
-              </div>
-
-              <div class="form-group">
-                <label for="solver_select_pipeline" class="form-label">
-                  <i class="fas fa-cogs"></i> Solveur d'optimisation
-                </label>
-                <select
-                  class="form-select"
-                  id="solver_select_pipeline"
-                  name="solver_select_pipeline"
-                >
-                  <option value="gurobi">Gurobi (recommandé)</option>
-                  <option value="cplex">CPLEX</option>
-                  <option value="glpk">GLPK (open source)</option>
-                  <option value="highs">HiGHS (open source)</option>
-                  <option value="ipopt">IPOPT (non-linéaire)</option>
-                </select>
-              </div>
-
-              <div class="form-group">
-                <label class="form-label"
-                  ><i class="fas fa-sliders-h"></i> Options du pipeline</label
-                >
-                <div class="toggle-switch">
-                  <input
-                    type="checkbox"
-                    id="do_clean"
-                    name="do_clean"
-                    class="toggle-switch-input"
-                  />
-                  <label for="do_clean" class="toggle-switch-label">
-                    <span class="icon">🧹</span>
-                    Nettoyer le fichier LINGO (suppression commentaires,
-                    normalisation)
-                  </label>
-                </div>
-                <div class="toggle-switch">
-                  <input
-                    type="checkbox"
-                    id="external_data"
-                    name="external_data"
-                    class="toggle-switch-input"
-                    checked
-                  />
-                  <label for="external_data" class="toggle-switch-label">
-                    <span class="icon">💾</span>
-                    Externaliser les données en JSON (recommandé pour grands
-                    modèles)
-                  </label>
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                class="btn btn-generate"
-                id="pipelineBtn"
-                style="
-                  background: linear-gradient(135deg, #0ea5e9, #2563eb);
-                  border: none;
-                "
-              >
-                <i class="fas fa-rocket"></i> Lancer le Pipeline
-              </button>
-            </form>
-          </div>
+              <i class="fas fa-rocket"></i> Lancer le Pipeline
+            </button>
+          </form>
         </div>
       </div>
     </section>
@@ -2448,7 +2450,7 @@
           document.createElement("div");
         statsDiv.className = "preview-stats";
         statsDiv.style.cssText =
-          "color: #cbd5e1; font-size: 0.85rem; margin: 0.75rem 1.5rem; padding: 0.75rem; background: rgba(255,255,255,0.05); border-radius: 8px; border-left: 3px solid #fbbf24;";
+          "color: #334155; font-size: 0.85rem; margin: 0.75rem 1.5rem; padding: 0.75rem; background: rgba(251, 191, 36, 0.1); border-radius: 8px; border-left: 3px solid #fbbf24;";
         const reduction = Math.round(
           (1 - data.cleaned_size / data.original_size) * 100,
         );
@@ -2584,7 +2586,7 @@
           <div class="preview-modal-body" style="padding: 1.5rem; max-height: 70vh; overflow-y: auto;">
             <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
               <h6 style="color: #10b981; margin-bottom: 0.75rem;"><i class="fas fa-tasks"></i> Étapes du Pipeline</h6>
-              <ol style="margin: 0; padding-left: 1.5rem; color: #cbd5e1;">
+              <ol style="margin: 0; padding-left: 1.5rem; color: #334155;">
                 ${data.pipeline_steps.map(step => `<li style="margin-bottom: 0.25rem;">${step}</li>`).join('')}
               </ol>
             </div>
@@ -2592,27 +2594,27 @@
             ${data.has_ole ? `
               <div style="background: rgba(14, 165, 233, 0.1); border: 1px solid rgba(14, 165, 233, 0.3); border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
                 <i class="fas fa-info-circle" style="color: #0ea5e9;"></i>
-                <span style="color: #cbd5e1;">Fichier Excel détecté et converti en format explicite</span>
+                <span style="color: #334155;">Fichier Excel détecté et converti en format explicite</span>
               </div>
             ` : ''}
 
             ${data.was_cleaned ? `
               <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
                 <i class="fas fa-broom" style="color: #f59e0b;"></i>
-                <span style="color: #cbd5e1;">Fichier nettoyé (commentaires supprimés, normalisation effectuée)</span>
+                <span style="color: #334155;">Fichier nettoyé (commentaires supprimés, normalisation effectuée)</span>
               </div>
             ` : ''}
 
             <div style="background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
               <h6 style="color: #8b5cf6; margin-bottom: 0.75rem;"><i class="fas fa-file-code"></i> Fichiers Générés</h6>
-              <ul style="margin: 0; padding-left: 1.5rem; color: #cbd5e1;">
+              <ul style="margin: 0; padding-left: 1.5rem; color: #334155;">
                 <li>📓 Notebook: <strong>${data.notebook_filename}</strong></li>
                 ${data.has_external_data ? `<li>💾 Données JSON: <strong>${data.json_filename}</strong></li>` : ''}
               </ul>
             </div>
 
             <div style="background: rgba(255, 255, 255, 0.05); border-radius: 8px; padding: 1rem;">
-              <h6 style="color: #cbd5e1; margin-bottom: 0.75rem;"><i class="fas fa-code"></i> Aperçu du Code Pyomo</h6>
+              <h6 style="color: #334155; margin-bottom: 0.75rem;"><i class="fas fa-code"></i> Aperçu du Code Pyomo</h6>
               <pre style="background: #0f172a; padding: 1rem; border-radius: 6px; overflow-x: auto; max-height: 300px;"><code class="language-python">${escapeHtml(data.pyomo_code_preview)}</code></pre>
             </div>
           </div>
