@@ -598,6 +598,53 @@ def save_pyomo_data_to_json(model_json, output_path="./data/pyomo_data.json"):
     return str(output_file)
 
 
+def load_pyomo_data(input_path="./data/pyomo_data.json"):
+    """
+    Charge les donnees JSON et convertit les cles string en types natifs.
+
+    Args:
+        input_path (str): Chemin du fichier JSON a lire.
+
+    Returns:
+        dict: Donnees converties (sets, params, cartesian_data).
+    """
+    import json
+    import ast
+    from pathlib import Path
+
+    input_file = Path(input_path)
+    with open(input_file, "r") as f:
+        data = json.load(f)
+
+    def _convert_key(key):
+        if not isinstance(key, str):
+            return key
+        if key.startswith("(") and key.endswith(")"):
+            try:
+                return ast.literal_eval(key)
+            except Exception:
+                return key
+        try:
+            return int(key)
+        except Exception:
+            return key
+
+    # Convertir les dictionnaires de parametres indexes
+    params = data.get("params", {})
+    for pname, pval in list(params.items()):
+        if isinstance(pval, dict):
+            params[pname] = {_convert_key(k): v for k, v in pval.items()}
+
+    cartesian = data.get("cartesian_data", {})
+    for cname, cval in list(cartesian.items()):
+        if isinstance(cval, dict):
+            cartesian[cname] = {_convert_key(k): v for k, v in cval.items()}
+
+    data["params"] = params
+    data["cartesian_data"] = cartesian
+    return data
+
+
 def generate_pyomo_code(
     model_json, external_data=False, data_filename="./data/pyomo_data.json"
 ):
@@ -654,47 +701,8 @@ def generate_pyomo_code(
 
     # Si external_data=True, ajouter le chargement des données depuis JSON
     if external_data:
-        lines.append("import json")
-        lines.append(f"with open('{data_filename}') as f:")
-        lines.append(f"    data = json.load(f)")
-        lines.append("")
-        # Ajouter une fonction helper pour convertir les indices JSON
-        lines.append(
-            "# Helper function to convert JSON string keys back to proper types"
-        )
-        lines.append("def _convert_json_keys(data_dict, set_data):")
-        lines.append('    """Convertit les clés strings du JSON aux types corrects"""')
-        lines.append("    if not data_dict:")
-        lines.append("        return data_dict")
-        lines.append("    result = {}")
-        lines.append("    for key_str, value in data_dict.items():")
-        lines.append(
-            "        # Détecter le type en regardant le premier élément du set"
-        )
-        lines.append("        if isinstance(set_data[0], int):")
-        lines.append("            key = int(key_str)")
-        lines.append("        else:")
-        lines.append("            key = key_str")
-        lines.append("        result[key] = value")
-        lines.append("    return result")
-        lines.append("")
-        lines.append("def _convert_json_tuples(data_dict, set_indices):")
-        lines.append(
-            '    """Convertit les clés tuple strings du JSON aux tuples typés"""'
-        )
-        lines.append("    if not data_dict:")
-        lines.append("        return data_dict")
-        lines.append("    import ast")
-        lines.append("    result = {}")
-        lines.append("    for key_str, value in data_dict.items():")
-        lines.append("        # Parser le tuple depuis sa représentation en string")
-        lines.append("        # De '(1, 'prod')' à (1, 'prod')")
-        lines.append("        try:")
-        lines.append("            key = ast.literal_eval(key_str)")
-        lines.append("        except:")
-        lines.append("            key = key_str")
-        lines.append("        result[key] = value")
-        lines.append("    return result")
+        lines.append("from pyomo_generator.json_parser import load_pyomo_data")
+        lines.append(f"data = load_pyomo_data('{data_filename}')")
         lines.append("")
 
     lines.append("from pyomo.environ import *\n")
@@ -780,7 +788,7 @@ def generate_pyomo_code(
 
                     if external_data:
                         lines.append(
-                            f"model.{attr} = Param({dims}, initialize=_convert_json_tuples(data['cartesian_data']['{attr}'], None), within=NonNegativeReals)"
+                            f"model.{attr} = Param({dims}, initialize=data['cartesian_data']['{attr}'], within=NonNegativeReals)"
                         )
                     else:
                         # 🔴 CORRECTION CRITIQUE ICI
@@ -802,9 +810,8 @@ def generate_pyomo_code(
                     dims = f"model.{setname}"
 
                     if external_data:
-                        set_elements = [_convert_type(e) for e in sets[setname]]
                         lines.append(
-                            f"model.{attr} = Param({dims}, initialize=_convert_json_keys(data['params']['{attr}'], {set_elements}), within=NonNegativeReals)"
+                            f"model.{attr} = Param({dims}, initialize=data['params']['{attr}'], within=NonNegativeReals)"
                         )
                     else:
                         typed_keys = [_convert_type(e) for e in sets[setname]]

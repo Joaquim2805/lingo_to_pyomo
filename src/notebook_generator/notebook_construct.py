@@ -44,18 +44,15 @@ def generate_pyomo_notebook(
     nb_cells = []
 
     # Titre global
-    nb_cells.append(
-        new_markdown_cell("# 📘 Modèle Pyomo généré automatiquement")
-    )
+    nb_cells.append(new_markdown_cell("# 📘 Modèle Pyomo généré automatiquement"))
 
     # Imports
-    nb_cells.append(
-        new_markdown_cell("## 📦 Imports")
-    )
+    nb_cells.append(new_markdown_cell("## 📦 Imports"))
     nb_cells.append(
         new_code_cell(
             "from pyomo.environ import *\n"
-            "from pyomo.opt import SolverFactory"
+            "from pyomo.opt import SolverFactory\n"
+            "import pandas as pd"
         )
     )
 
@@ -66,36 +63,49 @@ def generate_pyomo_notebook(
         if not code.strip():
             continue
 
-        nb_cells.append(
-            new_markdown_cell(f"## 🔹 {title.title()}")
-        )
-        nb_cells.append(
-            new_code_cell(code)
-        )
+        nb_cells.append(new_markdown_cell(f"## 🔹 {title.title()}"))
+        nb_cells.append(new_code_cell(code))
 
     # Résolution
-    nb_cells.append(
-        new_markdown_cell("## ⚙️ Résolution du modèle")
-    )
+    nb_cells.append(new_markdown_cell("## ⚙️ Résolution du modèle"))
     nb_cells.append(
         new_code_cell(
             f"solver = SolverFactory('{solver}')\n"
             "result = solver.solve(model, tee=True)\n\n"
-            "print('Solver status:', result.solver.status)\n"
-            "print('Termination condition:', result.solver.termination_condition)"
+            "print('✅ Solver status:', result.solver.status)\n"
+            "print('✅ Termination condition:', result.solver.termination_condition)"
+        )
+    )
+
+    # Valeur objective
+    nb_cells.append(new_markdown_cell("## 🎯 Valeur de la fonction objective"))
+    nb_cells.append(
+        new_code_cell(
+            "for obj in model.component_objects(Objective, active=True):\n"
+            "    print(f'Objectif: {obj.name}')\n"
+            "    print(f'Valeur optimale: {obj():.4f}')\n"
+            '    print(f\'Sens: {"Minimisation" if obj.sense == minimize else "Maximisation"}\')'
         )
     )
 
     # Affichage des résultats
-    nb_cells.append(
-        new_markdown_cell("## 📊 Valeurs optimales des variables")
-    )
+    nb_cells.append(new_markdown_cell("## 📊 Valeurs optimales des variables"))
     nb_cells.append(
         new_code_cell(
+            "# Extraction des résultats dans un DataFrame\n"
+            "results_data = []\n"
             "for v in model.component_objects(Var, active=True):\n"
-            "    print(f'Variable set: {v.name}')\n"
             "    for index in v:\n"
-            "        print(f'   {index} = {v[index].value}')"
+            "        results_data.append({\n"
+            "            'Variable': v.name,\n"
+            "            'Index': str(index) if index != None else '-',\n"
+            "            'Valeur': v[index].value\n"
+            "        })\n\n"
+            "df_results = pd.DataFrame(results_data)\n"
+            "# Filtrer les valeurs non-nulles pour plus de clarté\n"
+            "df_results = df_results[df_results['Valeur'].notna()]\n"
+            "df_results = df_results[df_results['Valeur'] != 0]\n"
+            "df_results.style.format({'Valeur': '{:.4f}'}).set_caption('Variables de décision optimales')"
         )
     )
 
