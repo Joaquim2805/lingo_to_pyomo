@@ -1,45 +1,39 @@
-!ENONCE
 
 MODEL:
 
 SETS:
-PERIODES/1, 2, 3, 4, 5, 6/:Cout_achat, Cout_prod, mini, maxi, cap_prod, Achat_ble, Prod_spag, Stock_ble, Stock_spag;! Les stocks et productions sont contr�l�s en fin de mois. Les achats en debut de mois;
+PERIODES/1, 2, 3, 4, 5, 6/:Cout_achat, Cout_prod, mini, maxi, cap_prod, Achat_ble, Prod_spag, Stock_ble, Stock_spag;
 ENDSETS
 
 DATA:
 Cout_achat=1000,975,1000,980,1020,1025;
-mini=4,3,5,2,4,5;!achat mini de ble;
-maxi=6,4,7,3,7,6;!achat maxi de ble;
-cap_prod=6,5,4,4,4,3;!capacite de production de spaghetti;
-Cout_prod=160,150,150,160,175,165;!cout de production de spaghetti;
-cap_ble=3;!capacite de l entrepot de ble;
-cap_spag=1;!capacite du magasin de spaghetti;
-cout_Stock_ble=20;!cout unitaire du stockage de ble;
-cout_Stock_spag=25;!cout unitaire du stockage de spaghetti;
+mini=4,3,5,2,4,5;
+maxi=6,4,7,3,7,6;
+cap_prod=6,5,4,4,4,3;
+Cout_prod=160,150,150,160,175,165;
+cap_ble=3;
+cap_spag=1;
+cout_Stock_ble=20;
+cout_Stock_spag=25;
 
 ENDDATA
 
 
-MIN = @SUM(PERIODES(p): 
-            Cout_achat(p) * Achat_ble(p)
-          + Cout_prod(p)  * Prod_spag(p)
-          + cout_Stock_ble  * Stock_ble(p)
-          + cout_Stock_spag  * Stock_spag(p)
-          );
+MIN = @SUM(PERIODES(p): Cout_achat(p) * Achat_ble(p)+ Cout_prod(p)  * Prod_spag(p)+ cout_Stock_ble  * Stock_ble(p)+ cout_Stock_spag  * Stock_spag(p));
 
 
-@FOR(PERIODES(p): Achat_ble(p) >= mini(p));   ! Achat minimum mensuel de blé
-@FOR(PERIODES(p): Achat_ble(p) <= maxi(p));   ! Achat maximum mensuel de blé
-@FOR(PERIODES(p): Prod_spag(p) <= cap_prod(p));    ! Capacité mensuelle de production de spaghetti
-@FOR(PERIODES(p): Stock_ble(p) <= cap_ble);     ! Capacité mensuelle du stock d'entrepôt de blé
-@FOR(PERIODES(p): Stock_spag(p) <= cap_spag);   ! Capacité mensuelle du stock du magasin de spaghetti
+@FOR(PERIODES(p): Achat_ble(p) >= mini(p));   
+@FOR(PERIODES(p): Achat_ble(p) <= maxi(p));   
+@FOR(PERIODES(p): Prod_spag(p) <= cap_prod(p));    
+@FOR(PERIODES(p): Stock_ble(p) <= cap_ble);     
+@FOR(PERIODES(p): Stock_spag(p) <= cap_spag);   
 
-!@FOR(PERIODES(i) | i#GE#2:Stock_ble(i)=Stock_ble(i-1)+achat_ble(i)-Prod_spag(i));!lien entre achat et stock de ble;
-!Stock_ble(1)=2+achat_ble(1)-Prod_spag(1);!lien entre achat et stock de ble au mois 1 - initialisation (car la contrainte precendente n'est pas definie pour i=0);
-!Stock_ble(6)=2;!imposition du stock final;
-!@FOR(PERIODES(i) | i#GE#2:Stock_spag(i)=Stock_spag(i-1)+Prod_spag(i)-4);!lien entre stock et production de spaghetti;
-!Stock_spag(1)=Prod_spag(1)-4;!lien entre stock et production de spaghetti au mois 1 (car la contrainte precendente n'est pas definie pour i=1);
-!Stock_spag(6)=0;!imposition du stock final de spaghetti;
+@FOR(PERIODES(i) | i#GE#2:Stock_ble(i)=Stock_ble(i-1)+Achat_ble(i)-Prod_spag(i));
+Stock_ble(1)=2+Achat_ble(1)-Prod_spag(1);
+Stock_ble(6)=2;
+@FOR(PERIODES(i) | i#GE#2:Stock_spag(i)=Stock_spag(i-1)+Prod_spag(i)-4);
+Stock_spag(1)=Prod_spag(1)-4;
+Stock_spag(6)=0;
 
 
 

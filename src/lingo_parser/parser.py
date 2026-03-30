@@ -2,7 +2,9 @@ from lark import Lark
 from pathlib import Path
 
 
-def parse_lingo_model(path_to_file, grammar_path= Path(__file__).resolve().parent / "lingo.lark"):
+def parse_lingo_model(
+    path_to_file, grammar_path=Path(__file__).resolve().parent / "lingogem.lark"
+):
     """Parse un modèle LINGO à l'aide de la grammaire Lark.
 
     Cette fonction charge une grammaire LINGO, lit un fichier source LINGO,

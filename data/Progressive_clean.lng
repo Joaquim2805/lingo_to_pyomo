@@ -1,12 +1,12 @@
-
+MODEL : 
 SETS:
-PRODUITS/1,2,3,4/:Revenu,CoutDem,x,Y;!x=qte a PRODUIRE,Y=decision de PRODUIRE;
-MACHINES/1,2/:Z;!Z=1 si la machine FONCTIONNE;
+PRODUITS/1,2,3,4/:Revenu,CoutDem,x,Y;
+MACHINES/1,2/:Z;
 ARC(MACHINES,PRODUITS):PONDERATION;
 ENDSETS
 
 DATA:
-Bigm=1000000;!grand chiffre;
+Bigm=1000000;
 Revenu=70,60,90,80;
 CoutDem=50000,40000,70000,60000;
 PONDERATION=5,3,6,4,
@@ -15,20 +15,20 @@ ProdMax=6000;
 ENDDATA
 
 !Fonction objectif (Profit-Revenu);
-max=@SUM(PRODUITS:Revenu*x-CoutDem*Y);
+MAX=@SUM(PRODUITS(p):Revenu(p)*x(p)-CoutDem(p)*Y(p));
 
 !SAC;
 !Maximum 2 produits peuvent �tre fabriqu�s;
-@SUM(PRODUITS:Y)<=2;
+@SUM(PRODUITS(p):Y(p))<=2;
 
 !2 machines possibles;
 @FOR(MACHINES(m):@SUM(PRODUITS(p):PONDERATION(m,p)*x(p))<=ProdMax+Bigm*(1-Z(m)));
-@SUM(MACHINES:Z)=1;
+@SUM(MACHINES:Z(m))=1;
 !5*x(1)+3*x(2)+6*x(3)+4*x(4)<=6000+Bigm*Z;
 !4*x(1)+6*x(2)+3*x(3)+5*x(4)<=6000+Bigm*(1-Z);
 
 !Si le produit n'est pas fabriqu�,x=0;
-@FOR(PRODUITS:x<=Bigm*Y);
+@FOR(PRODUITS(p):x(p)<=Bigm*Y(p));
 
 !Les produits 3 et 4 peuvent seulement �tre fabriqu�s si les produits 1 ou 2 sont fabriqu�s;
 !Y(3)<=Y(1)+Y(2);
@@ -40,3 +40,4 @@ max=@SUM(PRODUITS:Revenu*x-CoutDem*Y);
 @FOR(MACHINES:@BIN(Z));
 !Les quantit�s � fabriquer sont enti�res;
 @FOR(PRODUITS:@GIN(x));
+END

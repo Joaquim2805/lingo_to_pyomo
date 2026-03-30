@@ -249,7 +249,7 @@ class LingoModelTransformer2(Transformer):
         raise ValueError(f"constraint: structure inattendue: {items}")
 
     def for_loop(self, items):
-        # items contient : FOR, LPAR, indexset, COLON, expression, RPAR, SEMICOLON
+        # items contient : FOR, LPAR, indexset, COLON, for_loop_body, RPAR, SEMICOLON
         indexset = None
         expr = None
 
@@ -265,6 +265,8 @@ class LingoModelTransformer2(Transformer):
                 "expr",
                 "bin_expr",
                 "for_loop_inner",
+                "nested_for",
+                "cond_nested_for",
             ):
                 expr = it
             elif isinstance(it, Tree) and it.data == "for_loop_body":
@@ -277,6 +279,165 @@ class LingoModelTransformer2(Transformer):
 
         idx_str = self._expr_to_str(indexset)
         expr_str = self._expr_to_str(expr)
+        return {"for_loop": f"@FOR({idx_str}: {expr_str})"}
+
+    def nested_for(self, items):
+        """Traite un @FOR imbriqué dans le corps d'un autre @FOR."""
+        indexset = None
+        body = None
+        for it in items:
+            if isinstance(it, Tree) and it.data in (
+                "indexset",
+                "indexed_set",
+                "indexed_set2",
+            ):
+                indexset = it
+            elif isinstance(it, Tree) and it.data in (
+                "expr_with_comp",
+                "expr",
+                "bin_expr",
+                "nested_for",
+                "cond_nested_for",
+                "for_loop_body",
+            ):
+                body = it
+        if indexset is None or body is None:
+            raise ValueError(f"nested_for: structure inattendue: {items}")
+        return Tree("nested_for", [indexset, body])
+
+    def cond_nested_for(self, items):
+        """Traite un @FOR conditionnel imbriqué dans le corps d'un autre @FOR."""
+        indexset = None
+        cond = None
+        body = None
+        for it in items:
+            if isinstance(it, Tree) and it.data in (
+                "indexset",
+                "indexed_set",
+                "indexed_set2",
+            ):
+                indexset = it
+            elif isinstance(it, Tree) and it.data == "cond_filter":
+                cond = it
+            elif isinstance(it, Tree) and it.data in (
+                "expr_with_comp",
+                "expr",
+                "bin_expr",
+                "nested_for",
+                "cond_nested_for",
+                "for_loop_body",
+            ):
+                body = it
+        if indexset is None or body is None:
+            raise ValueError(f"cond_nested_for: structure inattendue: {items}")
+        return Tree("cond_nested_for", [indexset, cond, body])
+
+    def _cond_filter_to_str(self, tree):
+        """Convertit un Tree cond_filter en chaîne LINGO 'p#GE#3' ou composée 'f#GE#h-1 #AND# f#LE#h'."""
+        if tree is None:
+            return ""
+        # Nouveau format: un seul Token COND_STR
+        if len(tree.children) == 1 and isinstance(tree.children[0], Token):
+            return str(tree.children[0])
+        # Ancien format de compatibilité: [FILTER_VAR, FILTER_OP, FILTER_VAL]
+        var = str(tree.children[0])
+        op = str(tree.children[1])
+        val = str(tree.children[2])
+        return f"{var}{op}{val}"
+
+    def cond_atom_name_offset(self, items):
+        """Traite NAME HASH_CMP NAME NUMBER — ex: f#GE#h-1 (le NUMBER est signé, e.g. -1)."""
+        var = str(items[0])
+        op = str(items[1])
+        name = str(items[2])
+        offset = str(items[3])  # SIGNED_NUMBER, e.g. "-1" or "+2"
+        val = f"{name}{offset}"  # "h-1" ou "h+2"
+        return Tree(
+            "cond_atom",
+            [
+                Token("FILTER_VAR", var),
+                Token("FILTER_OP", op),
+                Token("FILTER_VAL", val),
+            ],
+        )
+
+    def cond_atom_number(self, items):
+        """Traite NAME HASH_CMP NUMBER — ex: p#GE#3."""
+        var = str(items[0])
+        op = str(items[1])
+        val = str(items[2])
+        return Tree(
+            "cond_atom",
+            [
+                Token("FILTER_VAR", var),
+                Token("FILTER_OP", op),
+                Token("FILTER_VAL", val),
+            ],
+        )
+
+    def cond_atom_name(self, items):
+        """Traite NAME HASH_CMP NAME — ex: f#LE#h."""
+        var = str(items[0])
+        op = str(items[1])
+        val = str(items[2])
+        return Tree(
+            "cond_atom",
+            [
+                Token("FILTER_VAR", var),
+                Token("FILTER_OP", op),
+                Token("FILTER_VAL", val),
+            ],
+        )
+
+    def cond_filter(self, items):
+        """Traite une condition simple ou composée: 'p#GE#3' ou 'f#GE#h-1 #AND# f#LE#h'."""
+        parts = []
+        for item in items:
+            if isinstance(item, Tree) and item.data == "cond_atom":
+                var = str(item.children[0])
+                op = str(item.children[1])
+                val = str(item.children[2])
+                parts.append(f"{var}{op}{val}")
+            elif isinstance(item, Token) and item.type == "HASH_BOOL":
+                parts.append(str(item))  # e.g. "#AND#"
+        cond_str = " ".join(parts)
+        return Tree("cond_filter", [Token("COND_STR", cond_str)])
+
+    def cond_for_loop(self, items):
+        """Traite @FOR(indexset | condition: body) -> cond_for_loop."""
+        indexset = None
+        cond = None
+        expr = None
+
+        for it in items:
+            if isinstance(it, Tree) and it.data in (
+                "indexset",
+                "indexed_set",
+                "indexed_set2",
+            ):
+                indexset = it
+            elif isinstance(it, Tree) and it.data == "cond_filter":
+                cond = it
+            elif isinstance(it, Tree) and it.data in (
+                "expr_with_comp",
+                "expr",
+                "bin_expr",
+                "for_loop_inner",
+                "nested_for",
+                "cond_nested_for",
+            ):
+                expr = it
+            elif isinstance(it, Tree) and it.data == "for_loop_body":
+                expr = it.children[0] if it.children else None
+
+        if indexset is None or expr is None:
+            raise ValueError(f"cond_for_loop: structure inattendue: {items}")
+
+        idx_str = self._expr_to_str(indexset)
+        expr_str = self._expr_to_str(expr)
+        cond_str = self._cond_filter_to_str(cond) if cond else ""
+        if cond_str:
+            return {"for_loop": f"@FOR({idx_str} | {cond_str}: {expr_str})"}
         return {"for_loop": f"@FOR({idx_str}: {expr_str})"}
 
     def for_loop_inner(self, items):
@@ -320,37 +481,90 @@ class LingoModelTransformer2(Transformer):
             raise ValueError(f"index_value mal formé: {items}")
         return items[0]
 
-    def param_ref(self, items):
-        parts = [
-            tok
-            for tok in items
-            if isinstance(tok, Token) and tok.type in ("NAME", "NUMBER")
+    def param_ref_arith(self, items):
+        """Traite NAME LPAR NAME NUMBER RPAR — ex: Stock_ble(p-1).
+        Produit un Tree param_ref avec un Token ARITH_INDEX 'p-1'."""
+        tokens = [
+            t for t in items if isinstance(t, Token) and t.type not in ("LPAR", "RPAR")
         ]
-        if len(parts) != 2:
+        # tokens: [NAME(varname), NAME(indexname), NUMBER(offset)]
+        # e.g. ['Stock_ble', 'i', '-1']
+        if len(tokens) < 3:
+            raise ValueError(f"param_ref_arith mal formé: {items}")
+        var_token = tokens[0]
+        arith_str = "".join(str(t) for t in tokens[1:])  # 'i' + '-1' = 'i-1'
+        return Tree("param_ref", [var_token, Token("ARITH_INDEX", arith_str)])
+
+    def index_arith(self, items):
+        """Traite NAME NUMBER (ex: p-1) → Token ARITH_INDEX avec valeur 'p-1'."""
+        return Token(
+            "ARITH_INDEX", "".join(str(t) for t in items if isinstance(t, Token))
+        )
+
+    def index_item(self, items):
+        """Passe-le-token pour les items d'index simples (NAME ou NUMBER seuls)."""
+        return items[0]
+
+    def param_ref(self, items):
+        parts = []
+        for tok in items:
+            if isinstance(tok, Token) and tok.type in ("NAME", "NUMBER", "ARITH_INDEX"):
+                parts.append(tok)
+            elif isinstance(tok, Tree) and tok.data == "simple_name_list":
+                for child in tok.children:
+                    if isinstance(child, Token) and child.type in (
+                        "NAME",
+                        "NUMBER",
+                        "ARITH_INDEX",
+                    ):
+                        parts.append(child)
+        if len(parts) < 2:
             raise ValueError(f"param_ref mal formé: {items}")
         return Tree("param_ref", parts)
 
     def param_ref2(self, items):
-        parts = [
-            tok
-            for tok in items
-            if isinstance(tok, Token) and tok.type in ("NAME", "NUMBER")
-        ]
-        if len(parts) != 3:
+        parts = []
+        for tok in items:
+            if isinstance(tok, Token) and tok.type in ("NAME", "NUMBER", "ARITH_INDEX"):
+                parts.append(tok)
+            elif isinstance(tok, Tree) and tok.data == "simple_name_list":
+                for child in tok.children:
+                    if isinstance(child, Token) and child.type in (
+                        "NAME",
+                        "NUMBER",
+                        "ARITH_INDEX",
+                    ):
+                        parts.append(child)
+        if len(parts) < 3:
             raise ValueError(f"param_ref2 mal formé: {items}")
         return Tree("param_ref2", parts)
 
     def indexed_set(self, items):
-        # Extraire seulement les noms (ignorer les parenthèses)
-        names = [tok for tok in items if isinstance(tok, Token) and tok.type == "NAME"]
-        if len(names) != 2:
+        """Extrait le nom du set et ses alias depuis NAME LPAR simple_name_list RPAR."""
+        names = []
+        for tok in items:
+            if isinstance(tok, Token) and tok.type == "NAME":
+                names.append(tok)
+            elif isinstance(tok, Tree) and tok.data == "simple_name_list":
+                for child in tok.children:
+                    if isinstance(child, Token) and child.type == "NAME":
+                        names.append(child)
+        # names[0] = setname, names[1:] = alias(es)
+        if len(names) < 2:
             raise ValueError(f"indexed_set mal formé: {items}")
         return Tree("indexed_set", names)
 
     def indexed_set2(self, items):
-        # Extraire seulement les noms (ignorer les parenthèses)
-        names = [tok for tok in items if isinstance(tok, Token) and tok.type == "NAME"]
-        if len(names) != 3:
+        """Extrait le nom du set et ses alias depuis NAME LPAR simple_name_list RPAR (3 noms)."""
+        names = []
+        for tok in items:
+            if isinstance(tok, Token) and tok.type == "NAME":
+                names.append(tok)
+            elif isinstance(tok, Tree) and tok.data == "simple_name_list":
+                for child in tok.children:
+                    if isinstance(child, Token) and child.type == "NAME":
+                        names.append(child)
+        if len(names) < 3:
             raise ValueError(f"indexed_set2 mal formé: {items}")
         return Tree("indexed_set2", names)
 
@@ -389,25 +603,30 @@ class LingoModelTransformer2(Transformer):
         # Modifier cette partie
         if tree.data == "indexed_set":
             if len(tree.children) < 2:
-                raise ValueError(f"indexed_set nécessite 2 enfants: {tree.children}")
+                raise ValueError(
+                    f"indexed_set nécessite au moins 2 enfants: {tree.children}"
+                )
             name = self._expr_to_str(tree.children[0])
-            idx = self._expr_to_str(tree.children[1])
-            return f"{name}({idx})"
+            aliases = ",".join(self._expr_to_str(c) for c in tree.children[1:])
+            return f"{name}({aliases})"
 
         if tree.data == "param_ref":
             if len(tree.children) < 2:
-                raise ValueError(f"param_ref nécessite 2 enfants: {tree.children}")
+                raise ValueError(
+                    f"param_ref nécessite au moins 2 enfants: {tree.children}"
+                )
             name = self._expr_to_str(tree.children[0])
-            idx = self._expr_to_str(tree.children[1])
-            return f"{name}({idx})"
+            indices = ",".join(self._expr_to_str(c) for c in tree.children[1:])
+            return f"{name}({indices})"
 
         if tree.data == "param_ref2":
             if len(tree.children) < 3:
-                raise ValueError(f"param_ref2 nécessite 3 enfants: {tree.children}")
+                raise ValueError(
+                    f"param_ref2 nécessite au moins 3 enfants: {tree.children}"
+                )
             name = self._expr_to_str(tree.children[0])
-            i = self._expr_to_str(tree.children[1])
-            j = self._expr_to_str(tree.children[2])
-            return f"{name}({i},{j})"
+            indices = ",".join(self._expr_to_str(c) for c in tree.children[1:])
+            return f"{name}({indices})"
 
         if tree.data == "for_loop_inner":
             if len(tree.children) < 2:
@@ -416,24 +635,36 @@ class LingoModelTransformer2(Transformer):
             expr_str = self._expr_to_str(tree.children[1])
             return f"@FOR({idx_str}: {expr_str})"
 
-        if tree.data == "indexed_set":
-            print("DEBUG _expr_to_str indexed_set children:", tree.children)
-            children = [
-                c for c in tree.children if isinstance(c, Token) and c.type == "NAME"
-            ]
-            if len(children) != 2:
-                raise ValueError(f"indexed_set mal formé: {tree.children}")
-            name, idx = children
-            return f"{name}({idx})"
+        if tree.data == "nested_for":
+            # children: [indexset, body]
+            idx_str = self._expr_to_str(tree.children[0])
+            body_str = self._expr_to_str(tree.children[1])
+            return f"@FOR({idx_str}: {body_str})"
+
+        if tree.data == "cond_nested_for":
+            # children: [indexset, cond_filter, body]
+            idx_str = self._expr_to_str(tree.children[0])
+            cond_str = (
+                self._cond_filter_to_str(tree.children[1])
+                if len(tree.children) > 2
+                else ""
+            )
+            body_str = self._expr_to_str(
+                tree.children[2] if len(tree.children) > 2 else tree.children[1]
+            )
+            if cond_str:
+                return f"@FOR({idx_str} | {cond_str}: {body_str})"
+            return f"@FOR({idx_str}: {body_str})"
 
         if tree.data == "indexed_set2":
             children = [
                 c for c in tree.children if isinstance(c, Token) and c.type == "NAME"
             ]
-            if len(children) != 3:
+            if len(children) < 3:
                 raise ValueError(f"indexed_set2 mal formé: {tree.children}")
-            name, idx1, idx2 = children
-            return f"{name}({idx1},{idx2})"
+            name = str(children[0])
+            aliases = ",".join(str(c) for c in children[1:])
+            return f"{name}({aliases})"
 
         if tree.data == "bin_expr":
             # exemple: @BIN(x)
@@ -458,6 +689,33 @@ class LingoModelTransformer2(Transformer):
                 None,
             )
             return f"@SUM({self._expr_to_str(idx)}: {self._expr_to_str(expr)})"
+
+        if tree.data == "cond_sum_expr":
+            idx = next(
+                (
+                    c
+                    for c in tree.children
+                    if isinstance(c, Tree)
+                    and c.data in ("indexset", "indexed_set", "indexed_set2")
+                ),
+                None,
+            )
+            cond = next(
+                (
+                    c
+                    for c in tree.children
+                    if isinstance(c, Tree) and c.data == "cond_filter"
+                ),
+                None,
+            )
+            inner_expr = next(
+                (c for c in tree.children if isinstance(c, Tree) and c.data == "expr"),
+                None,
+            )
+            cond_str = self._cond_filter_to_str(cond) if cond else ""
+            if cond_str:
+                return f"@SUM({self._expr_to_str(idx)} | {cond_str}: {self._expr_to_str(inner_expr)})"
+            return f"@SUM({self._expr_to_str(idx)}: {self._expr_to_str(inner_expr)})"
 
         parts = [self._expr_to_str(c) for c in tree.children]
         return " ".join(parts)

@@ -1,27 +1,26 @@
 {
   "sets": {
-    "TACHES": [
-      "marche",
-      "cuisine",
-      "vaisselle",
-      "buanderie"
+    "TEMPS_PLEIN": [
+      1,
+      2,
+      3
     ],
-    "PERSONNES": [
-      "Eve",
-      "Steven"
+    "TEMPS_PARTIEL": [
+      1,
+      2,
+      3,
+      4
     ]
   },
-  "params": {},
-  "cartesian_data": {
-    "temps": {
-      "('Eve', 'marche')": 4.5,
-      "('Eve', 'cuisine')": 7.8,
-      "('Eve', 'vaisselle')": 3.6,
-      "('Eve', 'buanderie')": 2.9,
-      "('Steven', 'marche')": 4.9,
-      "('Steven', 'cuisine')": 7.2,
-      "('Steven', 'vaisselle')": 4.3,
-      "('Steven', 'buanderie')": 3.1
-    }
-  }
+  "params": {
+    "demande": {
+      "1": 4.0,
+      "2": 8.0,
+      "3": 10.0,
+      "4": 6.0
+    },
+    "salaire_plein": 112.0,
+    "salaire_partiel": 48.0
+  },
+  "cartesian_data": {}
 }

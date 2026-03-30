@@ -1,8 +1,8 @@
 MODEL :
 
 SETS:
-TEMPS_PLEIN/1, 2, 3/:Xplein;! Xplein le nombre d'embauches a la tranche f;
-TEMPS_PARTIEL/1, 2, 3, 4/:Xpartiel, demande;!Xpartiel le nombre d'embauches a la tranche h;
+TEMPS_PLEIN/1, 2, 3/:Xplein;
+TEMPS_PARTIEL/1, 2, 3, 4/:Xpartiel, demande;
 ENDSETS
 
 DATA:
@@ -11,13 +11,13 @@ salaire_partiel=48;
 demande=4,8,10,6;
 ENDDATA
 
-MIN=@SUM(TEMPS_PLEIN:salaire_plein*Xplein)+@SUM(TEMPS_PARTIEL:salaire_partiel*Xpartiel);
+MIN=@SUM(TEMPS_PLEIN(f):salaire_plein*Xplein(f))+@SUM(TEMPS_PARTIEL(h):salaire_partiel*Xpartiel(h));
 
 @FOR(TEMPS_PARTIEL(h):@SUM(TEMPS_PLEIN(f)|f#GE#h-1 #AND# f#LE#h:Xplein(f))+Xpartiel(h)>=demande(h));
 
 @FOR(TEMPS_PARTIEL(h):@SUM(TEMPS_PLEIN(f)|f#GE#h-1 #AND# f#LE#h:Xplein(f))>=2*Xpartiel(h));
 
-!@FOR(TEMPS_PARTIEL(h):@GIN(Xpartiel(h)));
-!@FOR(TEMPS_PLEIN(f):@GIN(Xplein(f)));
+@FOR(TEMPS_PARTIEL(h):@GIN(Xpartiel(h)));
+@FOR(TEMPS_PLEIN(f):@GIN(Xplein(f)));
 
 END

@@ -31,9 +31,25 @@ fichiers = [
     "Delivery_explicit_test.lng",
     "tp11.lng",
     "Eve-Steven.lng",
+    "Progressive_clean.lng",
+    "Buckly.lng",
 ]
 
-valeurs_optimales = [17, 22333, 36, 230000, 23090, 90, 13330, 825, 12, 173, 18]
+valeurs_optimales = [
+    17,
+    22333,
+    36,
+    230000,
+    28095.00,
+    90,
+    13330,
+    825,
+    12,
+    173,
+    18,
+    80000,
+    1504,
+]
 
 
 def test_external():

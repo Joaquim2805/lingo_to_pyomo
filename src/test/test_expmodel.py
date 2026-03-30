@@ -202,8 +202,8 @@ def test_pastissimo_optimal_value():
     optimal_value = value(model.obj)
 
     # Vérifie que la valeur optimale est 17
-    assert (optimal_value) == 23090.0, (
-        f"La valeur optimale devrait être 23090.0, mais elle est {optimal_value}"
+    assert (optimal_value) == 28095.0, (
+        f"La valeur optimale devrait être 28095.0, mais elle est {optimal_value}"
     )
 
 
@@ -372,4 +372,60 @@ def test_evesteven_optimal_value():
     # Vérifie que la valeur optimale est 173
     assert (optimal_value) == 18.4, (
         f"La valeur optimale devrait être 18.4, mais elle est {optimal_value}"
+    )
+
+
+def test_progressive_optimal_value():
+    """Test que Progressive_clean.lng traduit et résolu donne une valeur optimale de 80000.0."""
+
+    # Parse le fichier LINGO
+    tree = parse_lingo_model("./data/Progressive_clean.lng")
+    model_dict = LingoModelTransformer2().transform(tree)
+
+    # Génère le code Pyomo
+    pyomo_code = generate_pyomo_code(model_dict)
+
+    # Exécute le code Pyomo (crée le modèle)
+    local_vars = {}
+    exec(pyomo_code, local_vars)
+    model = local_vars["model"]
+
+    # Résout le modèle avec un solveur (par défaut glpk ou cbc)
+    solver = SolverFactory("highs")  # ou 'cbc' si glpk n'est pas disponible
+    result = solver.solve(model, tee=False)
+
+    # Récupère la valeur optimale
+    optimal_value = value(model.obj)
+
+    # Vérifie que la valeur optimale est 173
+    assert (optimal_value) == 80000.0, (
+        f"La valeur optimale devrait être 80000.0, mais elle est {optimal_value}"
+    )
+
+
+def test_buckly_optimal_value():
+    """Test que Buckly.lng traduit et résolu donne une valeur optimale de 1504.0."""
+
+    # Parse le fichier LINGO
+    tree = parse_lingo_model("./data/Buckly.lng")
+    model_dict = LingoModelTransformer2().transform(tree)
+
+    # Génère le code Pyomo
+    pyomo_code = generate_pyomo_code(model_dict)
+
+    # Exécute le code Pyomo (crée le modèle)
+    local_vars = {}
+    exec(pyomo_code, local_vars)
+    model = local_vars["model"]
+
+    # Résout le modèle avec un solveur (par défaut glpk ou cbc)
+    solver = SolverFactory("highs")  # ou 'cbc' si glpk n'est pas disponible
+    result = solver.solve(model, tee=False)
+
+    # Récupère la valeur optimale
+    optimal_value = value(model.obj)
+
+    # Vérifie que la valeur optimale est 1504.0
+    assert (optimal_value) == 1504.0, (
+        f"La valeur optimale devrait être 1504.0, mais elle est {optimal_value}"
     )

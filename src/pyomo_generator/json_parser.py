@@ -133,12 +133,16 @@ def translate_sum_to_pyomo(expr, sets, cartesian_sets):
     set_part_clean = re.sub(r"\s+\(\s*", "(", set_part)  # Espace avant ( -> (
     set_part_clean = re.sub(r"\s+\)", ")", set_part_clean)  # Espace avant ) -> )
 
-    set_match = re.match(r"([A-Za-z_]\w*)(?:\(([^)]*)\))?", set_part_clean)
+    set_match = re.match(
+        r"([A-Za-z_]\w*)(?:\(([^)]*)\))?(?:\s*\|\s*(.+))?", set_part_clean
+    )
     if not set_match:
         raise ValueError(f"Format @SUM non reconnu (set) : {expr}")
 
     setname = set_match.group(1)
     alias_or_indices_raw = set_match.group(2)
+    condition_raw = set_match.group(3).strip() if set_match.group(3) else None
+    py_condition = parse_lingo_condition(condition_raw) if condition_raw else None
 
     # Nettoyer les indices/alias
     if alias_or_indices_raw:
@@ -185,11 +189,15 @@ def translate_sum_to_pyomo(expr, sets, cartesian_sets):
     else:
         raise ValueError(f"Set {setname} inconnu dans @SUM.")
 
+    # Ajouter la condition de filtrage si présente
+    if py_condition:
+        gen_clause += f" if {py_condition}"
+
     # Remplacer uniquement les appels de fonctions LINGO, pas les noms seuls
-    # f(i,j) ou f(5,5) ou f(i,5) → model.f[i,j] ou model.f[5,5] ou model.f[i,5]
-    # Gérer tous les types d'indices (alphabétiques et numériques)
+    # f(i,j) ou f(5,5) ou f(i,5) ou f(p-1) → model.f[i,j] / model.f[p-1]
+    # Gérer tous les types d'indices: alphabétiques, numériques, arithmétiques (p-1, h+1)
     inner_expr = re.sub(
-        r"\b([A-Za-z_]\w*)\s*\(\s*([A-Za-z_0-9,\s]+)\s*\)",
+        r"\b([A-Za-z_]\w*)\s*\(\s*([A-Za-z_0-9,\s+\-]+)\s*\)",
         r"model.\1[\2]",
         inner_expr,
     )
@@ -198,6 +206,61 @@ def translate_sum_to_pyomo(expr, sets, cartesian_sets):
 
 
 import re
+
+
+def parse_lingo_condition(cond_str):
+    """
+    Convertit une condition LINGO en Python.
+
+    Gère les conditions simples ('p#GE#3', 'f#LE#h') et composées
+    ('f#GE#h-1 #AND# f#LE#h'), avec des valences arithmétiques (h-1, h+2).
+
+    Operateurs de comparaison: GE (>=), LE (<=), GT (>), LT (<), EQ (==), NE (!=)
+    Operateurs booléens: #AND#, #OR#
+
+    Args:
+        cond_str (str): Chaine de condition LINGO.
+
+    Returns:
+        str or None: Expression Python equivalente, ou None si non reconnue.
+    """
+    if not cond_str:
+        return None
+    op_map = {
+        "GE": ">=",
+        "LE": "<=",
+        "GT": ">",
+        "LT": "<",
+        "EQ": "==",
+        "NE": "!=",
+    }
+
+    # Séparer les atomes sur #AND# / #OR# (le groupe capturant retourne les connecteurs)
+    parts = re.split(r"\s*#(AND|OR)#\s*", cond_str.strip(), flags=re.IGNORECASE)
+    # parts = [atom0, connector1, atom1, connector2, atom2, ...]
+
+    py_parts = []
+    i = 0
+    while i < len(parts):
+        atom = parts[i].strip()
+        if atom:
+            m = re.match(
+                r"([A-Za-z_]\w*)\s*#(GE|LE|GT|LT|EQ|NE)#\s*(.+)",
+                atom,
+                re.IGNORECASE,
+            )
+            if not m:
+                return None
+            var, op_key, val = m.group(1), m.group(2).upper(), m.group(3).strip()
+            op = op_map[op_key]
+            py_parts.append(f"{var} {op} {val}")
+        i += 1
+        if i < len(parts):
+            connector = parts[i].upper()
+            py_parts.append("and" if connector == "AND" else "or")
+            i += 1
+
+    return " ".join(py_parts) if py_parts else None
 
 
 def translate_for_to_pyomo(expr, sets, cartesian_sets):
@@ -230,35 +293,39 @@ def translate_for_to_pyomo(expr, sets, cartesian_sets):
     # 1️⃣ Capture @FOR(SetName(alias): constraint_expr) ou @FOR(SetName: constraint_expr)
     # Essayer d'abord avec alias
     m = re.match(
-        r"@FOR\s*\(\s*([A-Za-z_]\w*)\s*\(\s*([A-Za-z_]\w*)\s*\)\s*:\s*(.+)\)",
+        r"@FOR\s*\(\s*([A-Za-z_]\w*)\s*\(\s*([A-Za-z_]\w*)\s*\)\s*(?:\|\s*([^:]+?))?\s*:\s*(.+)\)",
         expr,
-        flags=re.IGNORECASE,
+        flags=re.IGNORECASE | re.DOTALL,
     )
 
     if not m:
         # Essayer sans alias
         m = re.match(
-            r"@FOR\s*\(\s*([A-Za-z_]\w*)\s*:\s*(.+)\)",
+            r"@FOR\s*\(\s*([A-Za-z_]\w*)\s*(?:\|\s*([^:]+?))?\s*:\s*(.+)\)",
             expr,
-            flags=re.IGNORECASE,
+            flags=re.IGNORECASE | re.DOTALL,
         )
         if not m:
             raise ValueError(f"Format @FOR non reconnu : {expr}")
 
         setname = m.group(1)
         alias = None  # Pas d'alias fourni
-        constraint_expr = m.group(2).strip()
+        cond_raw = m.group(2)
+        constraint_expr = m.group(3).strip()
     else:
         setname = m.group(1)
         alias = m.group(2)
-        constraint_expr = m.group(3).strip()
+        cond_raw = m.group(3)
+        constraint_expr = m.group(4).strip()
+
+    condition = parse_lingo_condition(cond_raw.strip()) if cond_raw else None
 
     # 1b️⃣ Vérifier s'il y a un @FOR imbriqué
     nested_fors = []
     if "@FOR" in constraint_expr.upper():
         # Traiter récursivement le @FOR imbriqué
         try:
-            inner_setname, inner_alias, inner_constraint_expr, inner_nested = (
+            inner_setname, inner_alias, inner_constraint_expr, inner_nested, _ = (
                 translate_for_to_pyomo(constraint_expr, sets, cartesian_sets)
             )
             nested_fors.append((inner_setname, inner_alias))
@@ -282,10 +349,10 @@ def translate_for_to_pyomo(expr, sets, cartesian_sets):
     # Chercher = qui n'est pas suivi de > ou < ou =
     constraint_expr = re.sub(r"(?<![<>!=])\s*=\s*(?![>=])", " == ", constraint_expr)
 
-    # 3️⃣ Remplacer les Param/Var avec indices : x(e,t) -> model.x[e,t] ou x(5,5) -> model.x[5,5]
-    # Gère les indices multiples séparés par des virgules, alphanumériques
+    # 3️⃣ Remplacer les Param/Var avec indices : x(e,t) -> model.x[e,t], x(p-1) -> model.x[p-1]
+    # Gère les indices multiples séparés par des virgules, alphanumériques et arithmétiques
     constraint_expr = re.sub(
-        r"\b([A-Za-z_]\w*)\s*\(\s*([A-Za-z_0-9,\s]+)\s*\)",
+        r"\b([A-Za-z_]\w*)\s*\(\s*([A-Za-z_0-9,\s+\-]+)\s*\)",
         r"model.\1[\2]",
         constraint_expr,
     )
@@ -296,7 +363,7 @@ def translate_for_to_pyomo(expr, sets, cartesian_sets):
     # Cette ligne será gérée dans le contexte de generate_pyomo_code
     # où on a la liste complète des paramètres et variables
 
-    return setname, alias, constraint_expr, nested_fors
+    return setname, alias, constraint_expr, nested_fors, condition
 
 
 def detect_binary_variables(for_loops):
@@ -316,6 +383,23 @@ def detect_binary_variables(for_loops):
         matches = re.findall(r"@BIN\s*\(\s*([A-Za-z_]\w*)", loop, flags=re.IGNORECASE)
         binary_vars.update(matches)
     return binary_vars
+
+
+def detect_integer_variables(for_loops):
+    """
+    Détecte les variables entières déclarées avec @GIN() dans les boucles @FOR.
+
+    Args:
+        for_loops (list): Liste des chaînes @FOR.
+
+    Returns:
+        set: Ensemble des noms de variables entières détectées.
+    """
+    integer_vars = set()
+    for loop in for_loops:
+        matches = re.findall(r"@GIN\s*\(\s*([A-Za-z_]\w*)", loop, flags=re.IGNORECASE)
+        integer_vars.update(matches)
+    return integer_vars
 
 
 def translate_single_sum(sum_expr, outer_alias, sets, cartesian_sets):
@@ -419,7 +503,15 @@ def parse_lingo_json(model_json):
 
     constraints = model_json.get("constraints", [])
     for_loops = model_json.get("for_loops", [])
-    objective = model_json.get("objective", "")
+    objective = model_json.get("objective") or ""
+
+    # Si l'objectif n'est pas détecté (ex. "max=" en minuscules), chercher dans les contraintes
+    if not objective:
+        for c in list(constraints):
+            if re.match(r"\s*(max|min)\s*=", c, re.IGNORECASE):
+                objective = c.upper()
+                constraints = [x for x in constraints if x != c]
+                break
 
     direction = "maximize" if "MAX" in objective.upper() else "minimize"
 
@@ -856,8 +948,9 @@ def generate_pyomo_code(
     declared_vars = set()
     add_section("VARIABLES")
 
-    # Détection des variables binaires
+    # Détection des variables binaires et entières
     binary_vars = detect_binary_variables(for_loops)
+    integer_vars = detect_integer_variables(for_loops)
 
     for setname, attr in variables:
         # Évite collisions avec Param ou Set
@@ -873,8 +966,13 @@ def generate_pyomo_code(
         else:
             dims = f"model.{setname}"
 
-        # Utiliser domain=Binary si la variable est binaire
-        domain = "Binary" if safe_attr in binary_vars else "NonNegativeReals"
+        # Déterminer le domaine de la variable
+        if safe_attr in binary_vars:
+            domain = "Binary"
+        elif safe_attr in integer_vars:
+            domain = "NonNegativeIntegers"
+        else:
+            domain = "NonNegativeReals"
         lines.append(f"model.{safe_attr} = Var({dims}, domain={domain})")
 
     # === Paramètres scalaires non indexés ===
@@ -923,10 +1021,16 @@ def generate_pyomo_code(
                         declared_params,
                     )
                 else:
-                    # Convertir d'abord les indices avec parenthèses vers des crochets
-                    # x(5,5) -> x[5,5], x(e,t) -> x[e,t]
+                    # Convertir les indices avec parenthèses vers des crochets
+                    # x(5,5) -> x[5,5], x(e,t) -> x[e,t], x(p-1) -> x[p-1]
                     c_processed = re.sub(
-                        r"\b([A-Za-z_]\w*)\s*\(\s*([A-Za-z_0-9,\s]+)\s*\)", r"\1[\2]", c
+                        r"\b([A-Za-z_]\w*)\s*\(\s*([A-Za-z_0-9,\s+\-]+)\s*\)",
+                        r"\1[\2]",
+                        c,
+                    )
+                    # Convertir = en == pour Pyomo
+                    c_processed = re.sub(
+                        r"(?<![<>!=])\s*=\s*(?![>=])", " == ", c_processed
                     )
                     pyomo_expr = safe_replace_variables(
                         c_processed,
@@ -940,14 +1044,16 @@ def generate_pyomo_code(
     # === Boucles FOR ===
     # Traitement des @FOR qui ne sont pas @BIN (déjà traitées plus haut)
     for i, f in enumerate(for_loops):
-        # Ignorer les directives @BIN qui sont traitées dans les déclarations de variables
-        if "@BIN" in f.upper() and "@SUM" not in f.upper():
-            lines.append(f"# @BIN directive already handled in variable declarations")
+        # Ignorer les directives @BIN et @GIN qui sont traitées dans les déclarations de variables
+        if ("@BIN" in f.upper() or "@GIN" in f.upper()) and "@SUM" not in f.upper():
+            lines.append(
+                f"# @BIN/@GIN directive already handled in variable declarations"
+            )
             lines.append(f"# Original: {f}")
             continue
 
         try:
-            setname, alias, body, nested_fors = translate_for_to_pyomo(
+            setname, alias, body, nested_fors, condition = translate_for_to_pyomo(
                 f, sets, cartesian_sets
             )
 
@@ -993,6 +1099,11 @@ def generate_pyomo_code(
                 indent = "    "
                 exclude_from_replace.add(idx)
 
+            # Si condition de filtrage, ajouter un bloc if
+            if condition:
+                lines.append(f"{indent}if {condition}:")
+                indent += "    "
+
             # Ajouter les boucles imbriquées
             for inner_setname, inner_alias in nested_fors:
                 if inner_alias:
@@ -1017,11 +1128,10 @@ def generate_pyomo_code(
 
     if objective and lingo_pattern.search(objective):
         try:
-            pyomo_obj = translate_sum_to_pyomo(
-                objective.replace("MAX =", "").replace("MIN =", "").strip(),
-                sets,
-                cartesian_sets,
-            )
+            obj_expr = objective.replace("MAX =", "").replace("MIN =", "").strip()
+            # Use convert_nested_sums so that objectives with multiple @SUM at the
+            # same level (e.g. @SUM(...) + @SUM(...)) are both translated correctly.
+            pyomo_obj = convert_nested_sums(obj_expr, sets, cartesian_sets)
             # Ajouter model. aux paramètres scalaires et variables non-indexées restants
             for_aliases = set(re.findall(r"\bfor\s+([A-Za-z_]\w*)\s+in\s+", pyomo_obj))
             exclude_from_replace = for_aliases.copy()
