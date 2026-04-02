@@ -78,3 +78,55 @@ def test_external():
     assert temp == valeurs_optimales, (
         f"Les valeurs optimales devraient être {valeurs_optimales}, mais elles sont {temp}"
     )
+
+
+def test_external_dat(tmp_path):
+    """Valide le flux external_data avec un fichier DAT Pyomo/AMPL."""
+
+    tree = parse_lingo_model("./data/California.lng")
+    model_dict = LingoModelTransformer2().transform(tree)
+
+    dat_path = tmp_path / "california_data.dat"
+    save_pyomo_data_to_dat(model_dict, str(dat_path))
+
+    pyomo_code = generate_pyomo_code(
+        model_dict,
+        external_data=True,
+        data_filename=str(dat_path),
+        external_data_format="dat",
+    )
+
+    local_vars = {}
+    exec(pyomo_code, local_vars)
+    model = local_vars["model"]
+
+    solver = SolverFactory("highs")
+    solver.solve(model, tee=False)
+
+    assert int(value(model.obj)) == 17
+
+
+def test_external_dat_cartesian_param(tmp_path):
+    """Valide le chargement DAT natif Pyomo pour un parametre 2D (ex: QTEING)."""
+
+    tree = parse_lingo_model("./data/Regime_clean_explicit_test.lng")
+    model_dict = LingoModelTransformer2().transform(tree)
+
+    dat_path = tmp_path / "regime_data.dat"
+    save_pyomo_data_to_dat(model_dict, str(dat_path))
+
+    pyomo_code = generate_pyomo_code(
+        model_dict,
+        external_data=True,
+        data_filename=str(dat_path),
+        external_data_format="dat",
+    )
+
+    local_vars = {}
+    exec(pyomo_code, local_vars)
+    model = local_vars["model"]
+
+    solver = SolverFactory("highs")
+    solver.solve(model, tee=False)
+
+    assert int(value(model.obj)) == 90

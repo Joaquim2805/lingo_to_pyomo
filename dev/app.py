@@ -385,6 +385,11 @@ def pipeline():
         solver = request.form.get("solver_select_pipeline", "gurobi")
         do_clean = request.form.get("do_clean") == "true"
         external_data = request.form.get("external_data") == "true"
+        data_format = request.form.get("external_data_format", "json").lower().strip()
+        if data_format.startswith("."):
+            data_format = data_format[1:]
+        if data_format not in {"json", "dat"}:
+            data_format = "json"
 
         if not file_name:
             return jsonify(
@@ -452,17 +457,27 @@ def pipeline():
             f"⚙️ Génération du code Pyomo (données {'externes' if external_data else 'intégrées'})"
         )
 
-        json_path = None
+        data_path = None
+        data_filename = None
         if external_data:
-            # Sauvegarder les données en JSON
-            json_filename = f"{Path(file_name).stem}_data.json"
-            json_path = str(DATA_FOLDER / json_filename)
-            save_pyomo_data_to_json(model_dict, json_path)
-            pipeline_steps.append(f"💾 Données exportées: {json_filename}")
+            data_filename = f"{Path(file_name).stem}_data.{data_format}"
+            data_path = str(DATA_FOLDER / data_filename)
+
+            if data_format == "dat":
+                save_pyomo_data_to_dat(model_dict, data_path)
+            else:
+                save_pyomo_data_to_json(model_dict, data_path)
+
+            pipeline_steps.append(
+                f"💾 Données exportées ({data_format.upper()}): {data_filename}"
+            )
 
             # Générer le code avec external_data=True
             pyomo_code = generate_pyomo_code(
-                model_dict, external_data=True, data_filename=f"../data/{json_filename}"
+                model_dict,
+                external_data=True,
+                data_filename=f"../data/{data_filename}",
+                external_data_format=data_format,
             )
         else:
             pyomo_code = generate_pyomo_code(model_dict, external_data=False)
@@ -477,9 +492,8 @@ def pipeline():
             solver=solver,
             filename=notebook_path,
             external_data=external_data,
-            json_data_filename=f"../data/{Path(file_name).stem}_data.json"
-            if external_data
-            else None,
+            data_filename=f"../data/{data_filename}" if external_data else None,
+            external_data_format=data_format,
         )
 
         return jsonify(
@@ -488,8 +502,14 @@ def pipeline():
                 "pipeline_steps": pipeline_steps,
                 "notebook_path": notebook_path,
                 "notebook_filename": notebook_filename,
-                "json_path": json_path,
-                "json_filename": Path(json_path).name if json_path else None,
+                "data_path": data_path,
+                "data_filename": Path(data_path).name if data_path else None,
+                "data_format": data_format if external_data else None,
+                # Compat ascendante front existant
+                "json_path": data_path if data_format == "json" else None,
+                "json_filename": Path(data_path).name
+                if (data_path and data_format == "json")
+                else None,
                 "has_ole": has_ole,
                 "was_cleaned": do_clean,
                 "has_external_data": external_data,
@@ -519,24 +539,24 @@ def pipeline():
 
 @app.route("/download-pipeline", methods=["POST"])
 def download_pipeline():
-    """Télécharge les fichiers générés par le pipeline (notebook + JSON si applicable)."""
+    """Télécharge les fichiers générés par le pipeline (notebook + données externes)."""
     try:
         data = request.get_json()
         notebook_path = data.get("notebook_path")
-        json_path = data.get("json_path")
-        download_type = data.get("download_type", "notebook")  # "notebook" ou "json"
+        data_path = data.get("data_path") or data.get("json_path")
+        download_type = data.get("download_type", "notebook")  # "notebook" ou "data"
 
         if download_type == "notebook":
             if not notebook_path or not os.path.exists(notebook_path):
                 return jsonify({"success": False, "error": "Notebook non trouvé"}), 404
             return send_file(notebook_path, as_attachment=True)
 
-        elif download_type == "json":
-            if not json_path or not os.path.exists(json_path):
+        elif download_type in {"data", "json"}:
+            if not data_path or not os.path.exists(data_path):
                 return jsonify(
-                    {"success": False, "error": "Fichier JSON non trouvé"}
+                    {"success": False, "error": "Fichier de données non trouvé"}
                 ), 404
-            return send_file(json_path, as_attachment=True)
+            return send_file(data_path, as_attachment=True)
 
         else:
             return jsonify(

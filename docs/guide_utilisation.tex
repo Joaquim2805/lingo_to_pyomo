@@ -1,0 +1,248 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[french]{babel}
+\usepackage{lmodern}
+\usepackage{geometry}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{enumitem}
+\usepackage{booktabs}
+\usepackage{csquotes}
+\usepackage{seqsplit}
+
+
+
+\usepackage{array}
+\usepackage{ragged2e}
+
+\geometry{margin=2.5cm}
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue!50!black,
+  urlcolor=blue!50!black,
+  pdftitle={Guide d'utilisation - LINGO vers Pyomo},
+  pdfauthor={Projet lingo_to_pyomo}
+}
+
+\definecolor{codebg}{RGB}{248,248,248}
+\definecolor{codeframe}{RGB}{220,220,220}
+\definecolor{codecomment}{RGB}{0,120,0}
+\definecolor{codekeyword}{RGB}{0,70,170}
+
+\lstdefinestyle{mystyle}{
+  backgroundcolor=\color{codebg},
+  frame=single,
+  rulecolor=\color{codeframe},
+  basicstyle=\ttfamily\small,
+  keywordstyle=\color{codekeyword}\bfseries,
+  commentstyle=\color{codecomment},
+  showstringspaces=false,
+  breaklines=true,
+  columns=fullflexible
+}
+
+\lstset{style=mystyle}
+
+\title{Guide d'utilisation\\\large Conversion LINGO $\rightarrow$ Pyomo}
+
+\begin{document}
+\maketitle
+
+\section{Objectif du projet}
+Ce projet convertit des modèles d'optimisation écrits en LINGO (fichiers \texttt{.lng}) vers du code Pyomo, puis génère un notebook Jupyter prêt à être exécuté.
+
+\medskip
+\noindent
+Le point important est le suivant :
+\begin{itemize}[leftmargin=1.2cm]
+  \item vous pouvez l'utiliser facilement via l'application web Flask ;
+  \item vous pouvez aussi l'utiliser directement comme une bibliothèque Python classique, fonction par fonction.
+\end{itemize}
+
+\section{Installation rapide}
+\begin{lstlisting}[language=bash]
+git clone https://github.com/Joaquim2805/lingo_to_pyomo.git
+cd lingo_to_pyomo
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+\end{lstlisting}
+
+\noindent
+Ensuite, placez vos fichiers LINGO dans le dossier \texttt{data/} (ou utilisez ceux déjà présents dans le projet).
+
+\section{Deux façons d'utiliser l'outil}
+\subsection{A. Via l'application web Flask (parcours conseillé)}
+Cette voie est la plus simple pour un usage quotidien.
+
+\begin{lstlisting}[language=bash]
+cd dev
+python app.py
+\end{lstlisting}
+
+Puis ouvrez \texttt{http://localhost:5000} dans le navigateur.
+
+\medskip
+\noindent
+Depuis l'interface, vous avez 4 actions principales :
+\begin{enumerate}[leftmargin=1.2cm]
+  \item \textbf{Générer Notebook} : conversion directe LINGO $\rightarrow$ Pyomo.
+  \item \textbf{Conversion OLE} : permet de convertir un fichier LINGO utilisant un fichier Excel comme source de données externes via \texttt{@OLE(...)} en fichier LINGO explicite.
+  \item \textbf{Nettoyage} : normalise un fichier LINGO (commentaires, accents, casse, sections \texttt{DATA/ENDDATA} vides).
+  \item \textbf{Pipeline complet} : enchaîne automatiquement les étapes nécessaires, avec nettoyage optionnel, génération du notebook, et export JSON optionnel des données.
+\end{enumerate}
+
+
+
+\subsection{B. Comme bibliothèque Python (mode script/notebook)}
+Ce mode est pratique pour l'automatisation et les tests.
+
+Le pipeline standard est :
+\begin{enumerate}[leftmargin=1.2cm]
+  \item parser le fichier LINGO ;
+  \item transformer l'arbre en structure Python ;
+  \item générer le code Pyomo ;
+  \item générer un notebook Jupyter ;
+  \item (optionnel) externaliser les données en JSON.
+\end{enumerate}
+
+\begin{lstlisting}[language=Python]
+from src.lingo_parser.parser import parse_lingo_model
+from src.lingo_parser.transformer import LingoModelTransformer2
+from src.pyomo_generator.json_parser import generate_pyomo_code
+from src.notebook_generator.notebook_construct import generate_pyomo_notebook
+
+tree = parse_lingo_model("data/Pastissimo.lng")
+model_dict = LingoModelTransformer2().transform(tree)
+pyomo_code = generate_pyomo_code(model_dict, external_data=False)
+generate_pyomo_notebook(pyomo_code, solver="highs", filename="notebooks/Pastissimo.ipynb")
+\end{lstlisting}
+
+\noindent
+Le notebook de développement du projet montre exactement ce style d'utilisation (appels directs aux fonctions dans une cellule Python).
+
+\section{Exemples concrets}
+\subsection{Exemple 1 : Conversion simple d'un fichier \texttt{.lng}}
+\begin{lstlisting}[language=Python]
+from src.lingo_parser.parser import parse_lingo_model
+from src.lingo_parser.transformer import LingoModelTransformer2
+from src.pyomo_generator.json_parser import generate_pyomo_code
+from src.notebook_generator.notebook_construct import generate_pyomo_notebook
+
+tree = parse_lingo_model("data/Buckly.lng")
+model_dict = LingoModelTransformer2().transform(tree)
+pyomo_code = generate_pyomo_code(model_dict, external_data=False)
+
+generate_pyomo_notebook(
+    pyomo_code,
+    solver="highs",
+    filename="notebooks/Buckly.ipynb"
+)
+\end{lstlisting}
+
+\subsection{Exemple 2 : Données externes JSON}
+Externaliser les données en JSON signifie séparer le \textit{modèle} (équations, contraintes, variables) des \textit{valeurs de données} (paramètres, tableaux, coefficients).
+Le code Pyomo reste alors stable, et les données sont lues depuis un fichier \texttt{.json} au moment de l'exécution. Cette approche est utile pour tester plusieurs jeux de données sans régénérer tout le code.
+
+\begin{lstlisting}[language=Python]
+from src.lingo_parser.parser import parse_lingo_model
+from src.lingo_parser.transformer import LingoModelTransformer2
+from src.pyomo_generator.json_parser import generate_pyomo_code, save_pyomo_data_to_json
+from src.notebook_generator.notebook_construct import generate_pyomo_notebook
+
+tree = parse_lingo_model("data/Cardoza.lng")
+model_dict = LingoModelTransformer2().transform(tree)
+
+# Sauvegarde des données du modèle
+save_pyomo_data_to_json(model_dict, output_path="data/Cardoza_data.json")
+
+# Code Pyomo qui lit les données externes
+pyomo_code = generate_pyomo_code(
+  model_dict,
+  external_data=True,
+  data_filename="../data/Cardoza_data.json"
+)
+
+generate_pyomo_notebook(
+  pyomo_code,
+  solver="highs",
+  filename="notebooks/Cardoza.ipynb",
+  external_data=True,
+  json_data_filename="../data/Cardoza_data.json"
+)
+\end{lstlisting}
+
+\noindent
+\subsection{Exemple 3 : Script utilitaire réutilisable}
+\begin{lstlisting}[language=Python]
+from src.lingo_parser.parser import parse_lingo_model
+from src.lingo_parser.transformer import LingoModelTransformer2
+from src.pyomo_generator.json_parser import generate_pyomo_code
+from src.notebook_generator.notebook_construct import generate_pyomo_notebook
+
+def convertir_modele(input_lng, output_ipynb, solver="highs"):
+  tree = parse_lingo_model(input_lng)
+  model_dict = LingoModelTransformer2().transform(tree)
+  pyomo_code = generate_pyomo_code(model_dict, external_data=False)
+  generate_pyomo_notebook(pyomo_code, solver=solver, filename=output_ipynb)
+
+
+convertir_modele("data/Pastissimo.lng", "notebooks/Pastissimo.ipynb")
+\end{lstlisting}
+
+\section{Fonctions principales à connaître}
+\begin{description}
+    \item[\texttt{parse\_lingo\_model(...)}] Lit un fichier LINGO et renvoie un arbre syntaxique (Lark).
+    
+    \item[\texttt{LingoModelTransformer2().transform(tree)}] Convertit l'arbre syntaxique en dictionnaire Python exploitable.
+    
+    \item[\texttt{generate\_pyomo\_code(...)}] Produit le code Pyomo sous forme de chaîne de caractères.
+    
+    \item[\texttt{generate\_pyomo\_notebook(...)}] Construit le notebook \texttt{.ipynb}.
+    
+    \item[\texttt{save\_pyomo\_data\_to\_json(...)}] Exporte les données du modèle en JSON.
+    
+    \item[\texttt{clean\_lingo\_content(...)} / \texttt{clean\_lingo\_file(...)}] Nettoie le contenu LINGO.
+\end{description}
+
+\section{Que contient le notebook généré ?}
+Le notebook généré est directement exploitable : vous l'ouvrez, vous exécutez les cellules, et vous obtenez la solution.
+
+\medskip
+\noindent
+Concrètement, vous y trouverez :
+\begin{enumerate}[leftmargin=1.2cm]
+  \item les imports nécessaires (Pyomo, pandas, etc.) ;
+  \item le modèle complet reconstruit en Python (sets, paramètres, variables, contraintes, objectif) ;
+  \item une cellule qui lance le solveur choisi ;
+  \item l'état de la résolution (faisable, optimal, etc.) ;
+  \item un affichage des variables de décision non nulles, pour lire rapidement la solution utile.
+\end{enumerate}
+
+
+
+
+\section{Résolution et solveurs}
+Dans les notebooks générés, la résolution passe par :
+\begin{lstlisting}[language=Python]
+solver = SolverFactory("highs")
+result = solver.solve(model, tee=True)
+\end{lstlisting}
+
+\noindent
+Les formulaires web proposent notamment : \texttt{gurobi}, \texttt{cplex}, \texttt{glpk}, \texttt{highs} (et \texttt{ipopt} dans le pipeline complet).
+
+\section{Conclusion}
+Ce projet peut être utilisé de deux manières complémentaires :
+\begin{itemize}[leftmargin=1.2cm]
+  \item \textbf{interface web Flask} pour un usage rapide et pédagogique ;
+  \item \textbf{API Python} pour intégrer la conversion dans des scripts ou notebooks personnels.
+\end{itemize}
+
+\noindent
+Dans les deux cas, le même cœur de conversion est utilisé : parsing LINGO, transformation intermédiaire, génération Pyomo, puis génération du notebook.
+
+\end{document}

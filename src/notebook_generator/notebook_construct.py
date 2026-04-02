@@ -40,6 +40,8 @@ def generate_pyomo_notebook(
     filename: str = "model.ipynb",
     external_data: bool = False,
     json_data_filename: str = "./data/pyomo_data.json",
+    data_filename: str = None,
+    external_data_format: str = "json",
 ):
     """
     Génère un notebook Jupyter structuré avec une cellule par composant Pyomo.
@@ -60,16 +62,22 @@ def generate_pyomo_notebook(
         )
     )
 
+    effective_data_filename = data_filename or json_data_filename
+    effective_data_format = (external_data_format or "json").strip().lower()
+    if effective_data_format.startswith("."):
+        effective_data_format = effective_data_format[1:]
+
     # ✨ CELLULE DONNÉES - Ajouter la fonction load_pyomo_data() directement si external_data=True
-    if external_data:
+    if external_data and effective_data_format == "json":
         nb_cells.append(new_markdown_cell("## 💾 Charger les données"))
         load_data_code = f'''import json
 import ast
 from pathlib import Path
 
-def load_pyomo_data(input_path="{json_data_filename}"):
-    """Charge les données JSON et convertit les clés string en types natifs."""
+def load_pyomo_data(input_path="{effective_data_filename}"):
+    """Charge les donnees externes depuis un fichier JSON."""
     input_file = Path(input_path)
+
     with open(input_file, "r") as f:
         data = json.load(f)
 
@@ -104,6 +112,13 @@ def load_pyomo_data(input_path="{json_data_filename}"):
 # Charger les données
 data = load_pyomo_data()'''
         nb_cells.append(new_code_cell(load_data_code))
+    elif external_data and effective_data_format == "dat":
+        nb_cells.append(
+            new_markdown_cell(
+                "## 💾 Chargement des données\n"
+                "Les données `.dat` sont chargées nativement par Pyomo via `model.create_instance(...)` dans la section du modèle."
+            )
+        )
 
     # Découpage du code Pyomo
     # Nettoyer le code pour supprimer les imports problématiques

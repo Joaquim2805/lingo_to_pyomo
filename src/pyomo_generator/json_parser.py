@@ -682,6 +682,27 @@ def prepare_pyomo_data_dict(model_json, external_data=False):
     return data_dict
 
 
+def _format_dat_atom(value):
+    """Formate une valeur en token AMPL/Pyomo .dat."""
+    if isinstance(value, bool):
+        return "1" if value else "0"
+
+    if isinstance(value, int):
+        return str(value)
+
+    if isinstance(value, float):
+        if value.is_integer():
+            return str(int(value))
+        return repr(value)
+
+    token = str(value)
+    if re.match(r"^[A-Za-z0-9_./+-]+$", token):
+        return token
+
+    escaped = token.replace("'", "\\'")
+    return f"'{escaped}'"
+
+
 def save_pyomo_data_to_json(model_json, output_path="./data/pyomo_data.json"):
     """
     Sauvegarde les données du modèle LINGO dans un fichier JSON.
@@ -707,9 +728,66 @@ def save_pyomo_data_to_json(model_json, output_path="./data/pyomo_data.json"):
     return str(output_file)
 
 
+def save_pyomo_data_to_dat(model_json, output_path="./data/pyomo_data.dat"):
+    """
+    Sauvegarde les donnees du modele LINGO en fichier .dat (syntaxe AMPL/Pyomo).
+
+    Args:
+        model_json (dict): JSON decrivant le modele LINGO.
+        output_path (str): Chemin du fichier .dat a creer.
+
+    Returns:
+        str: Chemin du fichier cree.
+    """
+    import ast
+    from pathlib import Path
+
+    data_dict = prepare_pyomo_data_dict(model_json, external_data=True)
+    output_file = Path(output_path)
+    output_file.parent.mkdir(parents=True, exist_ok=True)
+
+    lines = []
+
+    for setname, elements in data_dict.get("sets", {}).items():
+        elems = " ".join(_format_dat_atom(e) for e in elements)
+        lines.append(f"set {setname} := {elems} ;")
+
+    for pname, pval in data_dict.get("params", {}).items():
+        if isinstance(pval, dict):
+            lines.append(f"param {pname} :=")
+            for key, val in pval.items():
+                lines.append(f"  {_format_dat_atom(key)} {_format_dat_atom(val)}")
+            lines.append(";")
+        else:
+            lines.append(f"param {pname} := {_format_dat_atom(pval)} ;")
+
+    for pname, pval in data_dict.get("cartesian_data", {}).items():
+        lines.append(f"param {pname} :=")
+        for key, val in pval.items():
+            parsed_key = key
+            if isinstance(parsed_key, str):
+                try:
+                    parsed_key = ast.literal_eval(parsed_key)
+                except Exception:
+                    parsed_key = key
+
+            if not isinstance(parsed_key, tuple):
+                parsed_key = (parsed_key,)
+
+            # Format natif DAT Pyomo/AMPL: i j ... value
+            idx_tokens = " ".join(_format_dat_atom(k) for k in parsed_key)
+            lines.append(f"  {idx_tokens} {_format_dat_atom(val)}")
+        lines.append(";")
+
+    with open(output_file, "w", encoding="utf-8") as f:
+        f.write("\n".join(lines) + "\n")
+
+    return str(output_file)
+
+
 def load_pyomo_data(input_path="./data/pyomo_data.json"):
     """
-    Charge les donnees JSON et convertit les cles string en types natifs.
+    Charge les donnees externes depuis un fichier JSON.
 
     Args:
         input_path (str): Chemin du fichier JSON a lire.
@@ -722,6 +800,7 @@ def load_pyomo_data(input_path="./data/pyomo_data.json"):
     from pathlib import Path
 
     input_file = Path(input_path)
+
     with open(input_file, "r") as f:
         data = json.load(f)
 
@@ -755,7 +834,10 @@ def load_pyomo_data(input_path="./data/pyomo_data.json"):
 
 
 def generate_pyomo_code(
-    model_json, external_data=False, data_filename="./data/pyomo_data.json"
+    model_json,
+    external_data=False,
+    data_filename="./data/pyomo_data.json",
+    external_data_format="json",
 ):
     (
         sets,
@@ -808,14 +890,28 @@ def generate_pyomo_code(
 
     lines = []
 
-    # Si external_data=True, ajouter le chargement des données depuis JSON
+    data_format = (external_data_format or "json").strip().lower()
+    if data_format.startswith("."):
+        data_format = data_format[1:]
+    if data_format not in {"json", "dat"}:
+        raise ValueError(
+            f"Format de donnees externe non supporte: {external_data_format}."
+        )
+
+    use_native_dat = external_data and data_format == "dat"
+
+    # Si external_data=True, ajouter le chargement des donnees (JSON ou DAT)
     if external_data:
-        lines.append("from pyomo_generator.json_parser import load_pyomo_data")
-        lines.append(f"data = load_pyomo_data('{data_filename}')")
-        lines.append("")
+        if data_format == "json":
+            lines.append("from pyomo_generator.json_parser import load_pyomo_data")
+            lines.append(f"data = load_pyomo_data('{data_filename}')")
+            lines.append("")
 
     lines.append("from pyomo.environ import *\n")
-    lines.append("model = ConcreteModel()\n")
+    if use_native_dat:
+        lines.append("model = AbstractModel()\n")
+    else:
+        lines.append("model = ConcreteModel()\n")
     add_section("SETS")
 
     # --- Conversion automatique des types (int ou str)
@@ -828,7 +924,9 @@ def generate_pyomo_code(
     # === Déclaration des sets ===
     all_set_names = set()
     for setname, elements in sets.items():
-        if external_data:
+        if use_native_dat:
+            lines.append(f"model.{setname} = Set()")
+        elif external_data:
             lines.append(f"model.{setname} = Set(initialize=data['sets']['{setname}'])")
         else:
             typed_elems = [_convert_type(e) for e in elements]
@@ -838,13 +936,23 @@ def generate_pyomo_code(
     for name, indices in cartesian_sets.items():
         all_set_names.add(name)
         if len(indices) == 2:
-            lines.append(
-                f"model.{name} = Set(dimen=2, initialize=[(i,j) for i in model.{indices[0]} for j in model.{indices[1]}])"
-            )
+            if use_native_dat:
+                lines.append(
+                    f"model.{name} = Set(dimen=2, initialize=lambda m: [(i,j) for i in m.{indices[0]} for j in m.{indices[1]}])"
+                )
+            else:
+                lines.append(
+                    f"model.{name} = Set(dimen=2, initialize=[(i,j) for i in model.{indices[0]} for j in model.{indices[1]}])"
+                )
         elif len(indices) == 3:
-            lines.append(
-                f"model.{name} = Set(dimen=3, initialize=[(i,j,k) for i in model.{indices[0]} for j in model.{indices[1]} for k in model.{indices[2]}])"
-            )
+            if use_native_dat:
+                lines.append(
+                    f"model.{name} = Set(dimen=3, initialize=lambda m: [(i,j,k) for i in m.{indices[0]} for j in m.{indices[1]} for k in m.{indices[2]}])"
+                )
+            else:
+                lines.append(
+                    f"model.{name} = Set(dimen=3, initialize=[(i,j,k) for i in model.{indices[0]} for j in model.{indices[1]} for k in model.{indices[2]}])"
+                )
 
     # === Paramètres ===
     # === Paramètres ===
@@ -854,6 +962,20 @@ def generate_pyomo_code(
 
     for (setname, attr), values in params.items():
         declared_params.add(attr)
+
+        if use_native_dat:
+            # En mode DAT natif, Pyomo lit les valeurs via model.create_instance(...).
+            if setname not in sets and setname not in cartesian_sets:
+                lines.append(f"model.{attr} = Param(within=NonNegativeReals)")
+            elif setname in cartesian_sets:
+                idx_sets = cartesian_sets[setname]
+                dims = ", ".join(f"model.{idx}" for idx in idx_sets)
+                lines.append(f"model.{attr} = Param({dims}, within=NonNegativeReals)")
+            else:
+                lines.append(
+                    f"model.{attr} = Param(model.{setname}, within=NonNegativeReals)"
+                )
+            continue
 
         # Param scalaire si setname absent
         if setname not in sets and setname not in cartesian_sets:
@@ -934,7 +1056,9 @@ def generate_pyomo_code(
     for key, val in model_json["data"].items():
         # Si le param n'est pas déjà indexé sur un set
         if key not in declared_params:
-            if external_data:
+            if use_native_dat:
+                lines.append(f"model.{key} = Param(within=NonNegativeReals)")
+            elif external_data:
                 lines.append(
                     f"model.{key} = Param(initialize=data['params']['{key}'], within=NonNegativeReals)"
                 )
@@ -996,6 +1120,10 @@ def generate_pyomo_code(
             and var not in aliases
         ):
             lines.append(f"model.{var} = Var(domain=NonNegativeReals)")
+
+    if use_native_dat:
+        add_section("DATA")
+        lines.append(f"model = model.create_instance('{data_filename}')")
 
     # === Contraintes ===
     add_section("CONSTRAINTS")

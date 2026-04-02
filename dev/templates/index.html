@@ -3,2745 +3,2570 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Générateur LINGO → Pyomo | Outil Pédagogique</title>
-    <!-- Bootstrap CSS -->
+    <title>LINGO vers Pyomo | Outil de conversion</title>
     <link
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
       rel="stylesheet"
     />
-    <!-- Font Awesome -->
     <link
       rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
     />
-    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&family=Fira+Code:wght@400;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap"
       rel="stylesheet"
     />
-    <!-- Highlight.js for code syntax highlighting -->
     <link
       rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css"
+      href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css"
     />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <style>
       :root {
-        --primary-color: #2563eb;
-        --secondary-color: #1e40af;
-        --accent-color: #0ea5e9;
-        --success-color: #10b981;
-        --danger-color: #ef4444;
-        --dark-bg: #f8fafc;
-        --light-text: #1e293b;
-        --border-color: #e2e8f0;
-        --card-bg: #ffffff;
-        --secondary-bg: #f1f5f9;
+        --bg: #f5f0e6;
+        --bg-soft: #fbf7f0;
+        --surface: rgba(255, 252, 246, 0.92);
+        --surface-strong: #fffdf9;
+        --ink: #18363d;
+        --muted: #5d7478;
+        --line: rgba(24, 54, 61, 0.12);
+        --primary: #0f7c82;
+        --primary-strong: #0b5e63;
+        --secondary: #f0a13d;
+        --secondary-soft: rgba(240, 161, 61, 0.12);
+        --danger: #c44d45;
+        --shadow-soft: 0 24px 70px rgba(29, 53, 63, 0.08);
+        --shadow-card: 0 12px 30px rgba(29, 53, 63, 0.08);
+        --radius-xl: 28px;
+        --radius-lg: 20px;
+        --radius-md: 14px;
+        --container: 1240px;
       }
 
       * {
-        margin: 0;
-        padding: 0;
         box-sizing: border-box;
       }
 
+      html {
+        scroll-behavior: smooth;
+      }
+
       body {
-        font-family: "Poppins", sans-serif;
-        background: linear-gradient(135deg, #f8fafc 0%, #e0e7ff 100%);
-        color: var(--light-text);
+        margin: 0;
+        font-family: "IBM Plex Sans", sans-serif;
+        color: var(--ink);
+        background:
+          radial-gradient(
+            circle at top left,
+            rgba(15, 124, 130, 0.14),
+            transparent 28%
+          ),
+          radial-gradient(
+            circle at bottom right,
+            rgba(240, 161, 61, 0.14),
+            transparent 22%
+          ),
+          linear-gradient(180deg, #f8f3ea 0%, #f4eee4 100%);
         min-height: 100vh;
         overflow-x: hidden;
       }
 
-      /* Navbar Styling */
-      .navbar {
-        background: rgba(255, 255, 255, 0.95) !important;
-        backdrop-filter: blur(10px);
-        border-bottom: 1px solid var(--border-color);
-        padding: 1rem 0;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-      }
-
-      .navbar-brand {
-        font-size: 1.5rem;
-        font-weight: 700;
-        background: linear-gradient(
-          135deg,
-          var(--accent-color),
-          var(--primary-color)
-        );
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-        transition: transform 0.3s ease;
-      }
-
-      .navbar-brand:hover {
-        transform: scale(1.05);
-      }
-
-      .navbar-brand i {
-        margin-right: 0.5rem;
-        color: var(--accent-color);
-      }
-
-      .nav-link {
-        color: #475569 !important;
-        font-weight: 500;
-        margin: 0 1rem;
-        position: relative;
-        transition: color 0.3s ease;
-      }
-
-      .nav-link::after {
+      body::before {
         content: "";
-        position: absolute;
-        bottom: -5px;
-        left: 0;
-        width: 0;
-        height: 2px;
-        background: linear-gradient(
-          90deg,
-          var(--accent-color),
-          var(--primary-color)
+        position: fixed;
+        inset: 0;
+        background-image:
+          linear-gradient(rgba(255, 255, 255, 0.36) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.36) 1px, transparent 1px);
+        background-size: 32px 32px;
+        mask-image: linear-gradient(
+          180deg,
+          rgba(0, 0, 0, 0.7),
+          transparent 90%
         );
-        transition: width 0.3s ease;
-      }
-
-      .nav-link:hover,
-      .nav-link.active {
-        color: var(--accent-color) !important;
-      }
-
-      .nav-link:hover::after,
-      .nav-link.active::after {
-        width: 100%;
-      }
-
-      /* Hero Section */
-      .hero {
-        min-height: 100vh;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        text-align: center;
-        padding: 80px 20px 40px;
-        position: relative;
-        overflow: hidden;
-      }
-
-      .hero::before {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background:
-          radial-gradient(
-            circle at 20% 50%,
-            rgba(37, 99, 235, 0.08) 0%,
-            transparent 50%
-          ),
-          radial-gradient(
-            circle at 80% 80%,
-            rgba(14, 165, 233, 0.08) 0%,
-            transparent 50%
-          );
         pointer-events: none;
+        z-index: -1;
       }
 
-      .hero-content {
-        position: relative;
-        z-index: 1;
-        max-width: 900px;
-        animation: slideInUp 0.8s ease;
+      h1,
+      h2,
+      h3,
+      h4,
+      h5,
+      h6 {
+        font-family: "Space Grotesk", sans-serif;
+        letter-spacing: -0.03em;
       }
 
-      .hero h1 {
-        font-size: clamp(2rem, 5vw, 3.5rem);
-        font-weight: 700;
-        margin-bottom: 1.5rem;
-        line-height: 1.2;
-        background: linear-gradient(
-          135deg,
-          var(--light-text),
-          var(--accent-color)
-        );
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
+      code,
+      pre {
+        font-family: "IBM Plex Mono", monospace;
       }
 
-      .hero-subtitle {
-        font-size: clamp(1rem, 2.5vw, 1.3rem);
-        color: #334155;
-        margin-bottom: 2rem;
-        line-height: 1.6;
-        font-weight: 400;
+      .site-shell {
+        width: min(var(--container), calc(100vw - 2rem));
+        margin: 0 auto;
       }
 
-      @keyframes slideInUp {
-        from {
-          opacity: 0;
-          transform: translateY(50px);
-        }
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
-      }
-
-      /* Form Card */
-      .form-card {
-        background: rgba(255, 255, 255, 0.95);
-        backdrop-filter: blur(20px);
-        border: 1px solid var(--border-color);
-        border-radius: 20px;
-        padding: 3rem;
-        margin-top: 2rem;
-        animation: slideInUp 1s ease;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
-        max-width: 100%;
-        width: 100%;
-      }
-
-      .form-group {
-        margin-bottom: 2rem;
-      }
-
-      .form-label {
-        font-weight: 600;
-        color: #0f172a;
-        margin-bottom: 0.75rem;
-        display: block;
-        font-size: 1rem;
-      }
-
-      .form-select {
-        background: #ffffff;
-        border: 2px solid var(--border-color);
-        color: var(--light-text);
-        border-radius: 12px;
-        padding: 0.75rem 1rem;
-        font-size: 1rem;
-        transition: all 0.3s ease;
-        cursor: pointer;
-      }
-
-      .form-select:focus {
-        border-color: var(--accent-color);
-        background: #ffffff;
-        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
-        color: var(--light-text);
-        outline: none;
-      }
-
-      .form-select option {
-        background: #ffffff;
-        color: var(--light-text);
-      }
-
-      .btn-generate {
-        background: linear-gradient(
-          135deg,
-          var(--primary-color),
-          var(--accent-color)
-        );
-        border: none;
-        color: white;
-        padding: 1rem 3rem;
-        font-size: 1.1rem;
-        font-weight: 600;
-        border-radius: 12px;
-        transition: all 0.3s ease;
-        cursor: pointer;
-        position: relative;
-        overflow: hidden;
-        width: 100%;
-      }
-
-      .btn-generate::before {
-        content: "";
-        position: absolute;
+      .topbar {
+        position: sticky;
         top: 0;
-        left: -100%;
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(
-          90deg,
-          transparent,
-          rgba(255, 255, 255, 0.3),
-          transparent
-        );
-        transition: left 0.5s ease;
+        z-index: 40;
+        padding: 1rem 0;
+        backdrop-filter: blur(18px);
+        background: rgba(245, 240, 230, 0.78);
+        border-bottom: 1px solid rgba(24, 54, 61, 0.08);
       }
 
-      .btn-generate:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 15px 40px rgba(37, 99, 235, 0.4);
-      }
-
-      .btn-generate:hover::before {
-        left: 100%;
-      }
-
-      .btn-generate:active {
-        transform: translateY(-1px);
-      }
-
-      /* Features Section */
-      .features-section {
-        padding: 6rem 0;
-        position: relative;
-      }
-
-      .section-title {
-        font-size: 2.5rem;
-        font-weight: 700;
-        text-align: center;
-        margin-bottom: 3rem;
-        background: linear-gradient(
-          135deg,
-          var(--light-text),
-          var(--accent-color)
-        );
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-      }
-
-      .feature-card {
-        background: rgba(255, 255, 255, 0.9);
-        border: 1px solid var(--border-color);
-        border-radius: 16px;
-        padding: 2.5rem;
-        text-align: center;
-        transition: all 0.3s ease;
-        height: 100%;
-        position: relative;
-        overflow: hidden;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-      }
-
-      .feature-card::before {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 4px;
-        background: linear-gradient(
-          90deg,
-          var(--primary-color),
-          var(--accent-color)
-        );
-        transform: scaleX(0);
-        transform-origin: left;
-        transition: transform 0.3s ease;
-      }
-
-      .feature-card:hover {
-        transform: translateY(-8px);
-        border-color: var(--accent-color);
-        background: rgba(255, 255, 255, 1);
-        box-shadow: 0 15px 35px rgba(14, 165, 233, 0.15);
-      }
-
-      .feature-card:hover::before {
-        transform: scaleX(1);
-      }
-
-      .feature-icon {
-        font-size: 3rem;
-        color: var(--accent-color);
-        margin-bottom: 1.5rem;
-      }
-
-      .feature-card h3 {
-        font-size: 1.5rem;
-        font-weight: 600;
-        margin-bottom: 1rem;
-        color: #0f172a;
-      }
-
-      .feature-card p {
-        color: #475569;
-        line-height: 1.6;
-        font-weight: 400;
-      }
-
-      /* How to Use Section */
-      .how-to-section {
-        padding: 6rem 0;
-        background: rgba(241, 245, 249, 0.5);
-      }
-
-      .step-card {
-        display: flex;
-        gap: 2rem;
-        margin-bottom: 2rem;
-        align-items: flex-start;
-      }
-
-      .step-number {
-        width: 50px;
-        height: 50px;
-        background: linear-gradient(
-          135deg,
-          var(--primary-color),
-          var(--accent-color)
-        );
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 700;
-        font-size: 1.5rem;
-        flex-shrink: 0;
-      }
-
-      .step-content h4 {
-        font-weight: 600;
-        margin-bottom: 0.5rem;
-        color: #0f172a;
-      }
-
-      .step-content p {
-        color: #475569;
-        line-height: 1.6;
-      }
-
-      /* Footer */
-      footer {
-        background: rgba(15, 23, 42, 0.8);
-        border-top: 1px solid var(--border-color);
-        padding: 3rem 0;
-        margin-top: 4rem;
-      }
-
-      .footer-content {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: 2rem;
-        margin-bottom: 2rem;
-      }
-
-      .footer-section h5 {
-        font-weight: 600;
-        margin-bottom: 1rem;
-        color: var(--accent-color);
-      }
-
-      .footer-section p,
-      .footer-section a {
-        color: #cbd5e1;
-        text-decoration: none;
-        line-height: 1.8;
-        font-size: 0.95rem;
-      }
-
-      .footer-section a:hover {
-        color: var(--accent-color);
-      }
-
-      .footer-bottom {
-        text-align: center;
-        padding-top: 2rem;
-        border-top: 1px solid var(--border-color);
-        color: #64748b;
-      }
-
-      /* Responsive */
-      @media (max-width: 768px) {
-        .form-card {
-          padding: 1.5rem;
-        }
-
-        .hero {
-          padding-top: 100px;
-        }
-
-        .section-title {
-          font-size: 1.8rem;
-        }
-
-        .step-card {
-          gap: 1.5rem;
-        }
-      }
-
-      /* Loading State */
-      .btn-generate:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-      }
-
-      /* File Count Badge */
-      .file-badge {
-        display: inline-block;
-        background: rgba(14, 165, 233, 0.2);
-        border: 1px solid var(--accent-color);
-        color: var(--accent-color);
-        padding: 0.25rem 0.75rem;
-        border-radius: 20px;
-        font-size: 0.85rem;
-        margin-left: 0.5rem;
-      }
-
-      /* Error Modal */
-      .error-modal {
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.6);
-        backdrop-filter: blur(5px);
-        z-index: 9999;
-        align-items: center;
-        justify-content: center;
-        animation: fadeIn 0.3s ease;
-      }
-
-      .error-modal.show {
-        display: flex;
-      }
-
-      .error-modal-content {
-        background: rgba(255, 255, 255, 0.98);
-        border: 2px solid var(--danger-color);
-        border-radius: 16px;
-        padding: 2.5rem;
-        max-width: 500px;
-        width: 90%;
-        box-shadow: 0 20px 60px rgba(239, 68, 68, 0.3);
-        animation: slideInUp 0.3s ease;
-      }
-
-      .error-modal-header {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-        margin-bottom: 1.5rem;
-      }
-
-      .error-modal-icon {
-        font-size: 2.5rem;
-        color: var(--danger-color);
-      }
-
-      .error-modal-title {
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: #0f172a;
-        margin: 0;
-      }
-
-      .error-modal-message {
-        background: rgba(239, 68, 68, 0.05);
-        border-left: 4px solid var(--danger-color);
-        padding: 1rem;
-        border-radius: 8px;
-        margin-bottom: 1.5rem;
-        color: #334155;
-        line-height: 1.6;
-        font-size: 0.95rem;
-      }
-
-      .error-modal-details {
-        background: #f8fafc;
-        border: 1px solid var(--border-color);
-        padding: 1rem;
-        border-radius: 8px;
-        margin-bottom: 1.5rem;
-        max-height: 200px;
-        overflow-y: auto;
-        font-family: "Fira Code", monospace;
-        font-size: 0.85rem;
-        color: #475569;
-        white-space: pre-wrap;
-        word-wrap: break-word;
-      }
-
-      .error-modal-footer {
-        display: flex;
-        gap: 1rem;
-      }
-
-      .btn-error-close {
-        flex: 1;
-        background: var(--danger-color);
-        color: white;
-        border: none;
-        padding: 0.75rem 1.5rem;
-        border-radius: 8px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s ease;
-      }
-
-      .btn-error-close:hover {
-        background: #dc2626;
-        transform: translateY(-2px);
-      }
-
-      .btn-error-report {
-        flex: 1;
-        background: transparent;
-        color: var(--accent-color);
-        border: 2px solid var(--accent-color);
-        padding: 0.75rem 1.5rem;
-        border-radius: 8px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s ease;
-      }
-
-      .btn-error-report:hover {
-        background: rgba(14, 165, 233, 0.1);
-      }
-
-      @keyframes fadeIn {
-        from {
-          opacity: 0;
-        }
-        to {
-          opacity: 1;
-        }
-      }
-
-      /* Preview Modal */
-      .preview-modal {
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.6);
-        backdrop-filter: blur(5px);
-        z-index: 9998;
-        align-items: center;
-        justify-content: center;
-        animation: fadeIn 0.3s ease;
-      }
-
-      .preview-modal.show {
-        display: flex;
-      }
-
-      .preview-modal-content {
-        background: rgba(255, 255, 255, 0.98);
-        border: 1px solid var(--border-color);
-        border-radius: 16px;
-        width: 96%;
-        max-width: 1600px;
-        height: 88vh;
-        max-height: none;
-        display: flex;
-        flex-direction: column;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
-        animation: slideInUp 0.3s ease;
-      }
-
-      .preview-modal-header {
-        padding: 1.5rem;
-        border-bottom: 1px solid var(--border-color);
+      .topbar-inner {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        background: #f8fafc;
-      }
-
-      .preview-modal-title {
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: #0f172a;
-        margin: 0;
-      }
-
-      .preview-modal-close {
-        background: none;
-        border: none;
-        color: #64748b;
-        font-size: 1.5rem;
-        cursor: pointer;
-        transition: color 0.3s ease;
-      }
-
-      .preview-modal-close:hover {
-        color: var(--accent-color);
-      }
-
-      .preview-code-container {
-        flex: 1;
-        overflow-y: auto;
-        padding: 1.5rem;
-      }
-
-      .preview-code {
-        background: #1e1e1e;
-        border-radius: 8px;
-        padding: 1rem;
-        font-family: "Fira Code", monospace;
-        font-size: 0.85rem;
-        line-height: 1.5;
-        overflow-x: auto;
-      }
-
-      .preview-code code {
-        color: #e0e0e0;
-      }
-
-      .preview-code .hljs {
-        background: transparent;
-        color: #e0e0e0;
-        padding: 0;
-      }
-
-      .preview-modal-footer {
-        padding: 1.5rem;
-        border-top: 1px solid var(--border-color);
-        display: flex;
         gap: 1rem;
+      }
+
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.9rem;
+        text-decoration: none;
+        color: inherit;
+      }
+
+      .brand-mark {
+        width: 48px;
+        height: 48px;
+        border-radius: 16px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, var(--primary), #47a6a3);
+        color: white;
+        box-shadow: 0 12px 24px rgba(15, 124, 130, 0.22);
+      }
+
+      .brand-copy strong {
+        display: block;
+        font-size: 1rem;
+        line-height: 1.1;
+      }
+
+      .brand-copy span {
+        display: block;
+        font-size: 0.82rem;
+        color: var(--muted);
+      }
+
+      .topbar-nav {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        flex-wrap: wrap;
         justify-content: flex-end;
       }
 
-      .btn-preview-download {
-        background: linear-gradient(
-          135deg,
-          var(--primary-color),
-          var(--accent-color)
+      .topbar-nav a {
+        text-decoration: none;
+        color: var(--muted);
+        font-weight: 600;
+        font-size: 0.94rem;
+        padding: 0.72rem 1rem;
+        border-radius: 999px;
+        transition:
+          transform 0.2s ease,
+          background-color 0.2s ease,
+          color 0.2s ease;
+      }
+
+      .topbar-nav a:hover,
+      .topbar-nav a:focus-visible {
+        background: rgba(15, 124, 130, 0.08);
+        color: var(--primary-strong);
+        transform: translateY(-1px);
+      }
+
+      .hero {
+        padding: 4.5rem 0 3rem;
+      }
+
+      .hero-grid,
+      .tool-layout,
+      .feature-grid,
+      .process-grid,
+      .footer-grid,
+      .pipeline-content {
+        display: grid;
+        gap: 1rem;
+      }
+
+      .hero-grid {
+        grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+        gap: 2rem;
+      }
+
+      .hero-card,
+      .overview-panel,
+      .workspace-card,
+      .feature-card,
+      .process-card,
+      .preview-modal-panel,
+      .error-modal-panel,
+      .pipeline-result,
+      .footer-panel {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: var(--radius-xl);
+        box-shadow: var(--shadow-soft);
+      }
+
+      .hero-card {
+        padding: 2.6rem;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .hero-card::after {
+        content: "";
+        position: absolute;
+        inset: auto -10% -22% auto;
+        width: 260px;
+        height: 260px;
+        border-radius: 50%;
+        background: radial-gradient(
+          circle,
+          rgba(15, 124, 130, 0.14),
+          transparent 68%
         );
-        color: white;
-        border: none;
-        padding: 0.75rem 2rem;
-        border-radius: 8px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s ease;
+        pointer-events: none;
       }
 
-      .btn-preview-download:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 10px 25px rgba(37, 99, 235, 0.4);
-      }
-
-      .btn-preview-cancel {
-        background: transparent;
-        color: #cbd5e1;
-        border: 1px solid var(--border-color);
-        padding: 0.75rem 2rem;
-        border-radius: 8px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s ease;
-      }
-
-      .btn-preview-cancel:hover {
-        border-color: var(--accent-color);
-        color: var(--accent-color);
-      }
-
-      /* Scrollbar styling for preview code */
-      .preview-code-container::-webkit-scrollbar {
-        width: 8px;
-      }
-
-      .preview-code-container::-webkit-scrollbar-track {
-        background: rgba(51, 65, 85, 0.5);
-        border-radius: 10px;
-      }
-
-      .preview-code-container::-webkit-scrollbar-thumb {
-        background: var(--border-color);
-        border-radius: 10px;
-      }
-
-      .preview-code-container::-webkit-scrollbar-thumb:hover {
-        background: var(--accent-color);
-      }
-
-      /* Toast Notifications */
-      .toast-container {
-        position: fixed;
-        top: 80px;
-        right: 20px;
-        z-index: 10000;
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-      }
-
-      .toast {
-        background: rgba(30, 41, 59, 0.98);
-        border: 1px solid var(--border-color);
-        border-left: 4px solid var(--success-color);
-        border-radius: 12px;
-        padding: 1rem 1.5rem;
-        min-width: 320px;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-        animation:
-          slideInRight 0.4s ease,
-          fadeOut 0.4s ease 2.6s forwards;
-        display: flex;
+      .eyebrow {
+        display: inline-flex;
         align-items: center;
+        gap: 0.55rem;
+        padding: 0.55rem 0.95rem;
+        border-radius: 999px;
+        background: rgba(15, 124, 130, 0.08);
+        color: var(--primary-strong);
+        font-size: 0.82rem;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+      }
+
+      .hero-title {
+        font-size: clamp(2.6rem, 5vw, 4.5rem);
+        line-height: 0.95;
+        margin: 1.2rem 0 1.25rem;
+        max-width: 11ch;
+      }
+
+      .hero-title .accent {
+        display: inline-block;
+        color: var(--primary);
+      }
+
+      .hero-text {
+        max-width: 62ch;
+        color: var(--muted);
+        font-size: 1.04rem;
+        line-height: 1.75;
+        margin-bottom: 1.75rem;
+      }
+
+      .hero-actions,
+      .hero-meta,
+      .tab-pills,
+      .preview-meta,
+      .pipeline-tags,
+      .modal-footer,
+      .toggle-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+      }
+
+      .btn-hero,
+      .btn-soft,
+      .btn-primary,
+      .btn-secondary,
+      .btn-neutral,
+      .btn-danger {
+        appearance: none;
+        border: none;
+        border-radius: 999px;
+        padding: 0.95rem 1.25rem;
+        font-weight: 700;
+        font-size: 0.95rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.65rem;
+        text-decoration: none;
+        transition:
+          transform 0.2s ease,
+          box-shadow 0.2s ease,
+          background-color 0.2s ease,
+          color 0.2s ease;
+        cursor: pointer;
+      }
+
+      .btn-hero,
+      .btn-primary {
+        background: linear-gradient(135deg, var(--primary), #2d9c9d);
+        color: white;
+        box-shadow: 0 14px 28px rgba(15, 124, 130, 0.22);
+      }
+
+      .btn-soft,
+      .btn-neutral {
+        background: rgba(255, 255, 255, 0.75);
+        color: var(--ink);
+        border: 1px solid rgba(24, 54, 61, 0.12);
+      }
+
+      .btn-secondary {
+        background: linear-gradient(135deg, #eb9a3a, #f1b86a);
+        color: white;
+      }
+
+      .btn-danger {
+        background: linear-gradient(135deg, #c44d45, #d66b63);
+        color: white;
+      }
+
+      .btn-hero:hover,
+      .btn-soft:hover,
+      .btn-primary:hover,
+      .btn-secondary:hover,
+      .btn-neutral:hover,
+      .btn-danger:hover,
+      .btn-hero:focus-visible,
+      .btn-soft:focus-visible,
+      .btn-primary:focus-visible,
+      .btn-secondary:focus-visible,
+      .btn-neutral:focus-visible,
+      .btn-danger:focus-visible {
+        transform: translateY(-2px);
+      }
+
+      .meta-chip,
+      .file-count,
+      .pipeline-tag,
+      .overview-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        border-radius: 999px;
+        font-weight: 700;
+      }
+
+      .meta-chip {
+        padding: 0.8rem 1rem;
+        background: rgba(255, 255, 255, 0.74);
+        border: 1px solid rgba(24, 54, 61, 0.08);
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      .overview-panel {
+        padding: 1.4rem;
+        display: grid;
+        gap: 1rem;
+        align-content: start;
+      }
+
+      .overview-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
         gap: 1rem;
       }
 
-      .toast.error {
-        border-left-color: var(--danger-color);
+      .overview-top h2 {
+        font-size: 1.4rem;
+        margin: 0 0 0.25rem;
       }
 
-      .toast-icon {
-        font-size: 1.5rem;
-        color: var(--success-color);
+      .overview-top p,
+      .workspace-subtitle,
+      .panel-copy,
+      .helper,
+      .section-header p,
+      .feature-card p,
+      .process-card p,
+      .footer-block p,
+      .footer-block a,
+      .note-block,
+      .info-list li span,
+      .checklist li span {
+        color: var(--muted);
+        line-height: 1.7;
       }
 
-      .toast.error .toast-icon {
-        color: var(--danger-color);
+      .overview-badge {
+        padding: 0.55rem 0.8rem;
+        background: var(--secondary-soft);
+        color: #9a5b05;
+        font-size: 0.8rem;
+        white-space: nowrap;
       }
 
-      .toast-content {
-        flex: 1;
+      .metric-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.9rem;
       }
 
-      .toast-title {
-        font-weight: 600;
-        color: #0f172a;
+      .metric-card,
+      .flow-card,
+      .form-panel,
+      .info-panel,
+      .pipeline-box {
+        background: rgba(255, 255, 255, 0.78);
+        border: 1px solid rgba(24, 54, 61, 0.08);
+        border-radius: 18px;
+      }
+
+      .metric-card,
+      .flow-card,
+      .form-panel,
+      .info-panel,
+      .feature-card,
+      .process-card,
+      .pipeline-box,
+      .footer-panel,
+      .workspace-card {
+        padding: 1.25rem;
+      }
+
+      .metric-label {
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--muted);
+        margin-bottom: 0.35rem;
+      }
+
+      .metric-value {
+        font-size: 1.8rem;
+        font-weight: 700;
         margin-bottom: 0.25rem;
       }
 
-      .toast-message {
-        font-size: 0.85rem;
-        color: #475569;
+      .flow-card {
+        background: linear-gradient(
+          180deg,
+          rgba(15, 124, 130, 0.09),
+          rgba(240, 161, 61, 0.08)
+        );
+        border-style: dashed;
       }
 
-      @keyframes slideInRight {
-        from {
-          transform: translateX(400px);
-          opacity: 0;
-        }
-        to {
-          transform: translateX(0);
-          opacity: 1;
-        }
+      .flow-card h3,
+      .feature-card h3,
+      .process-card h3,
+      .form-panel h3,
+      .info-panel h3,
+      .workspace-title,
+      .pipeline-box h4 {
+        margin: 0 0 0.55rem;
       }
 
-      @keyframes fadeOut {
-        to {
-          opacity: 0;
-          transform: translateX(400px);
-        }
+      .flow-list,
+      .info-list,
+      .checklist,
+      .pipeline-steps {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: grid;
+        gap: 0.7rem;
       }
 
-      /* Version Badge */
-      .version-badge {
+      .flow-list li,
+      .pipeline-steps li {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 0.75rem;
+        align-items: start;
+      }
+
+      .flow-index,
+      .process-number,
+      .pipeline-step-badge {
+        border-radius: 50%;
         display: inline-flex;
         align-items: center;
-        gap: 0.5rem;
-        background: rgba(14, 165, 233, 0.15);
-        border: 1px solid var(--accent-color);
-        color: var(--accent-color);
-        padding: 0.35rem 0.85rem;
-        border-radius: 20px;
-        font-size: 0.8rem;
-        font-weight: 600;
-        margin-left: 1rem;
-        animation: pulse 2s ease-in-out infinite;
+        justify-content: center;
+        font-weight: 700;
       }
 
-      @keyframes pulse {
-        0%,
-        100% {
-          box-shadow: 0 0 0 0 rgba(14, 165, 233, 0.4);
-        }
-        50% {
-          box-shadow: 0 0 0 6px rgba(14, 165, 233, 0);
-        }
+      .flow-index,
+      .pipeline-step-badge {
+        width: 30px;
+        height: 30px;
+        background: rgba(255, 255, 255, 0.9);
+        color: var(--primary-strong);
       }
 
-      /* Tooltips */
-      .tooltip-wrapper {
-        position: relative;
-        display: inline-block;
+      .section {
+        padding: 1rem 0 4rem;
       }
 
-      .tooltip-icon {
-        color: var(--accent-color);
-        cursor: help;
-        margin-left: 0.5rem;
-        font-size: 0.9rem;
-      }
-
-      .tooltip-content {
-        visibility: hidden;
-        position: absolute;
-        bottom: 125%;
-        left: 50%;
-        transform: translateX(-50%);
-        background: rgba(15, 23, 42, 0.98);
-        border: 1px solid var(--accent-color);
-        color: var(--light-text);
-        padding: 0.75rem 1rem;
-        border-radius: 8px;
-        font-size: 0.85rem;
-        white-space: nowrap;
-        z-index: 1000;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-        opacity: 0;
-        transition:
-          opacity 0.3s ease,
-          visibility 0.3s ease;
-      }
-
-      .tooltip-content::after {
-        content: "";
-        position: absolute;
-        top: 100%;
-        left: 50%;
-        transform: translateX(-50%);
-        border: 6px solid transparent;
-        border-top-color: rgba(15, 23, 42, 0.98);
-      }
-
-      .tooltip-wrapper:hover .tooltip-content {
-        visibility: visible;
-        opacity: 1;
-      }
-
-      /* Comparison View */
-      .comparison-view {
-        display: none;
-        grid-template-columns: 1fr 1fr;
-        gap: 0.75rem;
-        flex: 1;
-        overflow: hidden;
-      }
-
-      .comparison-view.active {
-        display: grid;
-      }
-
-      .comparison-panel {
+      .section-header {
         display: flex;
-        flex-direction: column;
-        height: 100%;
-        overflow: hidden;
+        align-items: end;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
       }
 
-      .comparison-header {
-        padding: 0.75rem 1rem;
-        border-bottom: 1px solid var(--border-color);
-        background: #f8fafc;
-        font-weight: 600;
-        color: var(--accent-color);
+      .section-header h2 {
+        margin: 0;
+        font-size: clamp(2rem, 4vw, 3rem);
+      }
+
+      .workspace-top,
+      .modal-header,
+      .preview-toolbar,
+      .footer-bottom {
         display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+      }
+
+      .workspace-card {
+        background: var(--surface);
+      }
+
+      .tab-pill,
+      .toggle-btn {
+        border: 1px solid rgba(24, 54, 61, 0.1);
+        background: rgba(255, 255, 255, 0.72);
+        color: var(--muted);
+        border-radius: 999px;
+        padding: 0.8rem 1rem;
+        font-weight: 700;
+        display: inline-flex;
         align-items: center;
-        gap: 0.5rem;
-        font-size: 0.9rem;
+        gap: 0.65rem;
       }
 
-      .comparison-code {
-        flex: 1;
-        overflow-y: auto;
-        background: #1e1e1e;
-        padding: 0.75rem;
-        font-family: "Fira Code", monospace;
-        font-size: 0.7rem;
-        line-height: 1.4;
-      }
-
-      .comparison-code::-webkit-scrollbar {
-        width: 6px;
-      }
-
-      .comparison-code::-webkit-scrollbar-track {
-        background: rgba(51, 65, 85, 0.5);
-      }
-
-      .comparison-code::-webkit-scrollbar-thumb {
-        background: var(--border-color);
-        border-radius: 3px;
-      }
-
-      .comparison-code::-webkit-scrollbar-thumb:hover {
-        background: var(--accent-color);
-      }
-
-      .view-toggle-btn {
-        background: transparent;
-        border: 1px solid var(--border-color);
-        color: #475569;
-        padding: 0.5rem 1rem;
-        border-radius: 8px;
-        font-size: 0.85rem;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-      }
-
-      .view-toggle-btn:hover {
-        border-color: var(--accent-color);
-        color: var(--accent-color);
-      }
-
-      .view-toggle-btn.active {
-        background: var(--accent-color);
-        border-color: var(--accent-color);
+      .tab-pill.active,
+      .toggle-btn.active {
+        background: linear-gradient(135deg, var(--primary), #3a9b9a);
         color: white;
       }
 
-      /* Enhanced Feature Cards */
-      .feature-card:hover .feature-icon {
-        transform: scale(1.1) rotate(5deg);
-        transition: transform 0.3s ease;
+      .tab-pane-card {
+        display: none;
       }
 
-      .feature-icon {
-        transition: transform 0.3s ease;
+      .tab-pane-card.active {
+        display: block;
+        animation: paneFade 0.28s ease;
       }
 
-      /* File Badge Enhancement */
-      .file-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        background: rgba(14, 165, 233, 0.2);
-        border: 1px solid var(--accent-color);
-        color: var(--accent-color);
-        padding: 0.25rem 0.75rem;
-        border-radius: 20px;
-        font-size: 0.85rem;
-        margin-left: 0.5rem;
-        animation: badge-pulse 3s ease-in-out infinite;
-      }
-
-      @keyframes badge-pulse {
-        0%,
-        100% {
-          transform: scale(1);
-        }
-        50% {
-          transform: scale(1.05);
-        }
-      }
-
-      /* Styles pour les onglets */
-      .nav-tabs {
-        border: none !important;
-        display: flex;
-        flex-wrap: nowrap;
-        gap: 0.5rem;
-        align-items: center;
-        overflow-x: auto;
-      }
-
-      .nav-tabs .nav-item {
-        flex-shrink: 0;
-      }
-
-      .nav-tabs .nav-link {
-        color: #cbd5e1 !important;
-        border: none !important;
-        border-bottom: 3px solid transparent !important;
-        font-weight: 500;
-        padding: 0.75rem 1.5rem !important;
-        transition: all 0.3s ease !important;
-        position: relative;
-        white-space: nowrap;
-        font-size: 0.95rem;
-      }
-
-      .nav-tabs .nav-link:hover {
-        color: var(--accent-color) !important;
-        border-bottom-color: var(--accent-color) !important;
-      }
-
-      .nav-tabs .nav-link.active {
-        color: var(--accent-color) !important;
-        border-bottom-color: var(--accent-color) !important;
-        background: transparent !important;
-      }
-
-      .tab-content {
-        padding: 1.5rem 0;
-      }
-
-      .tab-pane {
-        animation: fadeIn 0.3s ease-in;
-      }
-
-      @keyframes fadeIn {
+      @keyframes paneFade {
         from {
           opacity: 0;
-          transform: translateY(10px);
+          transform: translateY(8px);
         }
+
         to {
           opacity: 1;
           transform: translateY(0);
         }
       }
 
-      @media (max-width: 768px) {
-        .preview-modal-content {
-          width: 95%;
-          height: 85vh;
-          max-height: none;
-        }
-
-        .preview-code {
-          font-size: 0.7rem;
-        }
-
-        .preview-modal-footer {
-          flex-direction: column;
-        }
-
-        .nav-tabs {
-          gap: 0.5rem !important;
-        }
-
-        .nav-tabs .nav-link {
-          padding: 0.5rem 1rem !important;
-          font-size: 0.9rem;
-        }
-
-        .view-toggle-btn {
-          padding: 0.4rem 0.75rem;
-          font-size: 0.75rem;
-        }
-
-        .comparison-code {
-          font-size: 0.65rem;
-        }
+      .tool-layout {
+        grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.9fr);
+        align-items: start;
       }
 
-      /* Toggle Switch Style (Apple-like) */
-      .toggle-switch {
-        display: flex;
-        align-items: center;
+      .stack,
+      .field,
+      .option-grid,
+      .pipeline-column {
+        display: grid;
         gap: 1rem;
-        margin-bottom: 1rem;
-        padding: 0.75rem;
-        background: rgba(255, 255, 255, 0.03);
-        border-radius: 12px;
-        transition: background 0.3s ease;
       }
 
-      .toggle-switch:hover {
-        background: rgba(255, 255, 255, 0.05);
+      .field label {
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
       }
 
-      .toggle-switch-input {
-        position: relative;
-        width: 52px;
-        height: 32px;
-        appearance: none;
-        background: #4b5563;
-        border-radius: 50px;
-        outline: none;
-        cursor: pointer;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      .file-count {
+        margin-left: 0.4rem;
+        padding: 0.35rem 0.7rem;
+        background: rgba(15, 124, 130, 0.08);
+        color: var(--primary-strong);
+        font-size: 0.78rem;
+      }
+
+      .form-select,
+      .form-control {
+        min-height: 54px;
+        border-radius: 16px;
+        border: 1px solid rgba(24, 54, 61, 0.14);
+        background: #fffdf9;
+        color: var(--ink);
+        padding: 0.9rem 1rem;
+        box-shadow: none;
+      }
+
+      .form-select:focus,
+      .form-control:focus {
+        border-color: rgba(15, 124, 130, 0.48);
+        box-shadow: 0 0 0 4px rgba(15, 124, 130, 0.1);
+      }
+
+      .option-card,
+      .info-list li,
+      .checklist li,
+      .status-pill,
+      .error-banner {
+        border: 1px solid rgba(24, 54, 61, 0.1);
+        border-radius: 18px;
+      }
+
+      .option-card,
+      .info-list li,
+      .checklist li {
+        display: flex;
+        gap: 0.8rem;
+        align-items: flex-start;
+        background: #fffdf9;
+        padding: 0.95rem 1rem;
+      }
+
+      .option-card input[type="checkbox"] {
+        width: 20px;
+        height: 20px;
+        margin-top: 0.2rem;
+        accent-color: var(--primary);
         flex-shrink: 0;
       }
 
-      .toggle-switch-input::before {
-        content: "";
-        position: absolute;
-        width: 28px;
-        height: 28px;
-        border-radius: 50%;
-        top: 2px;
-        left: 2px;
-        background: white;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      .option-card strong,
+      .footer-block h3,
+      .toast-title {
+        display: block;
+        margin-bottom: 0.2rem;
       }
 
-      .toggle-switch-input:checked {
-        background: linear-gradient(135deg, #10b981, #059669);
+      .info-list i,
+      .checklist i,
+      .feature-icon,
+      .toast-icon,
+      .error-banner i {
+        color: var(--primary);
       }
 
-      .toggle-switch-input:checked::before {
-        transform: translateX(20px);
+      .status-pill {
+        display: none;
+        align-items: center;
+        gap: 0.65rem;
+        padding: 0.8rem 0.95rem;
+        background: rgba(15, 124, 130, 0.08);
+        color: var(--primary-strong);
+        font-weight: 600;
       }
 
-      .toggle-switch-input:hover {
-        box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
+      .status-pill.is-visible {
+        display: inline-flex;
       }
 
-      .toggle-switch-input:active::before {
-        width: 32px;
+      .status-pill.is-muted {
+        background: rgba(93, 116, 120, 0.08);
+        color: var(--muted);
       }
 
-      .toggle-switch-label {
-        flex: 1;
-        font-size: 1rem;
-        color: #334155;
+      .feature-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .feature-icon {
+        width: 54px;
+        height: 54px;
+        border-radius: 16px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(15, 124, 130, 0.1);
+        font-size: 1.25rem;
+        margin-bottom: 1rem;
+      }
+
+      .process-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .process-number {
+        width: 42px;
+        height: 42px;
+        background: linear-gradient(135deg, var(--primary), #43a7a3);
+        color: white;
+        margin-bottom: 1rem;
+      }
+
+      .footer-panel {
+        margin-bottom: 2rem;
+      }
+
+      .footer-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .footer-block a {
+        text-decoration: none;
+      }
+
+      .footer-bottom {
+        border-top: 1px solid rgba(24, 54, 61, 0.08);
+        margin-top: 1.2rem;
+        padding-top: 1rem;
+        color: var(--muted);
+        font-size: 0.9rem;
+        flex-wrap: wrap;
+      }
+
+      .toast-stack {
+        position: fixed;
+        top: 92px;
+        right: 20px;
+        z-index: 60;
+        display: grid;
+        gap: 0.75rem;
+        width: min(360px, calc(100vw - 2rem));
+      }
+
+      .toast-card {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        gap: 0.75rem;
+        align-items: start;
+        padding: 1rem 1rem 0.95rem;
+        border-radius: 18px;
+        background: rgba(255, 253, 249, 0.98);
+        border: 1px solid rgba(24, 54, 61, 0.1);
+        box-shadow: var(--shadow-card);
+        animation: toastIn 0.25s ease;
+      }
+
+      .toast-card.is-error {
+        border-color: rgba(196, 77, 69, 0.22);
+      }
+
+      .toast-icon {
+        width: 38px;
+        height: 38px;
+        border-radius: 12px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(15, 124, 130, 0.1);
+      }
+
+      .toast-card.is-error .toast-icon,
+      .error-banner i {
+        color: var(--danger);
+      }
+
+      .toast-close,
+      .modal-close {
+        border: none;
+        background: transparent;
+        color: var(--muted);
         cursor: pointer;
-        user-select: none;
-        line-height: 1.5;
       }
 
-      .toggle-switch-label .icon {
-        margin-right: 0.5rem;
+      @keyframes toastIn {
+        from {
+          opacity: 0;
+          transform: translateY(-10px);
+        }
+
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .modal-shell {
+        position: fixed;
+        inset: 0;
+        z-index: 55;
+        background: rgba(24, 54, 61, 0.26);
+        backdrop-filter: blur(10px);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+      }
+
+      .modal-shell.is-open {
+        display: flex;
+      }
+
+      .preview-modal-panel,
+      .error-modal-panel,
+      .pipeline-result {
+        width: min(1320px, calc(100vw - 2rem));
+        max-height: calc(100vh - 2rem);
+        overflow: hidden;
+        margin: auto;
+      }
+
+      .error-modal-panel {
+        width: min(640px, calc(100vw - 2rem));
+      }
+
+      .modal-header {
+        align-items: flex-start;
+        padding: 1.25rem 1.35rem;
+        border-bottom: 1px solid rgba(24, 54, 61, 0.08);
+      }
+
+      .modal-title {
+        margin: 0;
+        font-size: 1.35rem;
+      }
+
+      .modal-subtitle {
+        margin: 0.35rem 0 0;
+        color: var(--muted);
+        line-height: 1.6;
+      }
+
+      .modal-close {
+        font-size: 1.15rem;
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+      }
+
+      .modal-close:hover,
+      .modal-close:focus-visible {
+        background: rgba(24, 54, 61, 0.06);
+      }
+
+      .preview-toolbar {
+        align-items: center;
+        padding: 1rem 1.35rem;
+        border-bottom: 1px solid rgba(24, 54, 61, 0.08);
+        flex-wrap: wrap;
+      }
+
+      .preview-body {
+        display: grid;
+        min-height: 0;
+        max-height: calc(100vh - 14rem);
+        overflow: auto;
+      }
+
+      .preview-single,
+      .preview-compare {
+        min-height: 320px;
+      }
+
+      .preview-compare {
+        display: none;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .preview-body.is-compare .preview-single {
+        display: none;
+      }
+
+      .preview-body.is-compare .preview-compare {
+        display: grid;
+      }
+
+      .code-scroll,
+      .compare-panel pre,
+      .error-details,
+      .pipeline-preview pre {
+        overflow: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .code-scroll,
+      .compare-panel pre,
+      .pipeline-preview pre {
+        margin: 0;
+        padding: 1.2rem 1.35rem 1.4rem;
+        background: #fffdf9;
+      }
+
+      .code-scroll code,
+      .compare-panel code,
+      .pipeline-preview code {
+        display: block;
+        white-space: pre;
+        font-size: 0.86rem;
+        line-height: 1.65;
+      }
+
+      .compare-panel {
+        border-right: 1px solid rgba(24, 54, 61, 0.08);
+      }
+
+      .compare-panel:last-child {
+        border-right: none;
+      }
+
+      .compare-head {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        padding: 0.9rem 1.15rem;
+        border-bottom: 1px solid rgba(24, 54, 61, 0.08);
+        background: rgba(15, 124, 130, 0.05);
+        font-weight: 700;
+      }
+
+      .modal-footer {
+        justify-content: flex-end;
+        padding: 1rem 1.35rem 1.3rem;
+        border-top: 1px solid rgba(24, 54, 61, 0.08);
+      }
+
+      .error-body {
+        padding: 1.2rem 1.35rem;
+        display: grid;
+        gap: 1rem;
+      }
+
+      .error-banner {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 0.85rem;
+        align-items: start;
+        background: rgba(196, 77, 69, 0.08);
+        padding: 1rem;
+      }
+
+      .error-details {
+        background: #fffdf9;
+        border: 1px solid rgba(24, 54, 61, 0.1);
+        border-radius: 16px;
+        padding: 1rem;
+        max-height: 280px;
+        white-space: pre-wrap;
+        color: var(--muted);
+        font-size: 0.85rem;
+        line-height: 1.65;
+      }
+
+      .pipeline-result {
+        display: grid;
+        grid-template-rows: auto auto 1fr auto;
+      }
+
+      .pipeline-banner {
+        padding: 1.2rem 1.35rem;
+        border-bottom: 1px solid rgba(24, 54, 61, 0.08);
+        background: linear-gradient(
+          135deg,
+          rgba(15, 124, 130, 0.1),
+          rgba(240, 161, 61, 0.08)
+        );
+      }
+
+      .pipeline-banner h3 {
+        margin: 0;
+      }
+
+      .pipeline-banner p {
+        margin: 0.45rem 0 0;
+        color: var(--muted);
+      }
+
+      .pipeline-content {
+        grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+        min-height: 0;
+        padding: 1rem 1.35rem;
+        overflow: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .pipeline-tag {
+        padding: 0.6rem 0.8rem;
+        background: rgba(15, 124, 130, 0.08);
+        color: var(--primary-strong);
+        font-size: 0.85rem;
+      }
+
+      .hidden {
+        display: none !important;
+      }
+
+      @media (max-width: 1100px) {
+        .hero-grid,
+        .tool-layout,
+        .feature-grid,
+        .process-grid,
+        .footer-grid,
+        .pipeline-content,
+        .preview-compare {
+          grid-template-columns: 1fr;
+        }
+
+        .compare-panel {
+          border-right: none;
+          border-bottom: 1px solid rgba(24, 54, 61, 0.08);
+        }
+
+        .compare-panel:last-child {
+          border-bottom: none;
+        }
+      }
+
+      @media (max-width: 768px) {
+        .hero {
+          padding-top: 3rem;
+        }
+
+        .hero-card,
+        .overview-panel,
+        .workspace-card,
+        .feature-card,
+        .process-card,
+        .footer-panel,
+        .form-panel,
+        .info-panel,
+        .pipeline-box {
+          padding: 1rem;
+          border-radius: 22px;
+        }
+
+        .topbar-inner,
+        .workspace-top,
+        .section-header,
+        .preview-toolbar,
+        .modal-header,
+        .modal-footer,
+        .footer-bottom {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .preview-modal-panel,
+        .pipeline-result,
+        .error-modal-panel {
+          width: calc(100vw - 1rem);
+          max-height: calc(100vh - 1rem);
+        }
+
+        .preview-body {
+          max-height: calc(100vh - 16rem);
+        }
+
+        .modal-shell {
+          align-items: flex-start;
+          padding: 0.5rem;
+        }
+
+        .toast-stack {
+          top: auto;
+          bottom: 1rem;
+          right: 0.5rem;
+        }
       }
     </style>
   </head>
   <body>
-    <!-- Toast Container -->
-    <div class="toast-container" id="toastContainer"></div>
+    <div class="toast-stack" id="toastContainer"></div>
 
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
-      <div class="container">
-        <a class="navbar-brand" href="#">
-          <i class="fas fa-code"></i>LINGO → Pyomo
-          <span class="version-badge"> <i class="fas fa-star"></i> v1.0 </span>
+    <header class="topbar">
+      <div class="site-shell topbar-inner">
+        <a class="brand" href="#top">
+          <span class="brand-mark"><i class="fas fa-code-branch"></i></span>
+          <span class="brand-copy">
+            <strong>LINGO vers Pyomo</strong>
+            <span
+              >Conversion, nettoyage et generation de notebooks Pyomo a partir
+              de modeles LINGO</span
+            >
+          </span>
         </a>
-        <button
-          class="navbar-toggler"
-          type="button"
-          data-bs-toggle="collapse"
-          data-bs-target="#navbarNav"
-          aria-controls="navbarNav"
-          aria-expanded="false"
-          aria-label="Toggle navigation"
-        >
-          <span class="navbar-toggler-icon"></span>
-        </button>
-        <div
-          class="collapse navbar-collapse justify-content-end"
-          id="navbarNav"
-        >
-          <ul class="navbar-nav">
-            <li class="nav-item">
-              <a class="nav-link active" href="#hero">
-                <i class="fas fa-home"></i> Accueil
-              </a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="#hero">
-                <i class="fas fa-tools"></i> Outils
-              </a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="#pipeline">
-                <i class="fas fa-rocket"></i> Pipeline
-              </a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="#features">
-                <i class="fas fa-sparkles"></i> Caractéristiques
-              </a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="#how-to">
-                <i class="fas fa-graduation-cap"></i> Guide
-              </a>
-            </li>
-          </ul>
-        </div>
+        <nav class="topbar-nav" aria-label="Navigation principale">
+          <a href="#workspace">Outils</a>
+          <a href="#capabilities">Capacites</a>
+          <a href="#guide">Parcours</a>
+        </nav>
       </div>
-    </nav>
+    </header>
 
-    <!-- Hero Section -->
-    <section class="hero" id="hero">
-      <div class="hero-content">
-        <h1>Transformez vos fichiers LINGO en notebooks Pyomo</h1>
-        <p class="hero-subtitle">
-          Convertissez vos modèles d'optimisation LINGO en notebooks Jupyter
-          Pyomo prêts à l'exécution. Un outil pédagogique conçu pour les
-          enseignants.
-        </p>
+    <main id="top">
+      <section class="hero">
+        <div class="site-shell hero-grid">
+          <article class="hero-card">
+            <span class="eyebrow">
+              <i class="fas fa-sun"></i>
+              Outil de conversion LINGO vers Pyomo
+            </span>
+            <h1 class="hero-title">
+              Passez de <span class="accent">LINGO</span> a un notebook Pyomo
+              sans perdre le fil.
+            </h1>
+            <p class="hero-text">
+              Cet outil permet de convertir un modele LINGO en notebook Pyomo,
+              de traiter les fichiers relies a Excel, de nettoyer un fichier
+              source et, si besoin, de lancer un pipeline complet de
+              preparation.
+            </p>
+            <div class="hero-actions">
+              <a class="btn-hero" href="#workspace">
+                <i class="fas fa-wand-magic-sparkles"></i>
+                Utiliser l'outil
+              </a>
+              <a class="btn-soft" href="#guide">
+                <i class="fas fa-route"></i>
+                Voir le parcours
+              </a>
+            </div>
+            <div class="hero-meta">
+              <span class="meta-chip">
+                <i class="fas fa-file-lines"></i>
+                Import d'un fichier .lng
+              </span>
+              <span class="meta-chip">
+                <i class="fas fa-book-open"></i>
+                Generation d'un notebook Pyomo
+              </span>
+              <span class="meta-chip">
+                <i class="fas fa-flask"></i>
+                Utilisation locale dans le navigateur
+              </span>
+            </div>
+          </article>
 
-        <div class="form-card">
-          <!-- Onglets de navigation -->
-          <ul
-            class="nav nav-tabs"
-            id="toolTabs"
-            role="tablist"
-            style="
-              border-bottom: 2px solid #e2e8f0;
-              margin-bottom: 2rem;
-              gap: 0.5rem;
-            "
-          >
-            <li class="nav-item" role="presentation">
-              <button
-                class="nav-link active"
-                id="generate-tab"
-                data-bs-toggle="tab"
-                data-bs-target="#generate-content"
-                type="button"
-                role="tab"
-                style="
-                  color: #475569;
-                  border: none;
-                  border-bottom: 3px solid transparent;
-                  padding: 0.75rem 1.5rem;
-                  font-weight: 500;
-                  transition: all 0.3s;
-                "
-              >
-                <i class="fas fa-magic"></i> Générer Notebook
-              </button>
-            </li>
-            <li class="nav-item" role="presentation">
-              <button
-                class="nav-link"
-                id="convert-tab"
-                data-bs-toggle="tab"
-                data-bs-target="#convert-content"
-                type="button"
-                role="tab"
-                style="
-                  color: #475569;
-                  border: none;
-                  border-bottom: 3px solid transparent;
-                  padding: 0.75rem 1.5rem;
-                  font-weight: 500;
-                  transition: all 0.3s;
-                "
-              >
-                <i class="fas fa-exchange-alt"></i> Conversion OLE
-              </button>
-            </li>
-            <li class="nav-item" role="presentation">
-              <button
-                class="nav-link"
-                id="clean-tab"
-                data-bs-toggle="tab"
-                data-bs-target="#clean-content"
-                type="button"
-                role="tab"
-                style="
-                  color: #475569;
-                  border: none;
-                  border-bottom: 3px solid transparent;
-                  padding: 0.75rem 1.5rem;
-                  font-weight: 500;
-                  transition: all 0.3s;
-                "
-              >
-                <i class="fas fa-broom"></i> Nettoyage
-              </button>
-            </li>
-          </ul>
+          <aside class="overview-panel">
+            <div class="overview-top">
+              <div>
+                <h2>En bref</h2>
+                <p>
+                  L'objectif est simple : choisir une action, verifier le
+                  resultat obtenu et telecharger le fichier genere.
+                </p>
+              </div>
+              <span class="overview-badge">pour les utilisateurs</span>
+            </div>
 
-          <!-- Contenu des onglets -->
-          <div class="tab-content" id="toolTabsContent">
-            <!-- Onglet 1: Générer Notebook -->
+            <div class="metric-grid">
+              <div class="metric-card">
+                <div class="metric-label">Entree</div>
+                <div class="metric-value">LINGO</div>
+                <div class="helper">
+                  Selectionnez un fichier source au format .lng.
+                </div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-label">Sortie</div>
+                <div class="metric-value">Pyomo</div>
+                <div class="helper">
+                  Recuperez un notebook ou un fichier prepare selon le besoin.
+                </div>
+              </div>
+            </div>
+
+            <div class="flow-card">
+              <h3>Fonctionnement</h3>
+              <ul class="flow-list">
+                <li>
+                  <span class="flow-index">1</span>
+                  <span>Choisissez l'action adaptee a votre fichier.</span>
+                </li>
+                <li>
+                  <span class="flow-index">2</span>
+                  <span
+                    >Consultez un apercu avant de telecharger le resultat.</span
+                  >
+                </li>
+                <li>
+                  <span class="flow-index">3</span>
+                  <span
+                    >Exportez un notebook, un fichier nettoye ou un fichier
+                    explicite selon le cas.</span
+                  >
+                </li>
+              </ul>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="section" id="workspace">
+        <div class="site-shell">
+          <div class="section-header">
+            <div>
+              <h2>Outil</h2>
+              <p>
+                Les actions principales sont regroupees ici pour vous permettre
+                de convertir, verifier et exporter vos fichiers plus simplement.
+              </p>
+            </div>
+          </div>
+
+          <section class="workspace-card">
+            <div class="workspace-top">
+              <div>
+                <h3 class="workspace-title">Choisissez une action</h3>
+                <p class="workspace-subtitle">
+                  Chaque section correspond a un besoin precis : convertir un
+                  modele, traiter un fichier OLE, nettoyer un fichier ou lancer
+                  un traitement complet.
+                </p>
+              </div>
+            </div>
+
             <div
-              class="tab-pane fade show active"
-              id="generate-content"
-              role="tabpanel"
+              class="tab-pills"
+              role="tablist"
+              aria-label="Outils de conversion"
             >
-              <form action="/generate" method="post" id="uploadForm">
-                <div class="form-group">
-                  <label for="file_select" class="form-label">
-                    <i class="fas fa-file-upload"></i> Sélectionnez votre modèle
-                    LINGO
-                    <span class="file-badge"
-                      >{{ files|length }} fichier(s) disponible(s)</span
-                    >
-                  </label>
-                  <select
-                    class="form-select"
-                    id="file_select"
-                    name="file_select"
-                    required
-                  >
-                    <option value="">-- Choisissez un fichier --</option>
-                    {% for file in files %}
-                    <option value="{{ file }}">{{ file }}</option>
-                    {% endfor %}
-                  </select>
-                </div>
+              <button class="tab-pill active" type="button" data-tab="generate">
+                <i class="fas fa-book-open"></i>
+                Generer un notebook
+              </button>
+              <button class="tab-pill" type="button" data-tab="ole">
+                <i class="fas fa-file-excel"></i>
+                Convertir OLE
+              </button>
+              <button class="tab-pill" type="button" data-tab="clean">
+                <i class="fas fa-broom"></i>
+                Nettoyer
+              </button>
+              <button class="tab-pill" type="button" data-tab="pipeline">
+                <i class="fas fa-diagram-project"></i>
+                Pipeline complet
+              </button>
+            </div>
 
-                <div class="form-group">
-                  <label for="solver_select" class="form-label">
-                    <i class="fas fa-cogs"></i> Solveur
-                    <span class="tooltip-wrapper">
-                      <i class="fas fa-info-circle tooltip-icon"></i>
-                      <span class="tooltip-content"
-                        >Le solveur utilisé pour résoudre le modèle</span
+            <div class="tab-pane-card active" data-pane="generate">
+              <div class="tool-layout">
+                <section class="form-panel">
+                  <h3>Notebook Pyomo</h3>
+                  <p class="panel-copy">
+                    Conversion directe d'un fichier LINGO en notebook Jupyter
+                    pret a etre execute avec le solveur choisi.
+                  </p>
+
+                  <form id="uploadForm" class="stack">
+                    <div class="field">
+                      <label for="file_select">
+                        <i class="fas fa-file-lines"></i>
+                        Modele LINGO
+                      </label>
+                      <select
+                        class="form-select"
+                        id="file_select"
+                        name="file_select"
+                        required
                       >
-                    </span>
-                  </label>
-                  <select
-                    class="form-select"
-                    id="solver_select"
-                    name="solver_select"
-                    required
-                  >
-                    <option value="">-- Choisissez un solveur --</option>
-                    <option value="gurobi">Gurobi</option>
-                    <option value="cplex">CPLEX</option>
-                    <option value="glpk">GLPK</option>
-                    <option value="highs" selected>HIGHS (par défaut)</option>
-                  </select>
-                </div>
+                        <option value="">Choisissez un fichier .lng</option>
+                        {% for file in files %}
+                        <option value="{{ file }}">{{ file }}</option>
+                        {% endfor %}
+                      </select>
+                      <div class="helper">
+                        Selectionnez un modele source. Un apercu comparatif
+                        entre le code LINGO et le code Pyomo sera propose avant
+                        telechargement.
+                      </div>
+                    </div>
 
-                <button type="submit" class="btn btn-generate" id="generateBtn">
-                  <i class="fas fa-magic"></i> Générer le notebook
-                </button>
-              </form>
+                    <div class="field">
+                      <label for="solver_select">
+                        <i class="fas fa-cogs"></i>
+                        Solveur cible
+                      </label>
+                      <select
+                        class="form-select"
+                        id="solver_select"
+                        name="solver_select"
+                        required
+                      >
+                        <option value="gurobi">Gurobi</option>
+                        <option value="cplex">CPLEX</option>
+                        <option value="glpk">GLPK</option>
+                        <option value="highs" selected>HiGHS</option>
+                      </select>
+                      <div class="helper">
+                        HiGHS est preselectionne car il fournit un bon point de
+                        depart pour un usage local et reproductible.
+                      </div>
+                    </div>
+
+                    <button type="submit" class="btn-primary" id="generateBtn">
+                      <i class="fas fa-wand-magic-sparkles"></i>
+                      Generer le notebook
+                    </button>
+                  </form>
+                </section>
+
+                <aside class="info-panel">
+                  <h3>Informations utiles</h3>
+                  <ul class="info-list">
+                    <li>
+                      <i class="fas fa-eye"></i>
+                      <span
+                        >Ce mode est adapte si vous souhaitez obtenir rapidement
+                        un notebook Pyomo.</span
+                      >
+                    </li>
+                    <li>
+                      <i class="fas fa-code-compare"></i>
+                      <span
+                        >Un apercu vous permet de verifier le resultat avant le
+                        telechargement.</span
+                      >
+                    </li>
+                    <li>
+                      <i class="fas fa-circle-info"></i>
+                      <span
+                        >Le solveur selectionne sera directement integre au
+                        notebook genere.</span
+                      >
+                    </li>
+                  </ul>
+                </aside>
+              </div>
             </div>
 
-            <!-- Onglet 2: Conversion OLE -->
-            <div class="tab-pane fade" id="convert-content" role="tabpanel">
-              <div style="margin-bottom: 1.5rem">
-                <h5 style="color: #16a34a; margin-bottom: 0.75rem">
-                  <i class="fas fa-info-circle"></i> À propos
-                </h5>
-                <p style="color: #334155; font-size: 0.95rem; margin: 0">
-                  Pour les fichiers LINGO qui utilisent des appels @OLE vers un
-                  fichier Excel, cette fonctionnalité génère une version
-                  explicite du modèle en remplaçant les données dynamiques par
-                  leurs valeurs.
-                </p>
-              </div>
-              <form id="oleConversionForm">
-                <div class="form-group">
-                  <label for="file_select_ole" class="form-label">
-                    <i class="fas fa-file-arrow-up"></i> Sélectionnez un fichier
-                    LINGO avec @OLE
-                    <span class="file-badge" style="background: #5b856a">
-                      {% if ole_files %}{{ ole_files|length }} fichier(s){% else
-                      %}Aucun{% endif %}
-                    </span>
-                  </label>
-                  <select
-                    class="form-select"
-                    id="file_select_ole"
-                    name="file_select_ole"
-                    required
-                  >
-                    <option value="">-- Choisissez un fichier --</option>
-                    {% for file in ole_files %}
-                    <option value="{{ file }}">{{ file }}</option>
-                    {% endfor %}
-                  </select>
-                  {% if not ole_files %}
-                  <small
-                    style="color: #f87171; margin-top: 0.5rem; display: block"
-                  >
-                    <i class="fas fa-exclamation-circle"></i> Aucun fichier @OLE
-                    disponible
-                  </small>
+            <div class="tab-pane-card" data-pane="ole">
+              <div class="tool-layout">
+                <section class="form-panel">
+                  <h3>Conversion des modeles relies a Excel</h3>
+                  <p class="panel-copy">
+                    Cette action remplace les appels @OLE(...) par leur forme
+                    explicite pour obtenir un fichier LINGO autonome.
+                  </p>
+
+                  <form id="oleConversionForm" class="stack">
+                    <div class="field">
+                      <label for="file_select_ole">
+                        <i class="fas fa-file-excel"></i>
+                        Fichier avec @OLE
+                      </label>
+                      <select
+                        class="form-select"
+                        id="file_select_ole"
+                        name="file_select_ole"
+                        required
+                      >
+                        <option value="">Choisissez un fichier OLE</option>
+                        {% for file in ole_files %}
+                        <option value="{{ file }}">{{ file }}</option>
+                        {% endfor %}
+                      </select>
+                      <div class="helper">
+                        Cette liste contient les fichiers pour lesquels une
+                        conversion des appels @OLE est utile.
+                      </div>
+                    </div>
+
+                    <button
+                      type="submit"
+                      class="btn-secondary"
+                      id="convertOleBtn"
+                    >
+                      <i class="fas fa-right-left"></i>
+                      Convertir en version explicite
+                    </button>
+                  </form>
+                </section>
+
+                <aside class="info-panel">
+                  <h3>Quand utiliser ce mode</h3>
+                  {% if ole_files %}
+                  <ul class="checklist">
+                    <li>
+                      <i class="fas fa-file-arrow-down"></i>
+                      <span
+                        >Quand un modele depend encore d'une feuille Excel et
+                        doit devenir portable.</span
+                      >
+                    </li>
+                    <li>
+                      <i class="fas fa-arrows-rotate"></i>
+                      <span
+                        >Avant un nettoyage ou un pipeline complet si vous
+                        voulez figer les donnees en entree.</span
+                      >
+                    </li>
+                  </ul>
+                  {% else %}
+                  <div class="note-block">
+                    Aucun fichier utilisant @OLE n'est disponible pour le
+                    moment.
+                  </div>
                   {% endif %}
-                </div>
-
-                <button
-                  type="submit"
-                  class="btn btn-generate"
-                  id="convertOleBtn"
-                  style="background: #16a34a; border-color: #16a34a"
-                >
-                  <i class="fas fa-exchange-alt"></i> Convertir en explicite
-                </button>
-              </form>
-            </div>
-
-            <!-- Onglet 3: Nettoyage -->
-            <div class="tab-pane fade" id="clean-content" role="tabpanel">
-              <div style="margin-bottom: 1.5rem">
-                <h5 style="color: #d97706; margin-bottom: 0.75rem">
-                  <i class="fas fa-info-circle"></i> Fonctionnalités
-                </h5>
-                <ul
-                  style="
-                    margin: 0;
-                    padding-left: 1.5rem;
-                    color: #334155;
-                    font-size: 0.9rem;
-                  "
-                >
-                  <li>Supprimant les commentaires entre crochets [...]</li>
-                  <li>Enlevant les accents et caractères spéciaux</li>
-                  <li>
-                    Normalisant la casse (ensembles en MAJUSCULE,
-                    paramètres/variables en PascalCase)
-                  </li>
-                  <li>Supprimant les sections DATA ENDATA vides</li>
-                  <li>Assurant la cohérence d'écriture des identifiants</li>
-                </ul>
+                </aside>
               </div>
-              <form id="cleanForm">
-                <div class="form-group">
-                  <label for="file_select_clean" class="form-label">
-                    <i class="fas fa-file-import"></i> Sélectionnez un fichier
-                    LINGO à nettoyer
-                    <span class="file-badge" style="background: #f59e0b">
-                      {{ files|length }} fichier(s)
-                    </span>
-                  </label>
-                  <select
-                    class="form-select"
-                    id="file_select_clean"
-                    name="file_select_clean"
-                    required
-                  >
-                    <option value="">-- Choisissez un fichier --</option>
-                    {% for file in files %}
-                    <option value="{{ file }}">{{ file }}</option>
-                    {% endfor %}
-                  </select>
-                </div>
-
-                <button
-                  type="submit"
-                  class="btn btn-generate"
-                  id="cleanBtn"
-                  style="background: #f59e0b; border-color: #f59e0b"
-                >
-                  <i class="fas fa-broom"></i> Nettoyer le fichier
-                </button>
-              </form>
             </div>
-          </div>
+
+            <div class="tab-pane-card" data-pane="clean">
+              <div class="tool-layout">
+                <section class="form-panel">
+                  <h3>Nettoyage LINGO</h3>
+                  <p class="panel-copy">
+                    Uniformise la casse, supprime certains commentaires et
+                    retire les sections vides avant conversion ou validation.
+                  </p>
+
+                  <form id="cleanForm" class="stack">
+                    <div class="field">
+                      <label for="file_select_clean">
+                        <i class="fas fa-soap"></i>
+                        Fichier a nettoyer
+                      </label>
+                      <select
+                        class="form-select"
+                        id="file_select_clean"
+                        name="file_select_clean"
+                        required
+                      >
+                        <option value="">Choisissez un fichier .lng</option>
+                        {% for file in files %}
+                        <option value="{{ file }}">{{ file }}</option>
+                        {% endfor %}
+                      </select>
+                      <div class="helper">
+                        Le fichier nettoye est affiche en comparaison avec la
+                        version source avant telechargement.
+                      </div>
+                    </div>
+
+                    <button type="submit" class="btn-soft" id="cleanBtn">
+                      <i class="fas fa-broom-ball"></i>
+                      Lancer le nettoyage
+                    </button>
+                  </form>
+                </section>
+
+                <aside class="info-panel">
+                  <h3>Nettoyages appliques</h3>
+                  <ul class="checklist">
+                    <li>
+                      <i class="fas fa-comment-slash"></i>
+                      <span
+                        >Suppression des commentaires entre crochets et
+                        normalisation de certains motifs parasites.</span
+                      >
+                    </li>
+                    <li>
+                      <i class="fas fa-text-height"></i>
+                      <span
+                        >Uniformisation de la casse pour faciliter le traitement
+                        du fichier.</span
+                      >
+                    </li>
+                    <li>
+                      <i class="fas fa-minimize"></i>
+                      <span
+                        >Suppression des blocs DATA / ENDDATA vides pour obtenir
+                        un fichier plus propre.</span
+                      >
+                    </li>
+                  </ul>
+                </aside>
+              </div>
+            </div>
+
+            <div class="tab-pane-card" data-pane="pipeline">
+              <div class="tool-layout">
+                <section class="form-panel">
+                  <h3>Pipeline complet</h3>
+                  <p class="panel-copy">
+                    Le mode le plus autonome: detection OLE, conversion si
+                    necessaire, nettoyage optionnel, generation du notebook et
+                    export JSON des donnees.
+                  </p>
+
+                  <form id="pipelineForm" class="stack">
+                    <div class="field">
+                      <label for="file_select_pipeline">
+                        <i class="fas fa-diagram-project"></i>
+                        Point de depart
+                      </label>
+                      <select
+                        class="form-select"
+                        id="file_select_pipeline"
+                        name="file_select_pipeline"
+                        required
+                      >
+                        <option value="">Choisissez un fichier .lng</option>
+                        {% for file in files %}
+                        <option value="{{ file }}">{{ file }}</option>
+                        {% endfor %}
+                      </select>
+                      <div class="status-pill" id="oleDetectionStatus"></div>
+                    </div>
+
+                    <div class="field">
+                      <label for="solver_select_pipeline">
+                        <i class="fas fa-gear"></i>
+                        Solveur pour le notebook genere
+                      </label>
+                      <select
+                        class="form-select"
+                        id="solver_select_pipeline"
+                        name="solver_select_pipeline"
+                      >
+                        <option value="gurobi">Gurobi</option>
+                        <option value="cplex">CPLEX</option>
+                        <option value="glpk">GLPK</option>
+                        <option value="highs" selected>HiGHS</option>
+                        <option value="ipopt">IPOPT</option>
+                      </select>
+                    </div>
+
+                    <div class="option-grid">
+                      <label class="option-card" for="do_clean">
+                        <input type="checkbox" id="do_clean" name="do_clean" />
+                        <span>
+                          <strong>Nettoyer le fichier avant parsing</strong>
+                          <span
+                            >Utile si vous avez des commentaires, de la casse
+                            incoherente ou un fichier source heterogene.</span
+                          >
+                        </span>
+                      </label>
+
+                      <label class="option-card" for="external_data">
+                        <input
+                          type="checkbox"
+                          id="external_data"
+                          name="external_data"
+                          checked
+                        />
+                        <span>
+                          <strong
+                            >Externaliser les donnees (JSON ou DAT)</strong
+                          >
+                          <span
+                            >Recommande pour les modeles volumineux ou si vous
+                            voulez separer structure et donnees.</span
+                          >
+                        </span>
+                      </label>
+                    </div>
+
+                    <div class="field">
+                      <label for="external_data_format">
+                        <i class="fas fa-database"></i>
+                        Format des donnees externes
+                      </label>
+                      <select
+                        class="form-select"
+                        id="external_data_format"
+                        name="external_data_format"
+                      >
+                        <option value="json" selected>
+                          JSON (format actuel)
+                        </option>
+                        <option value="dat">DAT Pyomo/AMPL</option>
+                      </select>
+                    </div>
+
+                    <button type="submit" class="btn-primary" id="pipelineBtn">
+                      <i class="fas fa-rocket"></i>
+                      Executer le pipeline
+                    </button>
+                  </form>
+                </section>
+
+                <aside class="info-panel">
+                  <h3>Ce que fait le pipeline</h3>
+                  <ul class="info-list">
+                    <li>
+                      <i class="fas fa-magnifying-glass"></i>
+                      <span
+                        >Detection d'un eventuel lien Excel dans le fichier
+                        choisi.</span
+                      >
+                    </li>
+                    <li>
+                      <i class="fas fa-arrows-split-up-and-left"></i>
+                      <span
+                        >Conversion et nettoyage si necessaire, sans etapes
+                        manuelles supplementaires.</span
+                      >
+                    </li>
+                    <li>
+                      <i class="fas fa-file-export"></i>
+                      <span
+                        >Generation des fichiers utiles, avec telechargement du
+                        notebook et des donnees externes si besoin.</span
+                      >
+                    </li>
+                  </ul>
+                </aside>
+              </div>
+            </div>
+          </section>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <!-- Pipeline Section -->
-    <section
-      class="pipeline-section"
-      id="pipeline"
-      style="
-        padding: 5rem 0;
-        background: linear-gradient(
-          135deg,
-          rgba(14, 165, 233, 0.05),
-          rgba(37, 99, 235, 0.05)
-        );
-      "
-    >
-      <div class="container">
-        <div class="text-center mb-5">
-          <div
-            style="
-              display: inline-block;
-              background: linear-gradient(135deg, #0ea5e9, #2563eb);
-              padding: 0.75rem 1.5rem;
-              border-radius: 50px;
-              margin-bottom: 1.5rem;
-            "
-          >
-            <i
-              class="fas fa-rocket"
-              style="color: white; font-size: 1.5rem"
-            ></i>
-          </div>
-          <h2
-            style="
-              font-size: 2.5rem;
-              font-weight: 700;
-              background: linear-gradient(135deg, #0ea5e9, #2563eb);
-              -webkit-background-clip: text;
-              -webkit-text-fill-color: transparent;
-              background-clip: text;
-              margin-bottom: 1rem;
-            "
-          >
-            Pipeline Complet
-          </h2>
-          <p
-            style="
-              font-size: 1.2rem;
-              color: #475569;
-              max-width: 700px;
-              margin: 0 auto;
-            "
-          >
-            Automatisation end-to-end : de votre fichier LINGO au notebook Pyomo
-            prêt à l'emploi
-          </p>
-        </div>
-
-        <div
-          style="
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border: 1px solid #e2e8f0;
-            border-radius: 20px;
-            padding: 3rem;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
-          "
-        >
-          <div
-            class="alert alert-info"
-            style="
-              background: rgba(14, 165, 233, 0.08);
-              border: 1px solid rgba(14, 165, 233, 0.3);
-              color: #0369a1;
-              border-radius: 12px;
-              padding: 1.25rem;
-              margin-bottom: 2rem;
-            "
-          >
-            <i class="fas fa-info-circle"></i>
-            <strong style="color: #0c4a6e">Pipeline Complet</strong> -
-            Automatisation complète du processus :
-            <ul style="margin-top: 0.75rem; margin-bottom: 0; color: #0f172a">
-              <li>🔍 Détection automatique des fichiers Excel (@OLE)</li>
-              <li>🔄 Conversion OLE → Explicite (si nécessaire)</li>
-              <li>🧹 Nettoyage optionnel du code LINGO</li>
-              <li>⚙️ Génération du notebook Pyomo</li>
-              <li>💾 Externalisation optionnelle des données en JSON</li>
-              <li>📥 Téléchargement du notebook + JSON</li>
-            </ul>
-          </div>
-
-          <form id="pipelineForm">
-            <div class="form-group">
-              <label for="file_select_pipeline" class="form-label">
-                <i class="fas fa-file-upload"></i> Sélectionnez votre modèle
-                LINGO
-                <span class="file-badge"
-                  >{{ files|length }} fichier(s) disponible(s)</span
-                >
-              </label>
-              <select
-                class="form-select"
-                id="file_select_pipeline"
-                name="file_select_pipeline"
-                required
-              >
-                <option value="">-- Choisissez un fichier --</option>
-                {% for file in files %}
-                <option value="{{ file }}">{{ file }}</option>
-                {% endfor %}
-              </select>
-              <div
-                id="ole-detection"
-                style="margin-top: 0.5rem; font-size: 0.9rem; color: #475569"
-              ></div>
-            </div>
-
-            <div class="form-group">
-              <label for="solver_select_pipeline" class="form-label">
-                <i class="fas fa-cogs"></i> Solveur d'optimisation
-              </label>
-              <select
-                class="form-select"
-                id="solver_select_pipeline"
-                name="solver_select_pipeline"
-              >
-                <option value="gurobi">Gurobi (recommandé)</option>
-                <option value="cplex">CPLEX</option>
-                <option value="glpk">GLPK (open source)</option>
-                <option value="highs">HiGHS (open source)</option>
-                <option value="ipopt">IPOPT (non-linéaire)</option>
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label class="form-label"
-                ><i class="fas fa-sliders-h"></i> Options du pipeline</label
-              >
-              <div class="toggle-switch">
-                <input
-                  type="checkbox"
-                  id="do_clean"
-                  name="do_clean"
-                  class="toggle-switch-input"
-                />
-                <label for="do_clean" class="toggle-switch-label">
-                  <span class="icon">🧹</span>
-                  Nettoyer le fichier LINGO (suppression commentaires,
-                  normalisation)
-                </label>
-              </div>
-              <div class="toggle-switch">
-                <input
-                  type="checkbox"
-                  id="external_data"
-                  name="external_data"
-                  class="toggle-switch-input"
-                  checked
-                />
-                <label for="external_data" class="toggle-switch-label">
-                  <span class="icon">💾</span>
-                  Externaliser les données en JSON (recommandé pour grands
-                  modèles)
-                </label>
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              class="btn btn-generate"
-              id="pipelineBtn"
-              style="
-                background: linear-gradient(135deg, #0ea5e9, #2563eb);
-                border: none;
-              "
-            >
-              <i class="fas fa-rocket"></i> Lancer le Pipeline
-            </button>
-          </form>
-        </div>
-      </div>
-    </section>
-
-    <!-- Features Section -->
-    <section class="features-section" id="features">
-      <div class="container">
-        <h2 class="section-title">Pourquoi utiliser cet outil ?</h2>
-        <div class="row g-4">
-          <div class="col-md-4">
-            <div class="feature-card">
-              <div class="feature-icon">
-                <i class="fa-solid fa-robot"></i>
-              </div>
-              <h3>Conversion Automatique</h3>
+      <section class="section" id="capabilities">
+        <div class="site-shell">
+          <div class="section-header">
+            <div>
+              <h2>Pourquoi utiliser cet outil</h2>
               <p>
-                Transformez vos modèles LINGO en syntaxe Pyomo en un seul clic,
-                sans effort manuel.
+                Cet outil a ete pense pour aller a l'essentiel : traiter un
+                fichier LINGO, verifier le resultat et recuperer un fichier
+                directement exploitable.
               </p>
             </div>
           </div>
-          <div class="col-md-4">
-            <div class="feature-card">
-              <div class="feature-icon">
-                <i class="fas fa-graduation-cap"></i>
-              </div>
-              <h3>Outil Pédagogique</h3>
+
+          <div class="feature-grid">
+            <article class="feature-card">
+              <div class="feature-icon"><i class="fas fa-swatchbook"></i></div>
+              <h3>Utilisation simple</h3>
               <p>
-                Idéal pour enseigner l'optimisation. Permet aux étudiants de
-                comprendre la transition entre deux formalismes.
+                Les actions principales sont accessibles rapidement et le
+                resultat reste lisible avant telechargement.
+              </p>
+            </article>
+            <article class="feature-card">
+              <div class="feature-icon">
+                <i class="fas fa-arrows-left-right-to-line"></i>
+              </div>
+              <h3>Fonctions regroupees</h3>
+              <p>
+                Conversion, nettoyage, traitement OLE et pipeline complet sont
+                disponibles dans la meme interface.
+              </p>
+            </article>
+            <article class="feature-card">
+              <div class="feature-icon"><i class="fas fa-laptop-code"></i></div>
+              <h3>Verification avant export</h3>
+              <p>
+                Vous pouvez relire le contenu genere avant de telecharger le
+                notebook ou le fichier obtenu.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="guide">
+        <div class="site-shell">
+          <div class="section-header">
+            <div>
+              <h2>Comment l'utiliser</h2>
+              <p>
+                Voici un parcours simple pour utiliser l'outil selon le type de
+                fichier que vous souhaitez traiter.
               </p>
             </div>
           </div>
-          <div class="col-md-4">
-            <div class="feature-card">
-              <div class="feature-icon">
-                <i class="fas fa-cogs"></i>
-              </div>
-              <h3>Compatibilité Totale</h3>
+
+          <div class="process-grid">
+            <article class="process-card">
+              <span class="process-number">1</span>
+              <h3>Choisir l'action adaptee</h3>
               <p>
-                Les notebooks générés sont pleinement compatibles avec Pyomo,
-                Gurobi, CPLEX et autres solveurs.
+                Utilisez la generation de notebook pour un besoin direct, ou le
+                pipeline complet si votre fichier demande plusieurs etapes.
+              </p>
+            </article>
+            <article class="process-card">
+              <span class="process-number">2</span>
+              <h3>Verifier le cas OLE</h3>
+              <p>
+                Si votre fichier depend d'Excel, utilisez la conversion OLE ou
+                laissez le pipeline le prendre en charge.
+              </p>
+            </article>
+            <article class="process-card">
+              <span class="process-number">3</span>
+              <h3>Relire le resultat</h3>
+              <p>
+                L'apercu permet de verifier rapidement le contenu avant de
+                telecharger le fichier genere.
+              </p>
+            </article>
+            <article class="process-card">
+              <span class="process-number">4</span>
+              <h3>Telecharger le fichier genere</h3>
+              <p>
+                Recuperez ensuite le notebook, le fichier nettoye, la version
+                explicite ou le JSON selon l'action choisie.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="section">
+      <div class="site-shell">
+        <div class="footer-panel">
+          <div class="footer-grid">
+            <div class="footer-block">
+              <h3><i class="fas fa-compass"></i> Presentation</h3>
+              <p>
+                Outil local destine a convertir et preparer des modeles LINGO
+                pour une utilisation avec Pyomo.
+              </p>
+            </div>
+            <div class="footer-block">
+              <h3><i class="fas fa-cubes"></i> Technologies</h3>
+              <p>
+                Flask pour l'interface, Lark pour le parsing, Pyomo pour la
+                cible et Jupyter pour la restitution finale.
+              </p>
+            </div>
+            <div class="footer-block">
+              <h3><i class="fas fa-people-group"></i> Auteurs</h3>
+              <p>Fausto Errico<br />Virginie Destuynder<br />Joaquim Jusseau</p>
+            </div>
+            <div class="footer-block">
+              <h3><i class="fab fa-github"></i> Source</h3>
+              <p>
+                Projet academique disponible sur
+                <a
+                  href="https://github.com/Joaquim2805"
+                  target="_blank"
+                  rel="noreferrer"
+                  >GitHub</a
+                >.
               </p>
             </div>
           </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- How to Use Section -->
-    <section class="how-to-section" id="how-to">
-      <div class="container">
-        <h2 class="section-title">
-          <i class="fas fa-info-circle"></i> Comment utiliser ?
-        </h2>
-        <div class="row">
-          <div class="col-lg-8 offset-lg-2">
-            <div class="step-card">
-              <div class="step-number">1</div>
-              <div class="step-content">
-                <h4>Sélectionnez votre fichier LINGO</h4>
-                <p>
-                  Choisissez parmi les modèles disponibles dans la liste
-                  déroulante ci-dessus. Tous les fichiers .lng sont supportés.
-                </p>
-              </div>
-            </div>
-
-            <div class="step-card">
-              <div class="step-number">2</div>
-              <div class="step-content">
-                <h4>Cliquez sur "Générer le notebook"</h4>
-                <p>
-                  L'outil analyse le fichier LINGO et génère automatiquement un
-                  notebook Jupyter avec la syntaxe Pyomo équivalente.
-                </p>
-              </div>
-            </div>
-
-            <div class="step-card">
-              <div class="step-number">3</div>
-              <div class="step-content">
-                <h4>Téléchargez et utilisez le notebook</h4>
-                <p>
-                  Le fichier .ipynb est prêt à être utilisé dans Jupyter. Vous
-                  pouvez le personnaliser et l'exécuter directement avec vos
-                  solveurs préférés.
-                </p>
-              </div>
-            </div>
+          <div class="footer-bottom">
+            <span>Outil de conversion LINGO vers Pyomo</span>
+            <span>2026 · LINGO vers Pyomo</span>
           </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Error Modal -->
-    <div class="error-modal" id="errorModal">
-      <div class="error-modal-content">
-        <div class="error-modal-header">
-          <i class="fas fa-exclamation-circle error-modal-icon"></i>
-          <h2 class="error-modal-title">Erreur de conversion</h2>
-        </div>
-        <div class="error-modal-message" id="errorMessage">
-          Une erreur s'est produite lors de la conversion du fichier.
-        </div>
-        <div
-          class="error-modal-details"
-          id="errorDetails"
-          style="display: none"
-        ></div>
-        <div class="error-modal-footer">
-          <button class="btn-error-close" onclick="closeErrorModal()">
-            <i class="fas fa-times"></i> Fermer
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Preview Modal -->
-    <div class="preview-modal" id="previewModal">
-      <div class="preview-modal-content">
-        <div class="preview-modal-header">
-          <div style="flex: 1">
-            <h2 class="preview-modal-title">Aperçu du code</h2>
-          </div>
-          <div style="display: flex; gap: 0.5rem; align-items: center">
-            <button
-              class="view-toggle-btn"
-              id="singleViewBtn"
-              onclick="toggleComparisonView(false)"
-            >
-              <i class="fas fa-file-code"></i> Vue Simple
-            </button>
-            <button
-              class="view-toggle-btn"
-              id="compareViewBtn"
-              onclick="toggleComparisonView(true)"
-            >
-              <i class="fas fa-columns"></i> Comparaison
-            </button>
-          </div>
-          <button class="preview-modal-close" onclick="closePreviewModal()">
-            <i class="fas fa-times"></i>
-          </button>
-        </div>
-
-        <!-- Single View -->
-        <div class="preview-code-container" id="singleView">
-          <pre
-            class="preview-code"
-          ><code class="language-python" id="previewCodeContent"></code></pre>
-        </div>
-
-        <!-- Comparison View -->
-        <div class="comparison-view" id="comparisonView">
-          <div class="comparison-panel">
-            <div class="comparison-header" id="leftPanelHeader">
-              <i class="fas fa-file-alt"></i>
-              <span id="leftPanelTitle">Avant</span>
-            </div>
-            <pre
-              class="comparison-code"
-            ><code id="leftPanelCode">Code pas disponible</code></pre>
-          </div>
-          <div class="comparison-panel">
-            <div class="comparison-header" id="rightPanelHeader">
-              <i class="fas fa-file-code"></i>
-              <span id="rightPanelTitle">Après</span>
-            </div>
-            <pre class="comparison-code"><code id="rightPanelCode"></code></pre>
-          </div>
-        </div>
-        <div class="preview-modal-footer">
-          <button class="btn-preview-cancel" onclick="closePreviewModal()">
-            Annuler
-          </button>
-          <button class="btn-preview-download" onclick="downloadNotebook()">
-            <i class="fas fa-download"></i> Télécharger le notebook
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Pipeline Success Modal -->
-    <div class="preview-modal" id="pipelineModal" style="display: none">
-      <div class="preview-modal-content" id="pipelineModalContent">
-        <!-- Content will be dynamically generated -->
-      </div>
-    </div>
-
-    <!-- Footer -->
-    <footer>
-      <div class="container">
-        <div class="footer-content">
-          <div class="footer-section">
-            <h5><i class="fas fa-project-diagram"></i> À propos</h5>
-            <p>
-              Un projet académique conçu pour faciliter la transition entre
-              LINGO et Pyomo dans l'enseignement de l'optimisation.
-            </p>
-          </div>
-          <div class="footer-section">
-            <h5><i class="fas fa-tools"></i> Technologies</h5>
-            <p>
-              Utilise Flask, Jupyter, Pyomo et des parseurs Lark pour une
-              conversion fiable et complète.
-            </p>
-          </div>
-          <div class="footer-section">
-            <h5><i class="fas fa-users"></i> Auteurs</h5>
-            <p>
-              Fausto Errico<br />
-              Virginie Destuynder<br />
-              Joaquim Jusseau
-            </p>
-          </div>
-          <div class="footer-section">
-            <h5><i class="fas fa-code-branch"></i> Open Source</h5>
-            <p>
-              Ce projet est <strong>open-source</strong> et disponible sur
-              <a href="https://github.com/Joaquim2805" target="_blank">
-                <i class="fab fa-github"></i> GitHub
-              </a>
-            </p>
-          </div>
-        </div>
-        <div class="footer-bottom">
-          <p>© 2025 Projet LINGO → Pyomo. Tous droits réservés.</p>
         </div>
       </div>
     </footer>
 
-    <!-- Bootstrap JS -->
+    <div class="modal-shell" id="previewModal" aria-hidden="true">
+      <div
+        class="preview-modal-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="previewTitle"
+      >
+        <div class="modal-header">
+          <div>
+            <h2 class="modal-title" id="previewTitle">Apercu du resultat</h2>
+            <p class="modal-subtitle" id="previewSubtitle">
+              Verifiez le resultat avant telechargement.
+            </p>
+          </div>
+          <button
+            class="modal-close"
+            type="button"
+            data-close="previewModal"
+            aria-label="Fermer l'apercu"
+          >
+            <i class="fas fa-xmark"></i>
+          </button>
+        </div>
+
+        <div class="preview-toolbar">
+          <div class="toggle-group">
+            <button class="toggle-btn active" type="button" id="singleViewBtn">
+              <i class="fas fa-file-code"></i>
+              Vue simple
+            </button>
+            <button class="toggle-btn" type="button" id="compareViewBtn">
+              <i class="fas fa-table-columns"></i>
+              Vue comparee
+            </button>
+          </div>
+          <div class="preview-meta" id="previewMeta"></div>
+        </div>
+
+        <div class="preview-body" id="previewBody">
+          <div class="preview-single">
+            <pre
+              class="code-scroll"
+            ><code class="language-python" id="previewCodeContent"></code></pre>
+          </div>
+          <div class="preview-compare">
+            <section class="compare-panel">
+              <div class="compare-head">
+                <i class="fas fa-file-lines"></i>
+                <span id="compareLeftTitle">Source</span>
+              </div>
+              <pre><code id="leftPanelCode"></code></pre>
+            </section>
+            <section class="compare-panel">
+              <div class="compare-head">
+                <i class="fas fa-file-code"></i>
+                <span id="compareRightTitle">Resultat</span>
+              </div>
+              <pre><code class="language-python" id="rightPanelCode"></code></pre>
+            </section>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn-neutral" type="button" data-close="previewModal">
+            Fermer
+          </button>
+          <button class="btn-primary" type="button" id="previewDownloadBtn">
+            <i class="fas fa-download"></i>
+            Telecharger
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-shell" id="errorModal" aria-hidden="true">
+      <div
+        class="error-modal-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="errorTitle"
+      >
+        <div class="modal-header">
+          <div>
+            <h2 class="modal-title" id="errorTitle">Erreur</h2>
+            <p class="modal-subtitle">
+              Le serveur a retourne une erreur ou une etape a echoue.
+            </p>
+          </div>
+          <button
+            class="modal-close"
+            type="button"
+            data-close="errorModal"
+            aria-label="Fermer l'erreur"
+          >
+            <i class="fas fa-xmark"></i>
+          </button>
+        </div>
+        <div class="error-body">
+          <div class="error-banner">
+            <i class="fas fa-triangle-exclamation"></i>
+            <div id="errorMessage">Une erreur s'est produite.</div>
+          </div>
+          <div class="error-details hidden" id="errorDetails"></div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-danger" type="button" data-close="errorModal">
+            Fermer
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-shell" id="pipelineModal" aria-hidden="true">
+      <div
+        class="pipeline-result"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="pipelineTitle"
+      >
+        <div class="modal-header">
+          <div>
+            <h2 class="modal-title" id="pipelineTitle">Pipeline termine</h2>
+            <p class="modal-subtitle">
+              Resume des etapes executees et des fichiers generes.
+            </p>
+          </div>
+          <button
+            class="modal-close"
+            type="button"
+            data-close="pipelineModal"
+            aria-label="Fermer le pipeline"
+          >
+            <i class="fas fa-xmark"></i>
+          </button>
+        </div>
+        <div class="pipeline-banner">
+          <h3 id="pipelineBannerTitle">Execution terminee</h3>
+          <p id="pipelineBannerText">Le notebook a ete genere avec succes.</p>
+        </div>
+        <div class="pipeline-content">
+          <div class="pipeline-column">
+            <section class="pipeline-box">
+              <h4>Etapes</h4>
+              <ol class="pipeline-steps" id="pipelineSteps"></ol>
+            </section>
+            <section class="pipeline-box">
+              <h4>Artefacts</h4>
+              <div class="pipeline-tags" id="pipelineTags"></div>
+            </section>
+          </div>
+          <div class="pipeline-column">
+            <section class="pipeline-box pipeline-preview">
+              <h4>Apercu du code Pyomo</h4>
+              <pre><code class="language-python" id="pipelinePreviewCode"></code></pre>
+            </section>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-neutral" type="button" data-close="pipelineModal">
+            Fermer
+          </button>
+          <button
+            class="btn-secondary hidden"
+            type="button"
+            id="downloadPipelineJsonBtn"
+          >
+            <i class="fas fa-download"></i>
+            Telecharger donnees
+          </button>
+          <button
+            class="btn-primary"
+            type="button"
+            id="downloadPipelineNotebookBtn"
+          >
+            <i class="fas fa-download"></i>
+            Telecharger notebook
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script id="ole-files-data" type="application/json">
+      {{ ole_files|tojson }}
+    </script>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-      // Gestion des onglets avec styles personnalisés
-      document.addEventListener("DOMContentLoaded", function () {
-        const tabs = document.querySelectorAll("#toolTabs .nav-link");
+      const state = {
+        preview: {
+          title: "Apercu du resultat",
+          subtitle: "Verifiez le resultat avant telechargement.",
+          singleCode: "",
+          leftCode: "",
+          rightCode: "",
+          leftTitle: "Source",
+          rightTitle: "Resultat",
+          meta: [],
+          downloadLabel: "Telecharger",
+          downloadHandler: null,
+        },
+        pipeline: null,
+      };
 
-        tabs.forEach((tab) => {
-          tab.addEventListener("click", function (e) {
-            // Enlever le style actif de tous les onglets
-            tabs.forEach((t) => {
-              t.style.borderBottomColor = "transparent";
-              t.style.color = "#cbd5e1";
-            });
+      const oleFiles = JSON.parse(
+        document.getElementById("ole-files-data").textContent || "[]",
+      );
 
-            // Ajouter le style actif à l'onglet cliqué
-            this.style.borderBottomColor = "var(--accent-color)";
-            this.style.color = "var(--accent-color)";
-          });
+      const previewModal = document.getElementById("previewModal");
+      const errorModal = document.getElementById("errorModal");
+      const pipelineModal = document.getElementById("pipelineModal");
+      const previewBody = document.getElementById("previewBody");
+      const previewCodeContent = document.getElementById("previewCodeContent");
+      const leftPanelCode = document.getElementById("leftPanelCode");
+      const rightPanelCode = document.getElementById("rightPanelCode");
+      const previewMeta = document.getElementById("previewMeta");
+      const previewDownloadBtn = document.getElementById("previewDownloadBtn");
+      const singleViewBtn = document.getElementById("singleViewBtn");
+      const compareViewBtn = document.getElementById("compareViewBtn");
+
+      function escapeHtml(text) {
+        return String(text).replace(/[&<>"']/g, (char) => {
+          const map = {
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': "&quot;",
+            "'": "&#039;",
+          };
+          return map[char];
         });
+      }
 
-        // Initialiser le premier onglet comme actif
-        const firstTab = document.querySelector("#toolTabs .nav-link");
-        if (firstTab) {
-          firstTab.style.borderBottomColor = "var(--accent-color)";
-          firstTab.style.color = "var(--accent-color)";
+      function highlightCode(element) {
+        if (element) {
+          hljs.highlightElement(element);
         }
-      });
+      }
 
-      // Variables globales pour l'aperçu
-      let currentPreviewData = null;
-      let currentComparisonData = { left: null, right: null };
-      let isComparisonView = false;
-
-      // Toast Notification System
       function showToast(title, message, type = "success") {
         const container = document.getElementById("toastContainer");
-        const toast = document.createElement("div");
-        toast.className = `toast ${type}`;
-
-        const icon =
-          type === "success" ? "fa-check-circle" : "fa-exclamation-circle";
-
-        toast.innerHTML = `
-          <i class="fas ${icon} toast-icon"></i>
-          <div class="toast-content">
-            <div class="toast-title">${title}</div>
-            <div class="toast-message">${message}</div>
+        const item = document.createElement("div");
+        item.className = `toast-card${type === "error" ? " is-error" : ""}`;
+        item.innerHTML = `
+          <div class="toast-icon">
+            <i class="fas ${type === "error" ? "fa-circle-exclamation" : "fa-circle-check"}"></i>
           </div>
+          <div>
+            <div class="toast-title">${escapeHtml(title)}</div>
+            <div class="toast-message">${escapeHtml(message)}</div>
+          </div>
+          <button class="toast-close" type="button" aria-label="Fermer">
+            <i class="fas fa-xmark"></i>
+          </button>
         `;
-
-        container.appendChild(toast);
-
-        // Auto-remove after 3 seconds
-        setTimeout(() => {
-          toast.remove();
-        }, 3000);
+        item
+          .querySelector(".toast-close")
+          .addEventListener("click", () => item.remove());
+        container.appendChild(item);
+        window.setTimeout(() => item.remove(), 3200);
       }
 
-      // Toggle Comparison View
-      function toggleComparisonView(showComparison) {
-        isComparisonView = showComparison;
-        const singleView = document.getElementById("singleView");
-        const comparisonView = document.getElementById("comparisonView");
-        const singleBtn = document.getElementById("singleViewBtn");
-        const compareBtn = document.getElementById("compareViewBtn");
-
-        if (showComparison) {
-          singleView.style.display = "none";
-          comparisonView.classList.add("active");
-          singleBtn.classList.remove("active");
-          compareBtn.classList.add("active");
-
-          // Load comparison content
-          if (currentComparisonData.left) {
-            document.getElementById("leftPanelCode").textContent =
-              currentComparisonData.left;
-            hljs.highlightElement(document.getElementById("leftPanelCode"));
-          }
-          if (currentComparisonData.right) {
-            document.getElementById("rightPanelCode").textContent =
-              currentComparisonData.right;
-            hljs.highlightElement(document.getElementById("rightPanelCode"));
-          }
-        } else {
-          singleView.style.display = "block";
-          comparisonView.classList.remove("active");
-          singleBtn.classList.add("active");
-          compareBtn.classList.remove("active");
-        }
+      function openModal(element) {
+        element.classList.add("is-open");
+        element.setAttribute("aria-hidden", "false");
       }
 
-      // Preview modal functions
-      function showPreviewModal(
-        rightCode,
-        leftCode = null,
-        leftTitle = "LINGO Original",
-        rightTitle = "Pyomo Généré",
-      ) {
-        const modal = document.getElementById("previewModal");
-        const codeContent = document.getElementById("previewCodeContent");
-
-        codeContent.textContent = rightCode;
-
-        // Setup comparison data
-        currentComparisonData = {
-          left: leftCode,
-          right: rightCode,
-        };
-
-        // Update panel titles
-        document.getElementById("leftPanelTitle").textContent = leftTitle;
-        document.getElementById("rightPanelTitle").textContent = rightTitle;
-
-        // Highlight the code
-        hljs.highlightElement(codeContent);
-
-        // Reset to single view
-        toggleComparisonView(false);
-
-        modal.classList.add("show");
+      function closeModal(element) {
+        element.classList.remove("is-open");
+        element.setAttribute("aria-hidden", "true");
       }
 
-      function closePreviewModal() {
-        const modal = document.getElementById("previewModal");
-        modal.classList.remove("show");
+      function closeAllModals() {
+        closeModal(previewModal);
+        closeModal(errorModal);
+        closeModal(pipelineModal);
       }
 
-      function downloadNotebook() {
-        if (!currentPreviewData) {
-          showErrorModal(
-            "Données manquantes",
-            "Les données du notebook ne sont pas disponibles",
-            null,
-            null,
-          );
-          return;
-        }
-
-        const btn = document.querySelector(".btn-preview-download");
-        const originalText = btn.innerHTML;
-        btn.disabled = true;
-        btn.innerHTML =
-          '<i class="fas fa-spinner fa-spin"></i> Téléchargement...';
-
-        fetch("/download", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(currentPreviewData),
-        })
-          .then((response) => {
-            if (response.ok) {
-              return response.blob().then((blob) => {
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = currentPreviewData.file_name + ".ipynb";
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(url);
-                document.body.removeChild(a);
-                closePreviewModal();
-              });
-            } else {
-              return response.json().then((data) => {
-                throw new Error(JSON.stringify(data));
-              });
-            }
-          })
-          .catch((error) => {
-            let errorData;
-
-            if (error instanceof Error && error.message.startsWith("{")) {
-              try {
-                errorData = JSON.parse(error.message);
-              } catch (e) {
-                errorData = { error: error.message };
-              }
-            } else if (typeof error === "object" && error.error) {
-              errorData = error;
-            } else {
-              errorData = { error: String(error) };
-            }
-
-            showErrorModal(
-              errorData.error || "Erreur inconnue",
-              errorData.details ||
-                "Une erreur s'est produite lors du téléchargement.",
-              errorData.type ? `Type: ${errorData.type}` : null,
-              errorData.traceback || null,
-            );
-          })
-          .finally(() => {
-            btn.disabled = false;
-            btn.innerHTML = originalText;
-          });
+      function setPreviewMode(isCompare) {
+        previewBody.classList.toggle("is-compare", isCompare);
+        singleViewBtn.classList.toggle("active", !isCompare);
+        compareViewBtn.classList.toggle("active", isCompare);
       }
 
-      // Close preview modal when clicking outside
-      document
-        .getElementById("previewModal")
-        .addEventListener("click", function (e) {
-          if (e.target === this) {
-            closePreviewModal();
-          }
+      function updatePreviewMeta(metaItems) {
+        previewMeta.innerHTML = "";
+        metaItems.forEach((entry) => {
+          const chip = document.createElement("span");
+          chip.className = "meta-chip";
+          chip.innerHTML = `<i class="fas ${entry.icon}"></i>${escapeHtml(entry.label)}`;
+          previewMeta.appendChild(chip);
         });
+      }
 
-      // Error modal functions
+      function showPreview(config) {
+        state.preview = { ...state.preview, ...config };
+        document.getElementById("previewTitle").textContent =
+          state.preview.title;
+        document.getElementById("previewSubtitle").textContent =
+          state.preview.subtitle;
+        document.getElementById("compareLeftTitle").textContent =
+          state.preview.leftTitle;
+        document.getElementById("compareRightTitle").textContent =
+          state.preview.rightTitle;
+        previewCodeContent.textContent = state.preview.singleCode || "";
+        leftPanelCode.textContent =
+          state.preview.leftCode || "Aucune source disponible";
+        rightPanelCode.textContent =
+          state.preview.rightCode || state.preview.singleCode || "";
+        previewDownloadBtn.innerHTML = `<i class="fas fa-download"></i>${escapeHtml(state.preview.downloadLabel)}`;
+        updatePreviewMeta(state.preview.meta || []);
+        if (state.preview.leftCode) {
+          compareViewBtn.disabled = false;
+          setPreviewMode(true);
+        } else {
+          compareViewBtn.disabled = true;
+          setPreviewMode(false);
+        }
+        highlightCode(previewCodeContent);
+        highlightCode(rightPanelCode);
+        openModal(previewModal);
+      }
+
       function showErrorModal(
         title,
         message,
         details = null,
         traceback = null,
       ) {
-        const modal = document.getElementById("errorModal");
-        const messageEl = document.getElementById("errorMessage");
-        const detailsEl = document.getElementById("errorDetails");
-
-        messageEl.textContent = message;
-
-        // Afficher les détails et la stack trace
-        let fullDetails = "";
-        if (details) {
-          fullDetails += details;
-        }
-        if (traceback) {
-          if (fullDetails) fullDetails += "\n\n--- Stack Trace ---\n";
-          fullDetails += traceback;
-        }
-
-        if (fullDetails) {
-          detailsEl.textContent = fullDetails;
-          detailsEl.style.display = "block";
+        document.getElementById("errorTitle").textContent = title || "Erreur";
+        document.getElementById("errorMessage").textContent =
+          message || "Une erreur s'est produite.";
+        const detailsBlock = document.getElementById("errorDetails");
+        const detailChunks = [details, traceback].filter(Boolean);
+        if (detailChunks.length) {
+          detailsBlock.textContent = detailChunks.join("\n\n");
+          detailsBlock.classList.remove("hidden");
         } else {
-          detailsEl.style.display = "none";
+          detailsBlock.textContent = "";
+          detailsBlock.classList.add("hidden");
         }
-
-        modal.classList.add("show");
+        openModal(errorModal);
       }
 
-      function closeErrorModal() {
-        const modal = document.getElementById("errorModal");
-        modal.classList.remove("show");
-      }
-
-      // Close modal when clicking outside
-      document
-        .getElementById("errorModal")
-        .addEventListener("click", function (e) {
-          if (e.target === this) {
-            closeErrorModal();
+      async function downloadBlob(endpoint, payload, filename) {
+        const response = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (!response.ok) {
+          let errorData = null;
+          try {
+            errorData = await response.json();
+          } catch (error) {
+            errorData = null;
           }
-        });
-
-      // Form submission with visual feedback and error handling
-      document
-        .getElementById("uploadForm")
-        .addEventListener("submit", function (e) {
-          e.preventDefault();
-
-          const btn = document.getElementById("generateBtn");
-          const originalText = btn.innerHTML;
-          btn.disabled = true;
-          btn.innerHTML =
-            '<i class="fas fa-spinner fa-spin"></i> Génération en cours...';
-
-          const formData = new FormData(this);
-
-          fetch("/generate", {
-            method: "POST",
-            body: formData,
-          })
-            .then((response) => response.json())
-            .then((data) => {
-              if (data.success) {
-                // Stocker les données pour le téléchargement
-                currentPreviewData = {
-                  file_name: data.file_name,
-                  solver: data.solver,
-                  pyomo_code: data.pyomo_code,
-                };
-
-                showToast(
-                  "Succès!",
-                  `Notebook généré pour ${data.file_name}`,
-                  "success",
-                );
-
-                // Afficher l'aperçu avec le code LINGO original si disponible
-                showPreviewModal(
-                  data.pyomo_code,
-                  data.lingo_original || null,
-                  "LINGO Original",
-                  "Pyomo Généré",
-                );
-              } else {
-                // Erreur retournée
-                showErrorModal(
-                  data.error || "Erreur inconnue",
-                  data.details ||
-                    "Une erreur s'est produite lors du traitement.",
-                  data.type ? `Type: ${data.type}` : null,
-                  data.traceback || null,
-                );
-              }
-            })
-            .catch((error) => {
-              showErrorModal(
-                "Erreur de communication",
-                "Une erreur s'est produite lors de la communication avec le serveur.",
-                null,
-                error.toString(),
-              );
-            })
-            .finally(() => {
-              // Restore button state after 1 second
-              setTimeout(() => {
-                btn.disabled = false;
-                btn.innerHTML = originalText;
-              }, 1000);
-            });
-        });
-
-      // OLE Conversion form submission
-      document
-        .getElementById("oleConversionForm")
-        .addEventListener("submit", function (e) {
-          e.preventDefault();
-
-          const btn = document.getElementById("convertOleBtn");
-          const originalText = btn.innerHTML;
-          btn.disabled = true;
-          btn.innerHTML =
-            '<i class="fas fa-spinner fa-spin"></i> Conversion en cours...';
-
-          const formData = new FormData(this);
-
-          fetch("/convert-ole", {
-            method: "POST",
-            body: formData,
-          })
-            .then((response) => response.json())
-            .then((data) => {
-              if (data.success) {
-                showToast(
-                  "Conversion OLE réussie!",
-                  `Fichier ${data.file_name} généré`,
-                  "success",
-                );
-                // Afficher un modal de succès avec le fichier généré
-                showOleSuccessModal(data);
-              } else {
-                // Erreur retournée
-                showErrorModal(
-                  data.error || "Erreur inconnue",
-                  data.details ||
-                    "Une erreur s'est produite lors du traitement.",
-                  data.type ? `Type: ${data.type}` : null,
-                  data.traceback || null,
-                );
-              }
-            })
-            .catch((error) => {
-              showErrorModal(
-                "Erreur de communication",
-                "Une erreur s'est produite lors de la communication avec le serveur.",
-                null,
-                error.toString(),
-              );
-            })
-            .finally(() => {
-              // Restore button state after 1 second
-              setTimeout(() => {
-                btn.disabled = false;
-                btn.innerHTML = originalText;
-              }, 1000);
-            });
-        });
-
-      // Function to show OLE conversion success modal
-      function showOleSuccessModal(data) {
-        // Store for download
-        window.currentOleData = data;
-
-        // Show with comparison if original is available
-        showPreviewModal(
-          data.content_preview,
-          data.original_content || null,
-          "LINGO avec @OLE",
-          "LINGO Explicite",
-        );
-
-        // Update the download button to trigger file download
-        const downloadBtn = document.querySelector(".btn-preview-download");
-        downloadBtn.innerHTML =
-          '<i class="fas fa-download"></i> Télécharger le fichier .lng';
-        downloadBtn.onclick = function () {
-          downloadOleFile(data);
-        };
-      }
-
-      // Function to download OLE converted file
-      function downloadOleFile(data) {
-        const link = document.createElement("a");
-        link.href = `file://${data.output_path}`;
-
-        // Instead of direct file link, we need to use fetch to download
-        fetch("/download-ole", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            output_path: data.output_path,
-            file_name: data.file_name,
-          }),
-        })
-          .then((response) => {
-            if (response.ok) {
-              return response.blob().then((blob) => {
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = data.file_name;
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(url);
-                document.body.removeChild(a);
-                closePreviewModal();
-              });
-            } else {
-              throw new Error("Erreur lors du téléchargement");
-            }
-          })
-          .catch((error) => {
-            showErrorModal(
-              "Erreur de téléchargement",
-              "Impossible de télécharger le fichier: " + error.message,
-              null,
-              null,
-            );
-          });
-      }
-
-      // Clean form submission
-      document
-        .getElementById("cleanForm")
-        .addEventListener("submit", function (e) {
-          e.preventDefault();
-
-          const btn = document.getElementById("cleanBtn");
-          const originalText = btn.innerHTML;
-          btn.disabled = true;
-          btn.innerHTML =
-            '<i class="fas fa-spinner fa-spin"></i> Nettoyage en cours...';
-
-          const formData = new FormData(this);
-
-          fetch("/clean", {
-            method: "POST",
-            body: formData,
-          })
-            .then((response) => response.json())
-            .then((data) => {
-              if (data.success) {
-                showToast(
-                  "Nettoyage réussi!",
-                  `Fichier ${data.file_name} nettoyé`,
-                  "success",
-                );
-                // Afficher un modal de succès avec le fichier généré
-                showCleanSuccessModal(data);
-              } else {
-                // Erreur retournée
-                showErrorModal(
-                  data.error || "Erreur inconnue",
-                  data.details ||
-                    "Une erreur s'est produite lors du traitement.",
-                  data.type ? `Type: ${data.type}` : null,
-                  data.traceback || null,
-                );
-              }
-            })
-            .catch((error) => {
-              showErrorModal(
-                "Erreur de communication",
-                "Une erreur s'est produite lors de la communication avec le serveur.",
-                null,
-                error.toString(),
-              );
-            })
-            .finally(() => {
-              // Restore button state after 1 second
-              setTimeout(() => {
-                btn.disabled = false;
-                btn.innerHTML = originalText;
-              }, 1000);
-            });
-        });
-
-      // Function to show clean success modal
-      function showCleanSuccessModal(data) {
-        // Store for download
-        window.currentCleanData = data;
-
-        // Show with comparison if original is available
-        showPreviewModal(
-          data.content_preview,
-          data.original_content || null,
-          "LINGO Original",
-          "LINGO Nettoyé",
-        );
-
-        // Update the download button to trigger file download
-        const downloadBtn = document.querySelector(".btn-preview-download");
-        downloadBtn.innerHTML =
-          '<i class="fas fa-download"></i> Télécharger le fichier nettoyé';
-        downloadBtn.onclick = function () {
-          downloadCleanFile(data);
-        };
-
-        // Add info about file size reduction
-        const previewHeader = document.querySelector(".preview-modal-header");
-        const statsDiv =
-          document.querySelector(".preview-stats") ||
-          document.createElement("div");
-        statsDiv.className = "preview-stats";
-        statsDiv.style.cssText =
-          "color: #334155; font-size: 0.85rem; margin: 0.75rem 1.5rem; padding: 0.75rem; background: rgba(251, 191, 36, 0.1); border-radius: 8px; border-left: 3px solid #fbbf24;";
-        const reduction = Math.round(
-          (1 - data.cleaned_size / data.original_size) * 100,
-        );
-        statsDiv.innerHTML = `
-          <i class="fas fa-chart-pie" style="color: #fbbf24;"></i>
-          Taille originale: ${(data.original_size / 1024).toFixed(2)} KB →
-          Taille nettoyée: ${(data.cleaned_size / 1024).toFixed(2)} KB
-          <strong style="color: #fbbf24;">(${reduction}% de réduction)</strong>
-        `;
-
-        if (!document.querySelector(".preview-stats")) {
-          const codeContainer = document.querySelector(
-            ".preview-code-container",
-          );
-          codeContainer.parentNode.insertBefore(statsDiv, codeContainer);
-        } else {
-          document.querySelector(".preview-stats").innerHTML =
-            statsDiv.innerHTML;
+          throw errorData || new Error("Le telechargement a echoue.");
         }
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(link);
       }
 
-      // Function to download clean file
-      function downloadCleanFile(data) {
-        fetch("/download-ole", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            output_path: data.output_path,
-            file_name: data.file_name,
-          }),
-        })
-          .then((response) => {
-            if (response.ok) {
-              return response.blob().then((blob) => {
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = data.file_name;
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(url);
-                document.body.removeChild(a);
-                closePreviewModal();
-              });
-            } else {
-              throw new Error("Erreur lors du téléchargement");
-            }
-          })
-          .catch((error) => {
-            showErrorModal(
-              "Erreur de téléchargement",
-              "Impossible de télécharger le fichier: " + error.message,
-              null,
-              null,
-            );
-          });
-      }
-
-      // ============================================
-      // Pipeline Form Handler
-      // ============================================
-      document.getElementById("pipelineForm").addEventListener("submit", function (e) {
-        e.preventDefault();
-
-        const form = e.target;
-        const formData = new FormData(form);
-
-        // Add checkbox values explicitly
-        formData.set("do_clean", document.getElementById("do_clean").checked ? "true" : "false");
-        formData.set("external_data", document.getElementById("external_data").checked ? "true" : "false");
-
-        const btn = document.getElementById("pipelineBtn");
-        const originalText = btn.innerHTML;
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Pipeline en cours...';
-
-        fetch("/pipeline", {
-          method: "POST",
-          body: formData,
-        })
-          .then((response) => response.json())
-          .then((data) => {
-            if (data.success) {
-              showToast(
-                "Pipeline réussi!",
-                `Notebook ${data.notebook_filename} généré`,
-                "success"
-              );
-              showPipelineSuccessModal(data);
-            } else {
-              showErrorModal(
-                data.error || "Erreur inconnue",
-                data.details || "Une erreur s'est produite lors du traitement.",
-                data.type ? `Type: ${data.type}` : null,
-                data.traceback || null
-              );
-            }
-          })
-          .catch((error) => {
-            showErrorModal(
-              "Erreur de communication",
-              "Une erreur s'est produite lors de la communication avec le serveur.",
-              null,
-              error.toString()
-            );
-          })
-          .finally(() => {
-            setTimeout(() => {
-              btn.disabled = false;
-              btn.innerHTML = originalText;
-            }, 1000);
-          });
-      });
-
-      // Function to show pipeline success modal
-      function showPipelineSuccessModal(data) {
-        window.currentPipelineData = data;
-
-        // Create custom modal content
-        const modal = document.getElementById("pipelineModal");
-        const modalContent = document.getElementById("pipelineModalContent");
-
-        modalContent.innerHTML = `
-          <div class="preview-modal-header" style="background: linear-gradient(135deg, #0ea5e9, #2563eb); padding: 1.5rem; border-radius: 12px 12px 0 0;">
-            <h5 style="font-size: 1.5rem; font-weight: 700; margin: 0; color: white;">
-              <i class="fas fa-check-circle"></i> Pipeline Complété avec Succès
-            </h5>
-            <button onclick="closePipelineModal()" style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; position: absolute; right: 1.5rem; top: 1.5rem;">×</button>
-          </div>
-
-          <div class="preview-modal-body" style="padding: 1.5rem; max-height: 70vh; overflow-y: auto;">
-            <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
-              <h6 style="color: #10b981; margin-bottom: 0.75rem;"><i class="fas fa-tasks"></i> Étapes du Pipeline</h6>
-              <ol style="margin: 0; padding-left: 1.5rem; color: #334155;">
-                ${data.pipeline_steps.map(step => `<li style="margin-bottom: 0.25rem;">${step}</li>`).join('')}
-              </ol>
-            </div>
-
-            ${data.has_ole ? `
-              <div style="background: rgba(14, 165, 233, 0.1); border: 1px solid rgba(14, 165, 233, 0.3); border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
-                <i class="fas fa-info-circle" style="color: #0ea5e9;"></i>
-                <span style="color: #334155;">Fichier Excel détecté et converti en format explicite</span>
-              </div>
-            ` : ''}
-
-            ${data.was_cleaned ? `
-              <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
-                <i class="fas fa-broom" style="color: #f59e0b;"></i>
-                <span style="color: #334155;">Fichier nettoyé (commentaires supprimés, normalisation effectuée)</span>
-              </div>
-            ` : ''}
-
-            <div style="background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
-              <h6 style="color: #8b5cf6; margin-bottom: 0.75rem;"><i class="fas fa-file-code"></i> Fichiers Générés</h6>
-              <ul style="margin: 0; padding-left: 1.5rem; color: #334155;">
-                <li>📓 Notebook: <strong>${data.notebook_filename}</strong></li>
-                ${data.has_external_data ? `<li>💾 Données JSON: <strong>${data.json_filename}</strong></li>` : ''}
-              </ul>
-            </div>
-
-            <div style="background: rgba(255, 255, 255, 0.05); border-radius: 8px; padding: 1rem;">
-              <h6 style="color: #334155; margin-bottom: 0.75rem;"><i class="fas fa-code"></i> Aperçu du Code Pyomo</h6>
-              <pre style="background: #0f172a; padding: 1rem; border-radius: 6px; overflow-x: auto; max-height: 300px;"><code class="language-python">${escapeHtml(data.pyomo_code_preview)}</code></pre>
-            </div>
-          </div>
-
-          <div class="preview-modal-footer" style="padding: 1rem 1.5rem; border-top: 1px solid rgba(255, 255, 255, 0.1); display: flex; gap: 1rem; justify-content: flex-end;">
-            ${data.has_external_data ? `
-              <button onclick="downloadPipelineFile('json')" class="btn" style="background: #8b5cf6; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 600; cursor: pointer;">
-                <i class="fas fa-download"></i> Télécharger JSON
-              </button>
-            ` : ''}
-            <button onclick="downloadPipelineFile('notebook')" class="btn" style="background: linear-gradient(135deg, #0ea5e9, #2563eb); color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 600; cursor: pointer;">
-              <i class="fas fa-download"></i> Télécharger Notebook
-            </button>
-          </div>
-        `;
-
-        modal.style.display = "flex";
-
-        // Re-highlight code
-        document.querySelectorAll('pre code').forEach((block) => {
-          hljs.highlightElement(block);
-        });
-      }
-
-      // Function to close pipeline modal
-      function closePipelineModal() {
-        const modal = document.getElementById("pipelineModal");
-        modal.style.display = "none";
-      }
-
-      // Function to download pipeline files
-      function downloadPipelineFile(type) {
-        const data = window.currentPipelineData;
-
-        fetch("/download-pipeline", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            notebook_path: data.notebook_path,
-            json_path: data.json_path,
-            download_type: type
-          }),
-        })
-          .then((response) => {
-            if (response.ok) {
-              return response.blob().then((blob) => {
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = type === "notebook" ? data.notebook_filename : data.json_filename;
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(url);
-                document.body.removeChild(a);
-
-                if (type === "notebook" && !data.has_external_data) {
-                  // Close modal if no JSON to download
-                  setTimeout(() => closePipelineModal(), 500);
-                }
-              });
-            } else {
-              throw new Error("Erreur lors du téléchargement");
-            }
-          })
-          .catch((error) => {
-            showErrorModal(
-              "Erreur de téléchargement",
-              "Impossible de télécharger le fichier: " + error.message,
-              null,
-              null
-            );
-          });
-      }
-
-      // Detect OLE when file is selected in pipeline
-      document.getElementById("file_select_pipeline").addEventListener("change", function(e) {
-        const fileName = e.target.value;
-        const detectionDiv = document.getElementById("ole-detection");
-
-        if (!fileName) {
-          detectionDiv.innerHTML = "";
+      async function handlePreviewDownload() {
+        if (typeof state.preview.downloadHandler !== "function") {
+          showErrorModal(
+            "Telechargement indisponible",
+            "Aucune action de telechargement n'est associee a cet apercu.",
+          );
           return;
         }
+        const originalText = previewDownloadBtn.innerHTML;
+        previewDownloadBtn.disabled = true;
+        previewDownloadBtn.innerHTML =
+          '<i class="fas fa-spinner fa-spin"></i>Telechargement...';
+        try {
+          await state.preview.downloadHandler();
+          closeModal(previewModal);
+        } catch (error) {
+          const errorData = error && typeof error === "object" ? error : null;
+          showErrorModal(
+            (errorData && errorData.error) || "Erreur de telechargement",
+            (errorData && errorData.details) || String(errorData || error),
+            errorData && errorData.type ? `Type: ${errorData.type}` : null,
+            errorData && errorData.traceback ? errorData.traceback : null,
+          );
+        } finally {
+          previewDownloadBtn.disabled = false;
+          previewDownloadBtn.innerHTML = originalText;
+        }
+      }
 
-        // Check if file is in ole_files list (passed from backend)
-        // @ts-ignore - Jinja2 template syntax
-        const oleFiles = {{ ole_files|tojson }};
+      async function submitForm({
+        formId,
+        buttonId,
+        endpoint,
+        loadingLabel,
+        onSuccess,
+      }) {
+        const form = document.getElementById(formId);
+        const button = document.getElementById(buttonId);
+        const originalText = button.innerHTML;
+        button.disabled = true;
+        button.innerHTML = `<i class="fas fa-spinner fa-spin"></i>${loadingLabel}`;
+        try {
+          const response = await fetch(endpoint, {
+            method: "POST",
+            body: new FormData(form),
+          });
+          const data = await response.json();
+          if (!data.success) {
+            showErrorModal(
+              data.error || "Erreur inconnue",
+              data.details || "Une erreur s'est produite lors du traitement.",
+              data.type ? `Type: ${data.type}` : null,
+              data.traceback || null,
+            );
+            return;
+          }
+          onSuccess(data);
+        } catch (error) {
+          showErrorModal(
+            "Erreur de communication",
+            "Une erreur s'est produite lors de la communication avec le serveur.",
+            null,
+            String(error),
+          );
+        } finally {
+          window.setTimeout(() => {
+            button.disabled = false;
+            button.innerHTML = originalText;
+          }, 500);
+        }
+      }
 
-        if (oleFiles.includes(fileName)) {
-          detectionDiv.innerHTML = `
-            <div style="background: rgba(14, 165, 233, 0.1); border: 1px solid rgba(14, 165, 233, 0.3); border-radius: 6px; padding: 0.5rem; display: inline-flex; align-items: center; gap: 0.5rem;">
-              <i class="fas fa-file-excel" style="color: #0ea5e9;"></i>
-              <span style="color: #0ea5e9;">Fichier Excel détecté - Conversion automatique activée</span>
-            </div>
+      function activateTab(name) {
+        document.querySelectorAll(".tab-pill").forEach((button) => {
+          button.classList.toggle("active", button.dataset.tab === name);
+        });
+        document.querySelectorAll(".tab-pane-card").forEach((pane) => {
+          pane.classList.toggle("active", pane.dataset.pane === name);
+        });
+      }
+
+      function renderPipelineModal(data) {
+        state.pipeline = data;
+        document.getElementById("pipelineBannerTitle").textContent =
+          `Notebook genere: ${data.notebook_filename}`;
+        document.getElementById("pipelineBannerText").textContent =
+          data.has_external_data
+            ? `Le pipeline a produit un notebook et un fichier ${String(data.data_format || "json").toUpperCase()} de donnees.`
+            : "Le pipeline a produit un notebook autonome avec donnees integrees.";
+        const steps = document.getElementById("pipelineSteps");
+        steps.innerHTML = "";
+        data.pipeline_steps.forEach((step, index) => {
+          const item = document.createElement("li");
+          item.innerHTML = `
+            <span class="pipeline-step-badge">${index + 1}</span>
+            <span>${escapeHtml(step)}</span>
           `;
-        } else {
-          detectionDiv.innerHTML = `
-            <div style="background: rgba(148, 163, 184, 0.1); border: 1px solid rgba(148, 163, 184, 0.3); border-radius: 6px; padding: 0.5rem; display: inline-flex; align-items: center; gap: 0.5rem;">
-              <i class="fas fa-info-circle" style="color: #94a3b8;"></i>
-              <span style="color: #94a3b8;">Aucun fichier Excel détecté</span>
-            </div>
-          `;
+          steps.appendChild(item);
+        });
+        const tags = document.getElementById("pipelineTags");
+        tags.innerHTML = "";
+        [
+          { visible: true, label: data.notebook_filename, icon: "fa-book" },
+          {
+            visible: data.has_external_data && data.data_filename,
+            label: data.data_filename,
+            icon: "fa-database",
+          },
+          {
+            visible: data.has_ole,
+            label: "OLE converti",
+            icon: "fa-file-excel",
+          },
+          {
+            visible: data.was_cleaned,
+            label: "Nettoyage active",
+            icon: "fa-broom",
+          },
+        ]
+          .filter((entry) => entry.visible)
+          .forEach((entry) => {
+            const chip = document.createElement("span");
+            chip.className = "pipeline-tag";
+            chip.innerHTML = `<i class="fas ${entry.icon}"></i>${escapeHtml(entry.label)}`;
+            tags.appendChild(chip);
+          });
+        const previewCode = document.getElementById("pipelinePreviewCode");
+        previewCode.textContent = data.pyomo_code_preview || "";
+        highlightCode(previewCode);
+        const dataBtn = document.getElementById("downloadPipelineJsonBtn");
+        dataBtn.innerHTML = `<i class="fas fa-download"></i>Telecharger ${String(data.data_format || "json").toUpperCase()}`;
+        document
+          .getElementById("downloadPipelineJsonBtn")
+          .classList.toggle(
+            "hidden",
+            !(data.has_external_data && data.data_filename),
+          );
+        openModal(pipelineModal);
+      }
+
+      function updatePipelineOleStatus(fileName) {
+        const status = document.getElementById("oleDetectionStatus");
+        if (!fileName) {
+          status.textContent = "";
+          status.classList.remove("is-visible", "is-muted");
+          return;
+        }
+        const hasOle = oleFiles.includes(fileName);
+        status.classList.add("is-visible");
+        status.classList.toggle("is-muted", !hasOle);
+        status.innerHTML = hasOle
+          ? '<i class="fas fa-file-excel"></i>Ce modele contient une source Excel detectee. La conversion OLE sera integree automatiquement.'
+          : '<i class="fas fa-circle-info"></i>Aucune source Excel detectee pour ce modele.';
+      }
+
+      document.querySelectorAll(".tab-pill").forEach((button) => {
+        button.addEventListener("click", () => activateTab(button.dataset.tab));
+      });
+
+      singleViewBtn.addEventListener("click", () => setPreviewMode(false));
+      compareViewBtn.addEventListener("click", () => {
+        if (!compareViewBtn.disabled) {
+          setPreviewMode(true);
+        }
+      });
+      previewDownloadBtn.addEventListener("click", handlePreviewDownload);
+
+      document.querySelectorAll("[data-close]").forEach((button) => {
+        button.addEventListener("click", () => {
+          closeModal(document.getElementById(button.dataset.close));
+        });
+      });
+
+      [previewModal, errorModal, pipelineModal].forEach((modal) => {
+        modal.addEventListener("click", (event) => {
+          if (event.target === modal) {
+            closeModal(modal);
+          }
+        });
+      });
+
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+          closeAllModals();
         }
       });
 
-      // Helper function to escape HTML
-      function escapeHtml(text) {
-        const map = {
-          '&': '&amp;',
-          '<': '&lt;',
-          '>': '&gt;',
-          '"': '&quot;',
-          "'": '&#039;'
-        };
-        return text.replace(/[&<>"']/g, m => map[m]);
-      }
+      document
+        .getElementById("uploadForm")
+        .addEventListener("submit", (event) => {
+          event.preventDefault();
+          submitForm({
+            formId: "uploadForm",
+            buttonId: "generateBtn",
+            endpoint: "/generate",
+            loadingLabel: "Generation...",
+            onSuccess: (data) => {
+              showToast(
+                "Notebook pret",
+                `Apercu genere pour ${data.file_name}.`,
+              );
+              showPreview({
+                title: `Notebook ${data.file_name}`,
+                subtitle:
+                  "Le code Pyomo genere peut etre compare a la source LINGO avant telechargement.",
+                singleCode: data.pyomo_code,
+                leftCode: data.lingo_original || "",
+                rightCode: data.pyomo_code,
+                leftTitle: "Source LINGO",
+                rightTitle: "Pyomo genere",
+                meta: [
+                  { icon: "fa-file-lines", label: data.file_name },
+                  { icon: "fa-gear", label: `Solveur: ${data.solver}` },
+                ],
+                downloadLabel: "Telecharger le notebook",
+                downloadHandler: () =>
+                  downloadBlob(
+                    "/download",
+                    {
+                      file_name: data.file_name,
+                      solver: data.solver,
+                      pyomo_code: data.pyomo_code,
+                    },
+                    `${data.file_name}.ipynb`,
+                  ),
+              });
+            },
+          });
+        });
 
-      // Smooth scroll for navigation links
-      document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
-        anchor.addEventListener("click", function (e) {
-          e.preventDefault();
-          const target = document.querySelector(this.getAttribute("href"));
-          if (target) {
-            target.scrollIntoView({ behavior: "smooth" });
+      document
+        .getElementById("oleConversionForm")
+        .addEventListener("submit", (event) => {
+          event.preventDefault();
+          submitForm({
+            formId: "oleConversionForm",
+            buttonId: "convertOleBtn",
+            endpoint: "/convert-ole",
+            loadingLabel: "Conversion...",
+            onSuccess: (data) => {
+              showToast(
+                "Conversion OLE terminee",
+                `${data.file_name} est pret.`,
+              );
+              showPreview({
+                title: `Conversion OLE · ${data.file_name}`,
+                subtitle:
+                  "Le fichier explicite est affiche avec sa source pour verification.",
+                singleCode: data.content_preview,
+                leftCode: data.original_content || "",
+                rightCode: data.content_preview,
+                leftTitle: "LINGO avec @OLE",
+                rightTitle: "Version explicite",
+                meta: [
+                  { icon: "fa-file-excel", label: "Source Excel remplacee" },
+                  { icon: "fa-file-export", label: data.file_name },
+                ],
+                downloadLabel: "Telecharger le fichier .lng",
+                downloadHandler: () =>
+                  downloadBlob(
+                    "/download-ole",
+                    {
+                      output_path: data.output_path,
+                      file_name: data.file_name,
+                    },
+                    data.file_name,
+                  ),
+              });
+            },
+          });
+        });
+
+      document
+        .getElementById("cleanForm")
+        .addEventListener("submit", (event) => {
+          event.preventDefault();
+          submitForm({
+            formId: "cleanForm",
+            buttonId: "cleanBtn",
+            endpoint: "/clean",
+            loadingLabel: "Nettoyage...",
+            onSuccess: (data) => {
+              const ratio = data.original_size
+                ? Math.round((1 - data.cleaned_size / data.original_size) * 100)
+                : 0;
+              showToast(
+                "Nettoyage termine",
+                `${data.file_name} a ete prepare.`,
+              );
+              showPreview({
+                title: `Nettoyage · ${data.file_name}`,
+                subtitle:
+                  "Comparez la version nettoyee au fichier original avant export.",
+                singleCode: data.content_preview,
+                leftCode: data.original_content || "",
+                rightCode: data.content_preview,
+                leftTitle: "Avant nettoyage",
+                rightTitle: "Apres nettoyage",
+                meta: [
+                  { icon: "fa-broom", label: "Nettoyage applique" },
+                  { icon: "fa-chart-simple", label: `${ratio}% de reduction` },
+                ],
+                downloadLabel: "Telecharger le fichier nettoye",
+                downloadHandler: () =>
+                  downloadBlob(
+                    "/download-ole",
+                    {
+                      output_path: data.output_path,
+                      file_name: data.file_name,
+                    },
+                    data.file_name,
+                  ),
+              });
+            },
+          });
+        });
+
+      document
+        .getElementById("pipelineForm")
+        .addEventListener("submit", async (event) => {
+          event.preventDefault();
+          const button = document.getElementById("pipelineBtn");
+          const originalText = button.innerHTML;
+          button.disabled = true;
+          button.innerHTML =
+            '<i class="fas fa-spinner fa-spin"></i>Execution...';
+          try {
+            const formData = new FormData(
+              document.getElementById("pipelineForm"),
+            );
+            formData.set(
+              "do_clean",
+              document.getElementById("do_clean").checked ? "true" : "false",
+            );
+            formData.set(
+              "external_data",
+              document.getElementById("external_data").checked
+                ? "true"
+                : "false",
+            );
+            formData.set(
+              "external_data_format",
+              document.getElementById("external_data_format").value,
+            );
+            const response = await fetch("/pipeline", {
+              method: "POST",
+              body: formData,
+            });
+            const data = await response.json();
+            if (!data.success) {
+              showErrorModal(
+                data.error || "Erreur inconnue",
+                data.details || "Une erreur s'est produite lors du pipeline.",
+                data.type ? `Type: ${data.type}` : null,
+                data.traceback || null,
+              );
+              return;
+            }
+            showToast(
+              "Pipeline termine",
+              `${data.notebook_filename} a ete genere.`,
+            );
+            renderPipelineModal(data);
+          } catch (error) {
+            showErrorModal(
+              "Erreur de communication",
+              "Impossible de lancer le pipeline.",
+              null,
+              String(error),
+            );
+          } finally {
+            window.setTimeout(() => {
+              button.disabled = false;
+              button.innerHTML = originalText;
+            }, 500);
           }
+        });
+
+      document
+        .getElementById("downloadPipelineNotebookBtn")
+        .addEventListener("click", async () => {
+          if (!state.pipeline) {
+            return;
+          }
+          try {
+            await downloadBlob(
+              "/download-pipeline",
+              {
+                notebook_path: state.pipeline.notebook_path,
+                data_path: state.pipeline.data_path,
+                download_type: "notebook",
+              },
+              state.pipeline.notebook_filename,
+            );
+          } catch (error) {
+            const errorData = error && typeof error === "object" ? error : null;
+            showErrorModal(
+              (errorData && errorData.error) || "Erreur de telechargement",
+              (errorData && errorData.details) || String(errorData || error),
+            );
+          }
+        });
+
+      document
+        .getElementById("downloadPipelineJsonBtn")
+        .addEventListener("click", async () => {
+          if (!state.pipeline || !state.pipeline.data_filename) {
+            return;
+          }
+          try {
+            await downloadBlob(
+              "/download-pipeline",
+              {
+                notebook_path: state.pipeline.notebook_path,
+                data_path: state.pipeline.data_path,
+                download_type: "data",
+              },
+              state.pipeline.data_filename,
+            );
+          } catch (error) {
+            const errorData = error && typeof error === "object" ? error : null;
+            showErrorModal(
+              (errorData && errorData.error) || "Erreur de telechargement",
+              (errorData && errorData.details) || String(errorData || error),
+            );
+          }
+        });
+
+      document
+        .getElementById("file_select_pipeline")
+        .addEventListener("change", (event) => {
+          updatePipelineOleStatus(event.target.value);
+        });
+
+      document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
+        anchor.addEventListener("click", (event) => {
+          const target = document.querySelector(anchor.getAttribute("href"));
+          if (!target) {
+            return;
+          }
+          event.preventDefault();
+          target.scrollIntoView({ behavior: "smooth", block: "start" });
         });
       });
     </script>

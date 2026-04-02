@@ -90,6 +90,7 @@ generate_pyomo_notebook(pyomo_code, solver="highs", filename="model.ipynb")
 - Gestion des boucles `@FOR` et expressions `@SUM`
 - Support des données externes Excel avec `@OLE`
 - Export en notebooks Jupyter structurés et formatés
+- Externalisation des données en JSON ou DAT (Pyomo/AMPL)
 - Choix du solveur (Gurobi, CPLEX, GLPK, HiGHS, IPOPT...)
 - Interface web Flask avec Bootstrap 5
 - Visualisation des résultats avec pandas
