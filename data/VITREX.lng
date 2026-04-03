@@ -1,20 +1,4 @@
-!ENONCE:
-Vitrex est une entreprise de production de vitres qui doit s’assurer d’espaces d’entreposage pour
-les 6 prochains mois. Elle connait ses besoins minimaux en espace (voir tableau), et peut louer
-des espaces en signant des baux pour autant de mois qu’elle le souhaite et pour autant de mètres
-carrés qu’il lui en faudra.
-Les coûts de location sont proportionnels à la surface louée, mais ils varient selon la durée (voir
-tableau ).
-Quels baux devrait signer Vitrex pour minimiser ses frais d’entreposage durant les 6 prochains
-mois ?
-Mois Besoin minimal (m2)	Durée du bail 		Coût (100 m2) pour cette durée
-1	35				1			200
-2 	0 				2 			360
-3	30  				3			500
-4 	0 				4			625
-5 	5				 5			745
-6 	0				 6			850
-;
+MODEL :
 
 SETS:
 PERIODES: besoins;
@@ -35,3 +19,4 @@ MIN = @SUM(LOCATION(t1,t2) | t2 #GE# t1: couts(t1,t2) * x(t1,t2) );
 );
 
 
+END

@@ -1,15 +1,4 @@
-!ENONCE:
-La compagnie WINDOR, possède trois usines : Usine 1, 2 et 3. Chaque usine est spécialisée dans
-un processus différent de production. La compagnie produit deux types de produits : des portes
-(Produit 1) et des fenêtres (Produit 2).
-Obtenir une unité de Produit 1 demande l’utilisation de l’Usine 1 pendant 1 heure et de l’Usine
-3 pendant 3 heures. Obtenir une unité de Produit 2 demande l’utilisation de l’Usine 2 pendant 2
-heures et de l’Usine 3 pendant 2 heures.
-L’Usine 1 est disponible 4 heures par semaine, l’Usine 2 12 heures, et l’Usine 3 18 heures.
-La compagnie WINDOR prévoit de gagner 3,000$ pour chaque unité de Produit 1 vendue, et 5000$
-pour chaque unité de Produit 2. On se pose le problème suivant : quel est le plan de production
-hebdomadaire à adopter afin d’optimiser le revenu ?;
-
+MODEL :
 SETS:
 PRODUITS: gain, x;
 USINES: disp;
@@ -17,14 +6,9 @@ PRODS_USINES(USINES,PRODUITS): utilisation;
 ENDSETS
 
 DATA:
-PRODUITS = @OLE('WindorData.xlsx','ENS_P');
-USINES = @OLE('WindorData.xlsx','ENS_U');
 
-gain = @OLE('WindorData.xlsx','gain');
-disp = @OLE('WindorData.xlsx','disp');
-utilisation = @OLE('WindorData.xlsx','utilisation');
+PRODUITS, USINES, gain, disp, utilisation= @OLE('WINDOR_OLE.xlsx');
 
-@OLE('WindorData.xlsx','x') = x;
 
 ENDDATA
 
@@ -32,7 +16,9 @@ MAX = @SUM (PRODUITS(p):
              gain(p)*x(p)
 );
 
-@FOR(USINES(u): [CAPACITE]
-   @SUM(PRODUITS(P):
+@FOR(USINES(u): 
+   @SUM(PRODUITS(p):
         utilisation(u,p)*x(p))<=disp(u)
 );
+
+END

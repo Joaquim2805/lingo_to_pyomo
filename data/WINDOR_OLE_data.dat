@@ -1,0 +1,19 @@
+set PRODUITS := P1 P2 ;
+set USINES := U1 U2 U3 ;
+param gain :=
+  P1 3
+  P2 5
+;
+param disp :=
+  U1 4
+  U2 12
+  U3 18
+;
+param utilisation :=
+  U1 P1 1
+  U1 P2 0
+  U2 P1 0
+  U2 P2 2
+  U3 P1 3
+  U3 P2 2
+;
