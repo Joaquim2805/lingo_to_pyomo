@@ -1,4 +1,4 @@
-# LINGO → Pyomo
+# LINGO -> Pyomo
 
 <div align="center">
 
@@ -7,7 +7,7 @@
 ![Python](https://img.shields.io/badge/Python-3.8%2B-blue)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
-Convertisseur automatique de modèles LINGO vers notebooks Jupyter Pyomo
+Convertisseur automatique de modeles LINGO vers notebooks Jupyter Pyomo
 
 </div>
 
@@ -15,7 +15,16 @@ Convertisseur automatique de modèles LINGO vers notebooks Jupyter Pyomo
 
 ## Description
 
-Outil pédagogique pour convertir automatiquement des modèles d'optimisation LINGO en notebooks Jupyter Pyomo prêts à l'exécution. Simplifie la transition entre LINGO et Pyomo dans l'enseignement de la recherche opérationnelle.
+Projet pedagogique pour convertir des modeles d'optimisation LINGO (.lng) vers du code Pyomo et des notebooks Jupyter executables.
+
+Le pipeline couvre:
+
+- parsing LINGO (Lark)
+- transformation AST -> dictionnaire Python
+- generation du code Pyomo
+- export notebook
+- gestion des donnees externes en JSON ou DAT
+- conversion des modeles `@OLE` en version explicite
 
 ---
 
@@ -27,146 +36,143 @@ cd lingo_to_pyomo
 python -m venv .venv
 ```
 
-Activer l'environnement virtuel :
+Activation de l'environnement virtuel:
 
 ```bash
-# Sur macOS/Linux
+# macOS/Linux
 source .venv/bin/activate
 
-# Sur Windows
+# Windows
 .venv\Scripts\activate
 ```
 
-Installer les dépendances :
+Installation des dependances:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-**Prérequis** : Python 3.8+ et un solveur d'optimisation (Gurobi, CPLEX, GLPK, HiGHS...)
+Prerequis:
+
+- Python 3.8+
+- un solveur d'optimisation (HiGHS, GLPK, Gurobi, CPLEX, IPOPT, ...)
 
 ---
 
-## Utilisation
+## Lancer l'application Flask
 
-### Interface Web
+Depuis la racine du projet:
 
 ```bash
-cd dev
-python app.py
+python dev/app.py
 ```
 
-Accéder à http://localhost:5000
+Puis ouvrir:
 
-### API Python
+```text
+http://localhost:5000
+```
+
+L'application permet notamment:
+
+- generation de notebook depuis un `.lng`
+- nettoyage de fichier LINGO
+- conversion `@OLE` -> explicite
+- pipeline complet (conversion + cleaning + generation)
+- export des donnees externes au format JSON ou DAT
+
+---
+
+## Utiliser le projet comme bibliotheque Python
+
+Exemple type (dans un script a la racine du projet):
 
 ```python
-from src.lingo_parser.parser import parse_lingo_model
-from src.lingo_parser.transformer import LingoModelTransformer2
-from src.pyomo_generator.json_parser import generate_pyomo_code
-from src.notebook_generator.notebook_construct import generate_pyomo_notebook
+import os
+import sys
 
-# Parser le modèle LINGO
-tree = parse_lingo_model("model.lng")
+sys.path.insert(0, os.path.abspath("src"))
 
-# Transformer en structure intermédiaire
+from lingo_parser.parser import parse_lingo_model
+from lingo_parser.transformer import LingoModelTransformer2
+from pyomo_generator.json_parser import (
+    generate_pyomo_code,
+    save_pyomo_data_to_json,
+    save_pyomo_data_to_dat,
+)
+from notebook_generator.notebook_construct import generate_pyomo_notebook
+from excel_parser.excel_module import convert_lingo_ole_to_explicit
+
+# 1) Choisir le modele
+ext_d = False
+raw_file = "data/Philbrick.lng"
+
+# 2) Convertir @OLE si besoin
+explicit_file = convert_lingo_ole_to_explicit(raw_file)
+file_to_parse = explicit_file
+print(f"Fichier OLE converti: {explicit_file}")
+
+# 3) Parser + transformer
+tree = parse_lingo_model(file_to_parse)
 model_dict = LingoModelTransformer2().transform(tree)
 
-# Générer le code Pyomo
-pyomo_code = generate_pyomo_code(model_dict)
+# 4) Generer le code Pyomo
+pyomo_code = generate_pyomo_code(model_dict, external_data=ext_d)
+print(pyomo_code)
 
-# Exporter en notebook Jupyter
-generate_pyomo_notebook(pyomo_code, solver="highs", filename="model.ipynb")
+# 5) (Optionnel) Export notebook
+generate_pyomo_notebook(
+    pyomo_code,
+    solver="highs",
+    filename="notebooks/Philbrick_from_api.ipynb",
+    external_data=ext_d,
+)
+
+# 6) (Optionnel) Export des donnees externes
+save_pyomo_data_to_json(model_dict, output_path="data/Philbrick_data.json")
+save_pyomo_data_to_dat(model_dict, output_path="data/Philbrick_data.dat")
+
+# Si vous voulez un code Pyomo qui lit des donnees externes:
+pyomo_code_json = generate_pyomo_code(
+    model_dict,
+    external_data=True,
+    data_filename="../data/Philbrick_data.json",
+    external_data_format="json",
+)
+
+pyomo_code_dat = generate_pyomo_code(
+    model_dict,
+    external_data=True,
+    data_filename="../data/Philbrick_data.dat",
+    external_data_format="dat",
+)
 ```
+
+Remarques:
+
+- `external_data=False`: les donnees sont integrees dans le code Pyomo.
+- `external_data=True`: les donnees sont separees (JSON ou DAT) et rechargees par le notebook/code genere.
 
 ---
 
-## Fonctionnalités
+## Structure du projet
 
-- Parsing complet de la syntaxe LINGO avec grammaire formelle (Lark)
-- Transformation AST vers représentation intermédiaire
-- Génération automatique de code Pyomo
-- Support des ensembles, paramètres, variables et contraintes
-- Gestion des boucles `@FOR` et expressions `@SUM`
-- Support des données externes Excel avec `@OLE`
-- Export en notebooks Jupyter structurés et formatés
-- Externalisation des données en JSON ou DAT (Pyomo/AMPL)
-- Choix du solveur (Gurobi, CPLEX, GLPK, HiGHS, IPOPT...)
-- Interface web Flask avec Bootstrap 5
-- Visualisation des résultats avec pandas
-
----
-
-## Architecture
-
-```
-Fichier LINGO (.lng)
-    ↓  Parser (Lark)
-AST
-    ↓  Transformer
-Représentation Python
-    ↓  Générateur
-Code Pyomo
-    ↓  Notebook Generator
-Jupyter Notebook (.ipynb)
-```
-
-### Structure du projet
-
-```
+```text
 lingo_to_pyomo/
 ├── src/
-│   ├── lingo_parser/
-│   │   ├── lingo.lark          # Grammaire LINGO (Lark)
-│   │   ├── parser.py           # Parser principal
-│   │   └── transformer.py      # Transformation AST
-│   ├── pyomo_generator/
-│   │   └── json_parser.py      # Traduction vers Pyomo
-│   ├── notebook_generator/
-│   │   └── notebook_construct.py
-│   ├── excel_parser/
-│   │   └── excel_module.py     # Support @OLE Excel
-│   └── test/
-│       └── test_*.py           # Tests unitaires
+│   ├── lingo_parser/           # Grammaire + parser + transformer
+│   ├── pyomo_generator/        # Generation code Pyomo + export JSON/DAT
+│   ├── notebook_generator/     # Construction de notebooks
+│   ├── excel_parser/           # Conversion @OLE
+│   └── test/                   # Tests unitaires
 ├── dev/
 │   ├── app.py                  # Application Flask
-│   └── templates/
-│       └── index.html          # Interface web
-├── data/
-│   └── *.lng                   # Modèles LINGO exemples
-├── notebooks/                  # Notebooks générés
-├── docs/                       # Documentation
+│   └── templates/              # Interface web
+├── data/                       # Exemples .lng et fichiers de donnees
+├── notebooks/                  # Notebooks generes
+├── docs/                       # Documentation MkDocs
 ├── requirements.txt
-├── mkdocs.yml
 └── README.md
-```
-
----
-
-## Exemple
-
-**Entrée LINGO** (`model.lng`) :
-
-```lingo
-MAX = 3*X + 2*Y;
-X + Y <= 10;
-X <= 8;
-Y <= 6;
-END
-```
-
-**Sortie Pyomo** (dans notebook) :
-
-```python
-from pyomo.environ import *
-
-model = ConcreteModel()
-model.X = Var(domain=NonNegativeReals)
-model.Y = Var(domain=NonNegativeReals)
-model.obj = Objective(expr=3*model.X + 2*model.Y, sense=maximize)
-model.c1 = Constraint(expr=model.X + model.Y <= 10)
-model.c2 = Constraint(expr=model.X <= 8)
-model.c3 = Constraint(expr=model.Y <= 6)
 ```
 
 ---
@@ -181,26 +187,14 @@ pytest src/test/ -v
 
 ## Documentation
 
-Générer et consulter la documentation avec MkDocs :
-
 ```bash
 mkdocs serve
 ```
 
-Puis accéder à http://localhost:8000
-
----
-
-## Technologies
-
-- **Lark** : Parser et grammaire formelle
-- **Pyomo** : Framework d'optimisation Python
-- **Flask** : Interface web
-- **Jupyter** : Notebooks interactifs
-- **pandas** : Visualisation des résultats
+Puis ouvrir `http://localhost:8000`.
 
 ---
 
 ## Auteurs
 
-Fausto Errico • Virginie Destuynder • Joaquim Jusseau
+Fausto Errico - Virginie Destuynder - Joaquim Jusseau
