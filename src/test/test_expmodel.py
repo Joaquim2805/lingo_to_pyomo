@@ -429,3 +429,31 @@ def test_buckly_optimal_value():
     assert (optimal_value) == 1504.0, (
         f"La valeur optimale devrait être 1504.0, mais elle est {optimal_value}"
     )
+
+
+def test_Philbrick_optimal_value():
+    """Test que Philbrick.lng traduit et résolu donne une valeur optimale de 1504.0."""
+
+    # Parse le fichier LINGO
+    tree = parse_lingo_model("./data/Philbrick_explicit.lng")
+    model_dict = LingoModelTransformer2().transform(tree)
+
+    # Génère le code Pyomo
+    pyomo_code = generate_pyomo_code(model_dict)
+
+    # Exécute le code Pyomo (crée le modèle)
+    local_vars = {}
+    exec(pyomo_code, local_vars)
+    model = local_vars["model"]
+
+    # Résout le modèle avec un solveur (par défaut glpk ou cbc)
+    solver = SolverFactory("highs")  # ou 'cbc' si glpk n'est pas disponible
+    result = solver.solve(model, tee=False)
+
+    # Récupère la valeur optimale
+    optimal_value = value(model.obj)
+
+    # Vérifie que la valeur optimale est 333680.0
+    assert (optimal_value) == 333680.0, (
+        f"La valeur optimale devrait être 333680.0, mais elle est {optimal_value}"
+    )

@@ -38,6 +38,143 @@ def replace_lingo_calls(expr):
     return expr
 
 
+def _split_index_args(index_text):
+    """Split index arguments while preserving nested parentheses expressions."""
+    parts = []
+    current = []
+    depth = 0
+
+    for ch in index_text:
+        if ch == "," and depth == 0:
+            parts.append("".join(current).strip())
+            current = []
+            continue
+
+        if ch in "([{":
+            depth += 1
+        elif ch in ")]}":
+            depth = max(0, depth - 1)
+
+        current.append(ch)
+
+    tail = "".join(current).strip()
+    if tail:
+        parts.append(tail)
+
+    return parts
+
+
+def _format_index_literal(value):
+    """Format mapped index literal for code generation."""
+    if isinstance(value, str):
+        token = value.strip()
+        if re.fullmatch(r"[+-]?\d+", token):
+            return token
+        if re.fullmatch(r"[+-]?\d*\.\d+", token):
+            return token
+        return repr(value)
+    return str(value)
+
+
+def remap_numeric_indices_in_model_access(expr, symbol_index_sets, sets):
+    """Map numeric LINGO indices (1-based) to actual set elements in model accesses."""
+    if not symbol_index_sets:
+        return expr
+
+    access_pattern = re.compile(r"\bmodel\.([A-Za-z_]\w*)\s*\[([^\[\]]+)\]")
+
+    def _replace_access(match):
+        symbol = match.group(1)
+        raw_indices = match.group(2)
+        dims = symbol_index_sets.get(symbol)
+        if not dims:
+            return match.group(0)
+
+        args = _split_index_args(raw_indices)
+        if not args:
+            return match.group(0)
+
+        remapped = []
+        for pos, arg in enumerate(args):
+            token = arg.strip()
+            if pos >= len(dims) or not re.fullmatch(r"[+-]?\d+", token):
+                remapped.append(arg)
+                continue
+
+            dim_set = dims[pos]
+            dim_values = sets.get(dim_set)
+            if not isinstance(dim_values, list):
+                remapped.append(arg)
+                continue
+
+            idx = int(token)
+            if idx <= 0 or idx > len(dim_values):
+                remapped.append(arg)
+                continue
+
+            remapped.append(_format_index_literal(dim_values[idx - 1]))
+
+        return f"model.{symbol}[{', '.join(remapped)}]"
+
+    return access_pattern.sub(_replace_access, expr)
+
+
+def add_missing_single_dim_indices(expr, symbol_index_sets, alias_to_set):
+    """Add missing index to bare model.symbol when symbol has one known dimension."""
+    if not symbol_index_sets or not alias_to_set:
+        return expr
+
+    bare_symbol_pattern = re.compile(r"\bmodel\.([A-Za-z_]\w*)\b(?!\s*\[)")
+
+    def _replace_symbol(match):
+        symbol = match.group(1)
+        dims = symbol_index_sets.get(symbol)
+        if not dims or len(dims) != 1:
+            return match.group(0)
+
+        target_set = dims[0]
+        candidate_aliases = [
+            a
+            for a, s in alias_to_set.items()
+            if str(s).upper() == str(target_set).upper()
+        ]
+        if len(candidate_aliases) != 1:
+            return match.group(0)
+
+        return f"model.{symbol}[{candidate_aliases[0]}]"
+
+    return bare_symbol_pattern.sub(_replace_symbol, expr)
+
+
+def collapse_uniform_bare_indexed_params(expr, symbol_index_sets, param_values):
+    """Replace bare indexed params with a scalar literal if all indexed values are equal."""
+    if not symbol_index_sets or not param_values:
+        return expr
+
+    bare_symbol_pattern = re.compile(r"\bmodel\.([A-Za-z_]\w*)\b(?!\s*\[)")
+
+    def _replace_symbol(match):
+        symbol = match.group(1)
+        dims = symbol_index_sets.get(symbol)
+        values = param_values.get(symbol)
+        if not dims or not values:
+            return match.group(0)
+
+        unique_vals = set()
+        for value in values:
+            try:
+                unique_vals.add(float(value))
+            except Exception:
+                return match.group(0)
+
+        if len(unique_vals) != 1:
+            return match.group(0)
+
+        return str(next(iter(unique_vals)))
+
+    return bare_symbol_pattern.sub(_replace_symbol, expr)
+
+
 def convert_nested_sums(expr, sets, cartesian_sets):
     """
     Convertit de manière récursive les @SUM imbriquées en sum() Pyomo.
@@ -263,7 +400,7 @@ def parse_lingo_condition(cond_str):
     return " ".join(py_parts) if py_parts else None
 
 
-def translate_for_to_pyomo(expr, sets, cartesian_sets):
+def translate_for_to_pyomo(expr, sets, cartesian_sets, symbol_index_sets=None):
     """
 
     Convertit une boucle LINGO @FOR(...) en une triple (setname, alias, expression Pyomo).
@@ -326,7 +463,12 @@ def translate_for_to_pyomo(expr, sets, cartesian_sets):
         # Traiter récursivement le @FOR imbriqué
         try:
             inner_setname, inner_alias, inner_constraint_expr, inner_nested, _ = (
-                translate_for_to_pyomo(constraint_expr, sets, cartesian_sets)
+                translate_for_to_pyomo(
+                    constraint_expr,
+                    sets,
+                    cartesian_sets,
+                    symbol_index_sets=symbol_index_sets,
+                )
             )
             nested_fors.append((inner_setname, inner_alias))
             nested_fors.extend(inner_nested)
@@ -355,6 +497,10 @@ def translate_for_to_pyomo(expr, sets, cartesian_sets):
         r"\b([A-Za-z_]\w*)\s*\(\s*([A-Za-z_0-9,\s+\-]+)\s*\)",
         r"model.\1[\2]",
         constraint_expr,
+    )
+
+    constraint_expr = remap_numeric_indices_in_model_access(
+        constraint_expr, symbol_index_sets, sets
     )
 
     # Ensuite ajouter model. aux paramètres scalaires qui n'ont pas d'arguments
@@ -582,7 +728,13 @@ import re
 
 
 def translate_constraint_with_sum(
-    c, sets, cartesian_sets, declared_vars, scalar_vars, declared_params
+    c,
+    sets,
+    cartesian_sets,
+    declared_vars,
+    scalar_vars,
+    declared_params,
+    symbol_index_sets=None,
 ):
     """
     Traduit une contrainte LINGO avec @SUM en Pyomo, en gardant l'opérateur et le côté droit.
@@ -605,7 +757,8 @@ def translate_constraint_with_sum(
     if op == "=":
         op = "=="
 
-    return f"{lhs_pyomo} {op} {rhs_pyomo}"
+    expr = f"{lhs_pyomo} {op} {rhs_pyomo}"
+    return remap_numeric_indices_in_model_access(expr, symbol_index_sets, sets)
 
 
 def prepare_pyomo_data_dict(model_json, external_data=False):
@@ -935,24 +1088,21 @@ def generate_pyomo_code(
 
     for name, indices in cartesian_sets.items():
         all_set_names.add(name)
-        if len(indices) == 2:
-            if use_native_dat:
-                lines.append(
-                    f"model.{name} = Set(dimen=2, initialize=lambda m: [(i,j) for i in m.{indices[0]} for j in m.{indices[1]}])"
-                )
-            else:
-                lines.append(
-                    f"model.{name} = Set(dimen=2, initialize=[(i,j) for i in model.{indices[0]} for j in model.{indices[1]}])"
-                )
-        elif len(indices) == 3:
-            if use_native_dat:
-                lines.append(
-                    f"model.{name} = Set(dimen=3, initialize=lambda m: [(i,j,k) for i in m.{indices[0]} for j in m.{indices[1]} for k in m.{indices[2]}])"
-                )
-            else:
-                lines.append(
-                    f"model.{name} = Set(dimen=3, initialize=[(i,j,k) for i in model.{indices[0]} for j in model.{indices[1]} for k in model.{indices[2]}])"
-                )
+        loop_vars = [f"i{idx}" for idx in range(len(indices))]
+        tuple_expr = loop_vars[0] if len(loop_vars) == 1 else f"({','.join(loop_vars)})"
+        scope = "m" if use_native_dat else "model"
+        generators = " ".join(
+            f"for {var} in {scope}.{index_name}"
+            for var, index_name in zip(loop_vars, indices)
+        )
+        if use_native_dat:
+            lines.append(
+                f"model.{name} = Set(dimen={len(indices)}, initialize=lambda m: [{tuple_expr} {generators}])"
+            )
+        else:
+            lines.append(
+                f"model.{name} = Set(dimen={len(indices)}, initialize=[{tuple_expr} {generators}])"
+            )
 
     # === Paramètres ===
     # === Paramètres ===
@@ -1125,6 +1275,29 @@ def generate_pyomo_code(
         add_section("DATA")
         lines.append(f"model = model.create_instance('{data_filename}')")
 
+    # Build symbol -> index-set dimensions mapping used to remap numeric LINGO indices
+    # like X(p,1,...) onto concrete set members (e.g. 'fevrier').
+    symbol_index_sets = {}
+    param_values = {}
+    for setname, attr in variables:
+        safe_attr = (
+            f"{attr}_var" if attr in declared_params or attr in all_set_names else attr
+        )
+        if setname in cartesian_sets:
+            symbol_index_sets[safe_attr] = cartesian_sets[setname]
+        elif setname in sets:
+            symbol_index_sets[safe_attr] = [setname]
+
+    for (setname, attr), _ in params.items():
+        if setname in cartesian_sets:
+            symbol_index_sets[attr] = cartesian_sets[setname]
+        elif setname in sets:
+            symbol_index_sets[attr] = [setname]
+
+    for (_, attr), values in params.items():
+        if isinstance(values, list):
+            param_values[attr] = values
+
     # === Contraintes ===
     add_section("CONSTRAINTS")
 
@@ -1147,6 +1320,7 @@ def generate_pyomo_code(
                         declared_vars,
                         scalar_vars,
                         declared_params,
+                        symbol_index_sets,
                     )
                 else:
                     # Convertir les indices avec parenthèses vers des crochets
@@ -1164,6 +1338,12 @@ def generate_pyomo_code(
                         c_processed,
                         set(list(declared_vars) + scalar_vars + list(declared_params)),
                     )
+                    pyomo_expr = remap_numeric_indices_in_model_access(
+                        pyomo_expr, symbol_index_sets, sets
+                    )
+                pyomo_expr = collapse_uniform_bare_indexed_params(
+                    pyomo_expr, symbol_index_sets, param_values
+                )
                 lines.append(f"model.c{i} = Constraint(expr={pyomo_expr})")
             except Exception as e:
                 lines.append(f"# FAILED to translate constraint {i}: {e}")
@@ -1182,7 +1362,10 @@ def generate_pyomo_code(
 
         try:
             setname, alias, body, nested_fors, condition = translate_for_to_pyomo(
-                f, sets, cartesian_sets
+                f,
+                sets,
+                cartesian_sets,
+                symbol_index_sets=symbol_index_sets,
             )
 
             # Ajouter model. aux paramètres scalaires (ex: bigM -> model.bigM)
@@ -1211,6 +1394,25 @@ def generate_pyomo_code(
                 return name
 
             body = re.sub(r"\b[A-Za-z_]\w*\b", smart_replace, body)
+            alias_to_set = {}
+            if alias:
+                alias_to_set[alias] = setname
+
+            # Capture aliases introduced in comprehensions: "for a in model.SET".
+            for inner_alias_name, inner_set_name in re.findall(
+                r"\bfor\s+([A-Za-z_]\w*)\s+in\s+model\.([A-Za-z_]\w*)",
+                body,
+            ):
+                alias_to_set[inner_alias_name] = inner_set_name
+
+            for inner_setname, inner_alias in nested_fors:
+                if inner_alias:
+                    alias_to_set[inner_alias] = inner_setname
+
+            body = add_missing_single_dim_indices(body, symbol_index_sets, alias_to_set)
+            body = collapse_uniform_bare_indexed_params(
+                body, symbol_index_sets, param_values
+            )
 
             cl_name = f"c_for_{i}"
             lines.append(f"model.{cl_name} = ConstraintList()")
@@ -1278,6 +1480,12 @@ def generate_pyomo_code(
                 return name
 
             pyomo_obj = re.sub(r"\b[A-Za-z_]\w*\b", smart_replace, pyomo_obj)
+            pyomo_obj = remap_numeric_indices_in_model_access(
+                pyomo_obj, symbol_index_sets, sets
+            )
+            pyomo_obj = collapse_uniform_bare_indexed_params(
+                pyomo_obj, symbol_index_sets, param_values
+            )
             lines.append(f"model.obj = Objective(expr={pyomo_obj}, sense={direction})")
         except Exception as e:
             lines.append(f"# Objective translation failed: {e}")

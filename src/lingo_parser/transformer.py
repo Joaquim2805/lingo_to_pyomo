@@ -73,15 +73,17 @@ class LingoModelTransformer2(Transformer):
 
         # Cas avec indices entre parenthèses : ARC(PRODUCTION,CLIENTS):...
         if isinstance(items[1], Token) and items[1].type == "LPAR":
-            # Indices
             indices = []
-            i = 2
-            while i < len(items):
-                if isinstance(items[i], Token) and items[i].type == "NAME":
-                    indices.append(str(items[i]))
-                elif isinstance(items[i], Token) and items[i].type == "RPAR":
+            for it in items[2:]:
+                if isinstance(it, Tree) and it.data == "simple_name_list":
+                    indices.extend(
+                        str(child)
+                        for child in it.children
+                        if isinstance(child, Token) and child.type in ("NAME", "NUMBER")
+                    )
                     break
-                i += 1
+                if isinstance(it, Token) and it.type == "RPAR":
+                    break
 
             # Attributs (après ":")
             attrs = []

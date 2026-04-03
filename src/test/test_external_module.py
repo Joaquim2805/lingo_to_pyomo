@@ -33,6 +33,7 @@ fichiers = [
     "Eve-Steven.lng",
     "Progressive_clean.lng",
     "Buckly.lng",
+    "Philbrick_explicit.lng",
 ]
 
 valeurs_optimales = [
@@ -49,6 +50,7 @@ valeurs_optimales = [
     18,
     80000,
     1504,
+    333680.0,
 ]
 
 

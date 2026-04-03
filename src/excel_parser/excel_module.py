@@ -1,6 +1,7 @@
 from pathlib import Path
 import re
 import pandas as pd
+from math import prod
 
 
 from openpyxl import load_workbook
@@ -73,15 +74,19 @@ def _format_matrix_row_major(df: pd.DataFrame, expected_rows=None, expected_cols
     """Formate une matrice en row-major order en préservant toutes les valeurs."""
     # Ne PAS nettoyer pour les matrices - chaque cellule compte
     actual_rows, actual_cols = df.shape
-    
+
     if expected_rows is not None and expected_cols is not None:
         if actual_rows != expected_rows or actual_cols != expected_cols:
-            print(f"⚠️ Avertissement: Dimensions Excel ({actual_rows}×{actual_cols}) != dimensions attendues ({expected_rows}×{expected_cols})")
-    
+            print(
+                f"⚠️ Avertissement: Dimensions Excel ({actual_rows}×{actual_cols}) != dimensions attendues ({expected_rows}×{expected_cols})"
+            )
+
     # Remplacer NaN par 0 pour les matrices (important pour matrices de connectivité)
     values = df.fillna(0).values.flatten().tolist()
     # Convertir en int si ce sont des entiers
-    values = [int(v) if isinstance(v, (int, float)) and v == int(v) else v for v in values]
+    values = [
+        int(v) if isinstance(v, (int, float)) and v == int(v) else v for v in values
+    ]
     return ",".join(str(v) for v in values)
 
 
@@ -89,27 +94,34 @@ def _strip_headers(df: pd.DataFrame, row_labels=None, col_labels=None) -> pd.Dat
     """Supprime les en-têtes de ligne/colonne d'une matrice Excel en préservant toutes les données."""
     # Ne pas nettoyer au début pour ne pas perdre de données
     df2 = df.copy()
-    
+
     if row_labels:
         row_labels = [_sanitize_elem(v) for v in row_labels]
     if col_labels:
         col_labels = [_sanitize_elem(v) for v in col_labels]
-    
+
     # Détecter si les dimensions sont inversées dans Excel
-    if row_labels is not None and col_labels is not None and len(df2.index) > 0 and len(df2.columns) > 0:
+    if (
+        row_labels is not None
+        and col_labels is not None
+        and len(df2.index) > 0
+        and len(df2.columns) > 0
+    ):
         first_row = df2.iloc[0].astype(str).str.strip().tolist()
         first_row = [_sanitize_elem(v) for v in first_row]
         first_col = df2.iloc[:, 0].astype(str).str.strip().tolist()
         first_col = [_sanitize_elem(v) for v in first_col]
-        
+
         # Si première ligne contient row_labels et première colonne contient col_labels, transposer
-        if any(v in row_labels for v in first_row) and any(v in col_labels for v in first_col):
+        if any(v in row_labels for v in first_row) and any(
+            v in col_labels for v in first_col
+        ):
             df2 = df2.T  # Transposer
             first_row = df2.iloc[0].astype(str).str.strip().tolist()
             first_row = [_sanitize_elem(v) for v in first_row]
             first_col = df2.iloc[:, 0].astype(str).str.strip().tolist()
             first_col = [_sanitize_elem(v) for v in first_col]
-    
+
     # Supprimer la première ligne si elle contient des en-têtes de colonnes
     # CRITÈRE STRICT: La majorité (>50%) des éléments doivent correspondre aux col_labels
     if col_labels is not None and len(df2.index) > 0:
@@ -117,11 +129,11 @@ def _strip_headers(df: pd.DataFrame, row_labels=None, col_labels=None) -> pd.Dat
         first_row_clean = [_sanitize_elem(v) for v in first_row]
         matches = sum(1 for v in first_row_clean if v in col_labels)
         match_ratio = matches / len(first_row_clean) if len(first_row_clean) > 0 else 0
-        
+
         # Ligne d'en-tête seulement si >50% des éléments sont dans col_labels
         if match_ratio > 0.5:
             df2 = df2.iloc[1:, :]
-    
+
     # Supprimer la première colonne si elle contient des en-têtes de lignes
     # CRITÈRE STRICT: La majorité (>50%) des éléments doivent correspondre aux row_labels
     if row_labels is not None and len(df2.columns) > 0:
@@ -129,19 +141,25 @@ def _strip_headers(df: pd.DataFrame, row_labels=None, col_labels=None) -> pd.Dat
         first_col_clean = [_sanitize_elem(v) for v in first_col]
         matches = sum(1 for v in first_col_clean if v in row_labels)
         match_ratio = matches / len(first_col_clean) if len(first_col_clean) > 0 else 0
-        
+
         # Colonne d'en-tête seulement si >50% des éléments sont dans row_labels
         if match_ratio > 0.5:
             df2 = df2.iloc[:, 1:]
-    
+
     # Réinitialiser les index pour avoir des index numériques propres
     df2 = df2.reset_index(drop=True)
     df2.columns = range(len(df2.columns))
-    
+
     return df2
 
 
-def _lingo_value_from_zone(df: pd.DataFrame, row_labels=None, col_labels=None) -> str:
+def _lingo_value_from_zone(
+    df: pd.DataFrame,
+    row_labels=None,
+    col_labels=None,
+    expected_rows=None,
+    expected_cols=None,
+) -> str:
     df = _strip_headers(df, row_labels=row_labels, col_labels=col_labels)
     if df.shape == (1, 1):
         v = df.iat[0, 0]
@@ -149,10 +167,13 @@ def _lingo_value_from_zone(df: pd.DataFrame, row_labels=None, col_labels=None) -
     if df.shape[0] == 1 or df.shape[1] == 1:
         vals = [v for v in df.values.flatten().tolist() if pd.notna(v)]
         return _format_list(vals)
-    
-    # Pour les matrices 2D, calculer les dimensions attendues
-    expected_rows = len(row_labels) if row_labels else None
-    expected_cols = len(col_labels) if col_labels else None
+
+    # Si aucune dimension attendue n'est fournie explicitement,
+    # on conserve le comportement historique basé sur 2 dimensions.
+    if expected_rows is None and expected_cols is None:
+        expected_rows = len(row_labels) if row_labels else None
+        expected_cols = len(col_labels) if col_labels else None
+
     return _format_matrix_row_major(df, expected_rows, expected_cols)
 
 
@@ -239,6 +260,22 @@ def _get_dim_labels(var_name: str, set_elements: dict, var_dims: dict):
     return row_labels, col_labels
 
 
+def _get_expected_matrix_shape(var_name: str, set_elements: dict, var_dims: dict):
+    dims = var_dims.get(_normalize_name(var_name), [])
+    if len(dims) < 2:
+        return None, None
+
+    dim_sizes = [len(set_elements.get(dim, [])) for dim in dims]
+    if any(size == 0 for size in dim_sizes):
+        return None, None
+
+    # Convention Excel utilisée ici: première dimension en lignes,
+    # produit des dimensions restantes en colonnes (aplatissement row-major).
+    expected_rows = dim_sizes[0]
+    expected_cols = prod(dim_sizes[1:])
+    return expected_rows, expected_cols
+
+
 def _replace_set_ole(text: str, zone_map: dict) -> str:
     # Remplace SETNAME /@OLE('file')/ par SETNAME /a,b,c/ (zone = SETNAME)
     pattern = re.compile(r"(\b([A-Za-z_][A-Za-z0-9_]*)\b\s*/)(\s*@OLE\(([^)]*)\)\s*/)")
@@ -278,8 +315,15 @@ def _replace_data_ole(
             if key not in zone_map:
                 raise KeyError(f"Zone '{range_name or var}' introuvable pour {var}")
             row_labels, col_labels = _get_dim_labels(var, set_elements, var_dims)
+            expected_rows, expected_cols = _get_expected_matrix_shape(
+                var, set_elements, var_dims
+            )
             val = _lingo_value_from_zone(
-                zone_map[key], row_labels=row_labels, col_labels=col_labels
+                zone_map[key],
+                row_labels=row_labels,
+                col_labels=col_labels,
+                expected_rows=expected_rows,
+                expected_cols=expected_cols,
             )
             lines.append(f"{var} = {val};")
         return "\n".join(lines)
@@ -301,8 +345,15 @@ def _replace_data_ole(
         if key not in zone_map:
             raise KeyError(f"Zone '{range_name or var}' introuvable pour {var}")
         row_labels, col_labels = _get_dim_labels(var, set_elements, var_dims)
+        expected_rows, expected_cols = _get_expected_matrix_shape(
+            var, set_elements, var_dims
+        )
         val = _lingo_value_from_zone(
-            zone_map[key], row_labels=row_labels, col_labels=col_labels
+            zone_map[key],
+            row_labels=row_labels,
+            col_labels=col_labels,
+            expected_rows=expected_rows,
+            expected_cols=expected_cols,
         )
         return f"{var} = {val};"
 
@@ -311,6 +362,90 @@ def _replace_data_ole(
     # Supprimer les lignes d'export vers Excel (@OLE(...) = ...;)
     text = re.sub(r"^\s*@OLE\([^)]*\)\s*=.*;\s*$", "", text, flags=re.MULTILINE)
     return text
+
+
+def _parse_declared_attrs(text: str) -> dict[str, str]:
+    m = re.search(r"SETS:(.*?)ENDSETS", text, flags=re.S | re.I)
+    block = m.group(1) if m else ""
+    attrs_by_norm = {}
+    for raw_line in block.splitlines():
+        line = raw_line.split("!", 1)[0].strip()
+        if not line or ":" not in line or line.endswith(":;"):
+            continue
+        _, attrs_part = line.split(":", 1)
+        attrs_part = attrs_part.rsplit(";", 1)[0]
+        for attr in [item.strip() for item in attrs_part.split(",") if item.strip()]:
+            attrs_by_norm[_normalize_name(attr)] = attr
+    return attrs_by_norm
+
+
+def _is_likely_parameter_usage(text: str, attr_name: str) -> bool:
+    attr_pattern = re.escape(attr_name)
+    patterns = [
+        rf"\b{attr_pattern}\s*\([^)]*\)\s*[*/]",
+        rf"[*/]\s*{attr_pattern}\s*\(",
+        rf"(?:<=|>=|=)\s*{attr_pattern}(?:\s*\(|\b)",
+    ]
+    return any(re.search(pattern, text, flags=re.I) for pattern in patterns)
+
+
+def _inject_implicit_data_block(
+    text: str, zone_map: dict, set_elements: dict, var_dims: dict
+) -> str:
+    attrs_by_norm = _parse_declared_attrs(text)
+    if not attrs_by_norm:
+        return text
+
+    inferred_lines = []
+    for key, attr_name in attrs_by_norm.items():
+        if key not in zone_map:
+            continue
+        if not _is_likely_parameter_usage(text, attr_name):
+            continue
+
+        row_labels, col_labels = _get_dim_labels(attr_name, set_elements, var_dims)
+        expected_rows, expected_cols = _get_expected_matrix_shape(
+            attr_name, set_elements, var_dims
+        )
+        value = _lingo_value_from_zone(
+            zone_map[key],
+            row_labels=row_labels,
+            col_labels=col_labels,
+            expected_rows=expected_rows,
+            expected_cols=expected_cols,
+        )
+        inferred_lines.append(f"{attr_name} = {value};")
+
+    if not inferred_lines:
+        return text
+
+    data_match = re.search(r"DATA:(.*?)ENDDATA", text, flags=re.S | re.I)
+    if data_match:
+        block = data_match.group(1)
+        assigned = {
+            _normalize_name(name)
+            for name in re.findall(
+                r"^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=", block, flags=re.MULTILINE
+            )
+        }
+        if assigned:
+            return text
+        missing_lines = [
+            line
+            for line in inferred_lines
+            if _normalize_name(line.split("=", 1)[0].strip()) not in assigned
+        ]
+        if not missing_lines:
+            return text
+        insertion = "\n" + "\n".join(missing_lines)
+        return text[: data_match.end(1)] + insertion + text[data_match.end(1) :]
+
+    endsets_match = re.search(r"ENDSETS", text, flags=re.I)
+    if not endsets_match:
+        return text
+
+    data_block = "\n\nDATA:\n" + "\n".join(inferred_lines) + "\nENDDATA"
+    return text[: endsets_match.end()] + data_block + text[endsets_match.end() :]
 
 
 def convert_lingo_ole_to_explicit(
@@ -335,6 +470,7 @@ def convert_lingo_ole_to_explicit(
     set_elements, var_dims = _parse_sets_and_dims(text)
 
     text = _replace_data_ole(text, zone_map, set_elements, var_dims)
+    text = _inject_implicit_data_block(text, zone_map, set_elements, var_dims)
 
     if output_path is None:
         output_path = lingo_path.with_name(
