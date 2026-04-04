@@ -34,6 +34,9 @@ fichiers = [
     "Progressive_clean.lng",
     "Buckly.lng",
     "Philbrick_explicit.lng",
+    "Mercantile_explicit.lng",
+    "Oxbridge_explicit.lng",
+    "vetements_explicit.lng",
 ]
 
 valeurs_optimales = [
@@ -51,6 +54,9 @@ valeurs_optimales = [
     80000,
     1504,
     333680.0,
+    7650000.0,
+    1755.0,
+    5325,
 ]
 
 

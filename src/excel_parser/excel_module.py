@@ -112,10 +112,22 @@ def _strip_headers(df: pd.DataFrame, row_labels=None, col_labels=None) -> pd.Dat
         first_col = df2.iloc[:, 0].astype(str).str.strip().tolist()
         first_col = [_sanitize_elem(v) for v in first_col]
 
-        # Si première ligne contient row_labels et première colonne contient col_labels, transposer
-        if any(v in row_labels for v in first_row) and any(
-            v in col_labels for v in first_col
-        ):
+        # Ne transposer que si la correspondance est MAJORITAIRE des deux côtés.
+        # Avec un simple any(), des valeurs numériques qui se recoupent (ex: 1,2,3)
+        # peuvent provoquer une transposition erronée des matrices (cas Omega/HRPROD).
+        row_match_ratio = (
+            sum(1 for v in first_row if v in row_labels) / len(first_row)
+            if len(first_row) > 0
+            else 0
+        )
+        col_match_ratio = (
+            sum(1 for v in first_col if v in col_labels) / len(first_col)
+            if len(first_col) > 0
+            else 0
+        )
+
+        # On transpose uniquement si les en-têtes semblent vraiment inversés.
+        if row_match_ratio > 0.5 and col_match_ratio > 0.5:
             df2 = df2.T  # Transposer
             first_row = df2.iloc[0].astype(str).str.strip().tolist()
             first_row = [_sanitize_elem(v) for v in first_row]

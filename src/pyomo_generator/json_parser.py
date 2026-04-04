@@ -175,6 +175,149 @@ def collapse_uniform_bare_indexed_params(expr, symbol_index_sets, param_values):
     return bare_symbol_pattern.sub(_replace_symbol, expr)
 
 
+def extract_alias_to_set(expr, sets, cartesian_sets):
+    """Extract alias->set mapping from comprehension clauses in a Pyomo expression."""
+    alias_to_set = {}
+
+    for alias_name, set_name in re.findall(
+        r"\bfor\s+([A-Za-z_]\w*)\s+in\s+model\.([A-Za-z_]\w*)", expr
+    ):
+        alias_to_set[alias_name] = set_name
+
+    for tuple_aliases, set_name in re.findall(
+        r"\bfor\s*\(\s*([^\)]+?)\s*\)\s+in\s+model\.([A-Za-z_]\w*)", expr
+    ):
+        aliases = [a.strip() for a in tuple_aliases.split(",") if a.strip()]
+        dims = cartesian_sets.get(set_name, [])
+        if len(aliases) == len(dims):
+            for alias_name, dim_set in zip(aliases, dims):
+                alias_to_set[alias_name] = dim_set
+
+    return alias_to_set
+
+
+def add_missing_multi_dim_indices(expr, symbol_index_sets, alias_to_set):
+    """Add missing indices to bare model.symbol for symbols with >=2 dimensions."""
+    if not symbol_index_sets or not alias_to_set:
+        return expr
+
+    bare_symbol_pattern = re.compile(r"\bmodel\.([A-Za-z_]\w*)\b(?!\s*\[)")
+
+    def _replace_symbol(match):
+        symbol = match.group(1)
+        dims = symbol_index_sets.get(symbol)
+        if not dims or len(dims) < 2:
+            return match.group(0)
+
+        picked_aliases = []
+        for dim_set in dims:
+            candidates = [
+                alias
+                for alias, set_name in alias_to_set.items()
+                if str(set_name).upper() == str(dim_set).upper()
+            ]
+            if len(candidates) != 1:
+                return match.group(0)
+            picked_aliases.append(candidates[0])
+
+        return f"model.{symbol}[{', '.join(picked_aliases)}]"
+
+    return bare_symbol_pattern.sub(_replace_symbol, expr)
+
+
+def auto_index_constraint_symbols(
+    expr, symbol_index_sets, alias_to_set, cartesian_sets=None
+):
+    """
+    Auto-index all bare model.symbols in constraint expressions.
+
+    Handles both single-dim (indexed by one set) and multi-dim (indexed by multiple sets)
+    symbols inside FOR-loop constraints.
+
+    Also handles Cartesian set iteration where a loop variable is a tuple.
+
+    Example:
+        Input:  "model.OPHEBTOT >= model.HEBDOMIN" with alias_to_set={'o': 'OPERATEURS'}
+        Output: "model.OPHEBTOT[o] >= model.HEBDOMIN[o]" if both are indexed by OPERATEURS
+
+        Input:  "model.X <= model.JOURSMAX" with alias_to_set={'d': 'DERIVES'}, DERIVES = [OPERATEURS, JOURS]
+        Output: "model.X[d[0], d[1]] <= model.JOURSMAX[d[0], d[1]]"
+    """
+    if not symbol_index_sets or not alias_to_set:
+        return expr
+
+    # Match bare model.SYMBOL NOT followed by [ (to avoid matching already indexed ones)
+    bare_symbol_pattern = re.compile(r"\bmodel\.([A-Za-z_]\w*)\b(?!\s*\[)")
+
+    def _index_symbol(match):
+        symbol = match.group(1)
+        dims = symbol_index_sets.get(symbol)
+
+        # If symbol not found or already indexed, keep as-is
+        if not dims:
+            return match.group(0)
+
+        # For single-dimension symbols: use the one matching alias
+        if len(dims) == 1:
+            target_set = dims[0]
+            candidate_aliases = [
+                a
+                for a, s in alias_to_set.items()
+                if str(s).upper() == str(target_set).upper()
+            ]
+            if len(candidate_aliases) == 1:
+                return f"model.{symbol}[{candidate_aliases[0]}]"
+            # If no match, try Cartesian set tuple unpacking
+            for alias, set_name in alias_to_set.items():
+                if cartesian_sets and set_name in cartesian_sets:
+                    cart_dims = cartesian_sets[set_name]
+                    if (
+                        len(cart_dims) == 1
+                        and cart_dims[0].upper() == target_set.upper()
+                    ):
+                        return f"model.{symbol}[{alias}]"
+
+        # For multi-dimension symbols: use all matching aliases in order
+        elif len(dims) > 1:
+            picked_indices = []
+            all_found = True
+            for dim_set in dims:
+                candidates = [
+                    a
+                    for a, s in alias_to_set.items()
+                    if str(s).upper() == str(dim_set).upper()
+                ]
+                if len(candidates) == 1:
+                    picked_indices.append(candidates[0])
+                else:
+                    # No direct alias match; try Cartesian set iteration
+                    if cartesian_sets:
+                        for alias, set_name in alias_to_set.items():
+                            cart_dims = cartesian_sets.get(set_name)
+                            if cart_dims and dim_set.upper() in [
+                                d.upper() for d in cart_dims
+                            ]:
+                                idx_in_cart = [d.upper() for d in cart_dims].index(
+                                    dim_set.upper()
+                                )
+                                picked_indices.append(f"{alias}[{idx_in_cart}]")
+                                break
+                        else:
+                            all_found = False
+                            break
+                    else:
+                        all_found = False
+                        break
+
+            if all_found and len(picked_indices) == len(dims):
+                return f"model.{symbol}[{', '.join(picked_indices)}]"
+
+        # If no indexing possible, return unchanged
+        return match.group(0)
+
+    return bare_symbol_pattern.sub(_index_symbol, expr)
+
+
 def convert_nested_sums(expr, sets, cartesian_sets):
     """
     Convertit de manière récursive les @SUM imbriquées en sum() Pyomo.
@@ -381,14 +524,14 @@ def parse_lingo_condition(cond_str):
     while i < len(parts):
         atom = parts[i].strip()
         if atom:
-            m = re.match(
-                r"([A-Za-z_]\w*)\s*#(GE|LE|GT|LT|EQ|NE)#\s*(.+)",
-                atom,
-                re.IGNORECASE,
-            )
+            m = re.match(r"(.+?)\s*#(GE|LE|GT|LT|EQ|NE)#\s*(.+)", atom, re.IGNORECASE)
             if not m:
                 return None
-            var, op_key, val = m.group(1), m.group(2).upper(), m.group(3).strip()
+            var, op_key, val = (
+                m.group(1).strip(),
+                m.group(2).upper(),
+                m.group(3).strip(),
+            )
             op = op_map[op_key]
             py_parts.append(f"{var} {op} {val}")
         i += 1
@@ -632,7 +775,18 @@ def parse_lingo_json(model_json):
         set_name = s["name"]
 
         if "elements" in s:  # Ensemble simple
-            sets[set_name] = s["elements"]
+            elements = s["elements"]
+
+            # Fallback for declarations like "MOIS:espace;" where elements are
+            # omitted in LINGO but can be inferred from attached data length.
+            if not elements:
+                for attr in s.get("attrs", []):
+                    values = model_json.get("data", {}).get(attr)
+                    if isinstance(values, list) and len(values) > 0:
+                        elements = list(range(1, len(values) + 1))
+                        break
+
+            sets[set_name] = elements
             for attr in s["attrs"]:
                 if attr not in model_json["data"]:
                     variables.append((set_name, attr))
@@ -1110,34 +1264,49 @@ def generate_pyomo_code(
     add_section("PARAMETERS")
     declared_params = set()
 
+    def _param_domain(values):
+        """Return Pyomo domain name based on sign of provided numeric values."""
+
+        def _iter_numbers(obj):
+            if isinstance(obj, (list, tuple, set)):
+                for it in obj:
+                    yield from _iter_numbers(it)
+            else:
+                try:
+                    yield float(obj)
+                except Exception:
+                    return
+
+        nums = list(_iter_numbers(values))
+        if nums and any(v < 0 for v in nums):
+            return "Reals"
+        return "NonNegativeReals"
+
     for (setname, attr), values in params.items():
         declared_params.add(attr)
+        domain = _param_domain(values)
 
         if use_native_dat:
             # En mode DAT natif, Pyomo lit les valeurs via model.create_instance(...).
             if setname not in sets and setname not in cartesian_sets:
-                lines.append(f"model.{attr} = Param(within=NonNegativeReals)")
+                lines.append(f"model.{attr} = Param(within={domain})")
             elif setname in cartesian_sets:
                 idx_sets = cartesian_sets[setname]
                 dims = ", ".join(f"model.{idx}" for idx in idx_sets)
-                lines.append(f"model.{attr} = Param({dims}, within=NonNegativeReals)")
+                lines.append(f"model.{attr} = Param({dims}, within={domain})")
             else:
-                lines.append(
-                    f"model.{attr} = Param(model.{setname}, within=NonNegativeReals)"
-                )
+                lines.append(f"model.{attr} = Param(model.{setname}, within={domain})")
             continue
 
         # Param scalaire si setname absent
         if setname not in sets and setname not in cartesian_sets:
             if external_data:
                 lines.append(
-                    f"model.{attr} = Param(initialize=data['params']['{attr}'], within=NonNegativeReals)"
+                    f"model.{attr} = Param(initialize=data['params']['{attr}'], within={domain})"
                 )
             else:
                 val = float(values[0]) if isinstance(values, list) else float(values)
-                lines.append(
-                    f"model.{attr} = Param(initialize={val}, within=NonNegativeReals)"
-                )
+                lines.append(f"model.{attr} = Param(initialize={val}, within={domain})")
 
         # Param indexé
         else:
@@ -1145,20 +1314,20 @@ def generate_pyomo_code(
                 val = float(values[0])
                 if external_data:
                     lines.append(
-                        f"model.{attr} = Param(initialize=data['params']['{attr}'], within=NonNegativeReals)"
+                        f"model.{attr} = Param(initialize=data['params']['{attr}'], within={domain})"
                     )
                 else:
                     lines.append(
-                        f"model.{attr} = Param(initialize={val}, within=NonNegativeReals)"
+                        f"model.{attr} = Param(initialize={val}, within={domain})"
                     )
             elif isinstance(values, (int, float)):
                 if external_data:
                     lines.append(
-                        f"model.{attr} = Param(initialize=data['params']['{attr}'], within=NonNegativeReals)"
+                        f"model.{attr} = Param(initialize=data['params']['{attr}'], within={domain})"
                     )
                 else:
                     lines.append(
-                        f"model.{attr} = Param(initialize={values}, within=NonNegativeReals)"
+                        f"model.{attr} = Param(initialize={values}, within={domain})"
                     )
             else:
                 from itertools import product
@@ -1169,7 +1338,7 @@ def generate_pyomo_code(
 
                     if external_data:
                         lines.append(
-                            f"model.{attr} = Param({dims}, initialize=data['cartesian_data']['{attr}'], within=NonNegativeReals)"
+                            f"model.{attr} = Param({dims}, initialize=data['cartesian_data']['{attr}'], within={domain})"
                         )
                     else:
                         # 🔴 CORRECTION CRITIQUE ICI
@@ -1184,7 +1353,7 @@ def generate_pyomo_code(
                         }
 
                         lines.append(
-                            f"model.{attr} = Param({dims}, initialize={data_dict}, within=NonNegativeReals)"
+                            f"model.{attr} = Param({dims}, initialize={data_dict}, within={domain})"
                         )
 
                 else:
@@ -1192,7 +1361,7 @@ def generate_pyomo_code(
 
                     if external_data:
                         lines.append(
-                            f"model.{attr} = Param({dims}, initialize=data['params']['{attr}'], within=NonNegativeReals)"
+                            f"model.{attr} = Param({dims}, initialize=data['params']['{attr}'], within={domain})"
                         )
                     else:
                         typed_keys = [_convert_type(e) for e in sets[setname]]
@@ -1200,22 +1369,23 @@ def generate_pyomo_code(
                             typed_keys[i]: float(values[i]) for i in range(len(values))
                         }
                         lines.append(
-                            f"model.{attr} = Param({dims}, initialize={data_dict}, within=NonNegativeReals)"
+                            f"model.{attr} = Param({dims}, initialize={data_dict}, within={domain})"
                         )
 
     for key, val in model_json["data"].items():
         # Si le param n'est pas déjà indexé sur un set
         if key not in declared_params:
+            domain = _param_domain(val)
             if use_native_dat:
-                lines.append(f"model.{key} = Param(within=NonNegativeReals)")
+                lines.append(f"model.{key} = Param(within={domain})")
             elif external_data:
                 lines.append(
-                    f"model.{key} = Param(initialize=data['params']['{key}'], within=NonNegativeReals)"
+                    f"model.{key} = Param(initialize=data['params']['{key}'], within={domain})"
                 )
             else:
                 scalar_val = float(val[0]) if isinstance(val, list) else float(val)
                 lines.append(
-                    f"model.{key} = Param(initialize={scalar_val}, within=NonNegativeReals)"
+                    f"model.{key} = Param(initialize={scalar_val}, within={domain})"
                 )
             declared_params.add(key)  # marque comme param déjà déclaré
     # === VARIABLES ===
@@ -1341,6 +1511,13 @@ def generate_pyomo_code(
                     pyomo_expr = remap_numeric_indices_in_model_access(
                         pyomo_expr, symbol_index_sets, sets
                     )
+                alias_to_set = extract_alias_to_set(pyomo_expr, sets, cartesian_sets)
+                pyomo_expr = add_missing_single_dim_indices(
+                    pyomo_expr, symbol_index_sets, alias_to_set
+                )
+                pyomo_expr = add_missing_multi_dim_indices(
+                    pyomo_expr, symbol_index_sets, alias_to_set
+                )
                 pyomo_expr = collapse_uniform_bare_indexed_params(
                     pyomo_expr, symbol_index_sets, param_values
                 )
@@ -1397,6 +1574,11 @@ def generate_pyomo_code(
             alias_to_set = {}
             if alias:
                 alias_to_set[alias] = setname
+            else:
+                # Pas d'alias explicite : générer une variable implicite et l'ajouter à alias_to_set
+                # pour que l'auto-indexation fonctionne
+                implicit_alias = setname[0].lower()  # i, a, p, o, d, etc.
+                alias_to_set[implicit_alias] = setname
 
             # Capture aliases introduced in comprehensions: "for a in model.SET".
             for inner_alias_name, inner_set_name in re.findall(
@@ -1410,6 +1592,10 @@ def generate_pyomo_code(
                     alias_to_set[inner_alias] = inner_setname
 
             body = add_missing_single_dim_indices(body, symbol_index_sets, alias_to_set)
+            body = add_missing_multi_dim_indices(body, symbol_index_sets, alias_to_set)
+            body = auto_index_constraint_symbols(
+                body, symbol_index_sets, alias_to_set, cartesian_sets
+            )
             body = collapse_uniform_bare_indexed_params(
                 body, symbol_index_sets, param_values
             )
@@ -1482,6 +1668,13 @@ def generate_pyomo_code(
             pyomo_obj = re.sub(r"\b[A-Za-z_]\w*\b", smart_replace, pyomo_obj)
             pyomo_obj = remap_numeric_indices_in_model_access(
                 pyomo_obj, symbol_index_sets, sets
+            )
+            alias_to_set = extract_alias_to_set(pyomo_obj, sets, cartesian_sets)
+            pyomo_obj = add_missing_single_dim_indices(
+                pyomo_obj, symbol_index_sets, alias_to_set
+            )
+            pyomo_obj = add_missing_multi_dim_indices(
+                pyomo_obj, symbol_index_sets, alias_to_set
             )
             pyomo_obj = collapse_uniform_bare_indexed_params(
                 pyomo_obj, symbol_index_sets, param_values

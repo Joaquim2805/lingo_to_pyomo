@@ -43,6 +43,26 @@ class LingoModelTransformer2(Transformer):
         lark.Transformer
     """
 
+    # Dictionnaire pour les plages nommées (jours de la semaine, mois, etc.)
+    LINGO_RANGES = {
+        ("MON", "FRI"): ["MON", "TUE", "WED", "THU", "FRI"],
+        ("MON", "SUN"): ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"],
+        ("JAN", "DEC"): [
+            "JAN",
+            "FEB",
+            "MAR",
+            "APR",
+            "MAY",
+            "JUN",
+            "JUL",
+            "AUG",
+            "SEP",
+            "OCT",
+            "NOV",
+            "DEC",
+        ],
+    }
+
     def model_decl(self, items):
         return {"model": str(items[0])}
 
@@ -108,13 +128,32 @@ class LingoModelTransformer2(Transformer):
         else:
             elements = []
             attrs = []
+            has_colon = any(
+                isinstance(it, Token) and it.type == "COLON" for it in items
+            )
+            is_colon_only_decl = (
+                len(items) > 1
+                and isinstance(items[1], Token)
+                and items[1].type == "COLON"
+            )
 
-            for it in items:
-                if isinstance(it, dict) and "name_list" in it:
-                    if not elements:
-                        elements = it["name_list"]
+            name_lists = [
+                it["name_list"]
+                for it in items
+                if isinstance(it, dict) and "name_list" in it
+            ]
+
+            if len(name_lists) >= 2:
+                if len(name_lists) >= 1:
+                    elements = name_lists[0]
+                if len(name_lists) >= 2:
+                    attrs = name_lists[1]
+            else:
+                if len(name_lists) == 1:
+                    if has_colon and is_colon_only_decl:
+                        attrs = name_lists[0]
                     else:
-                        attrs = it["name_list"]
+                        elements = name_lists[0]
 
             # Fallback si pas d'attributs détectés
             if not attrs:
@@ -127,13 +166,60 @@ class LingoModelTransformer2(Transformer):
             return {"set_decl": {"name": name, "elements": elements, "attrs": attrs}}
 
     def name_list(self, items):
-        return {
-            "name_list": [
-                str(tok)
-                for tok in items
-                if isinstance(tok, Token) and tok.type in ("NAME", "NUMBER")
-            ]
-        }
+        """Traite une liste de noms, en gérant les plages (NAME..NAME)"""
+        result = []
+        for item in items:
+            if isinstance(item, dict) and "name_range" in item:
+                result.extend(item["name_range"])
+            elif isinstance(item, Token) and item.type in ("NAME", "NUMBER"):
+                result.append(str(item))
+        return {"name_list": result}
+
+    def name_range(self, items):
+        """
+        Traite une plage de noms (NAME..NAME ou NUMBER..NUMBER).
+
+        Supporte :
+        - Les plages numériques : 1..5 → ['1', '2', '3', '4', '5']
+        - Les plages nommées prédéfinies : MON..FRI → ['MON', 'TUE', 'WED', 'THU', 'FRI']
+        - Les éléments simples (sans plage) : NAME → [NAME]
+
+        Note: Lark passe seulement les tokens/enfants, pas les littéraux.
+        Pour NAME..NAME, items = [start_token, end_token] (len=2)
+        Pour NAME (simple), items = [token] (len=1)
+        """
+        if len(items) == 1:
+            # Pas de plage, juste un élément
+            tok = items[0]
+            if isinstance(tok, Token):
+                return {"name_range": [str(tok)]}
+            return {"name_range": []}
+
+        if len(items) == 2:
+            # Plage : NAME..NAME ou NUMBER..NUMBER
+            start_tok = items[0]
+            end_tok = items[1]
+
+            start_str = str(start_tok)
+            end_str = str(end_tok)
+
+            # Essayer d'abord dans le dictionnaire prédéfini
+            if (start_str, end_str) in self.LINGO_RANGES:
+                return {"name_range": self.LINGO_RANGES[(start_str, end_str)]}
+
+            # Essayer comme plage numérique
+            try:
+                start_num = int(start_str)
+                end_num = int(end_str)
+                result = [str(i) for i in range(start_num, end_num + 1)]
+                return {"name_range": result}
+            except ValueError:
+                pass
+
+            # Fallback : traiter comme littéral (retourner juste les deux éléments)
+            return {"name_range": [start_str, end_str]}
+
+        return {"name_range": []}
 
     def data_block(self, items):
         data = {}
@@ -388,6 +474,20 @@ class LingoModelTransformer2(Transformer):
                 Token("FILTER_VAR", var),
                 Token("FILTER_OP", op),
                 Token("FILTER_VAL", val),
+            ],
+        )
+
+    def cond_atom_expr(self, items):
+        """Traite expr HASH_CMP expr — ex: k+j #GT# m."""
+        left = self._expr_to_str(items[0])
+        op = str(items[1])
+        right = self._expr_to_str(items[2])
+        return Tree(
+            "cond_atom",
+            [
+                Token("FILTER_VAR", left),
+                Token("FILTER_OP", op),
+                Token("FILTER_VAL", right),
             ],
         )
 
