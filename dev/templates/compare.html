@@ -1,0 +1,83 @@
+{% extends "base.html" %} {% block title %}Comparaison{% endblock %} {% block
+page_id %}compare{% endblock %} {% block content %}
+<section class="page-header">
+  <div class="container">
+    <div class="row" style="justify-content: space-between">
+      <div>
+        <h1>Comparaison</h1>
+        <p>Vue côte à côte de la source LINGO et du code Pyomo généré.</p>
+      </div>
+      <div class="row">
+        <a class="btn btn-outline" href="{{ url_for('tools.workspace') }}">
+          <i class="fas fa-arrow-left"></i> Retour aux outils
+        </a>
+        {% if job and job.id %}
+        <a
+          class="btn btn-primary"
+          href="{{ url_for('api.download', job_id=job.id, file_type='notebook') }}"
+        >
+          <i class="fas fa-download"></i> Télécharger notebook
+        </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" style="padding-top: 0">
+  <div class="container">
+    <div class="card" style="overflow: hidden">
+      <div class="compare-grid" style="min-height: 60vh">
+        <div class="compare-col">
+          <div class="compare-col-header">
+            <i class="fas fa-file-lines"></i>
+            <span>Source LINGO</span>
+            {% if job and job.metadata and job.metadata.file_name %}
+            <span class="badge badge-primary" style="margin-left: auto"
+              >{{ job.metadata.file_name }}</span
+            >
+            {% endif %}
+          </div>
+          <pre
+            style="
+              margin: 0;
+              padding: 1rem;
+              background: var(--surface-warm);
+              overflow: auto;
+              flex: 1;
+            "
+          ><code id="compareLeftCode">{{ (job.metadata.lingo_source or job.metadata.original or "Aucune source disponible")|e }}</code></pre>
+        </div>
+        <div class="compare-col">
+          <div class="compare-col-header">
+            <i class="fas fa-file-code"></i>
+            <span>Pyomo généré</span>
+            {% if job and job.metadata and job.metadata.solver %}
+            <span class="badge badge-accent" style="margin-left: auto"
+              >{{ job.metadata.solver }}</span
+            >
+            {% endif %}
+          </div>
+          <pre
+            style="
+              margin: 0;
+              padding: 1rem;
+              background: var(--surface-warm);
+              overflow: auto;
+              flex: 1;
+            "
+          ><code class="language-python" id="compareRightCode">{{ (job.metadata.pyomo_code or job.metadata.cleaned or job.metadata.explicit or "Aucun résultat disponible")|e }}</code></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %} {% block scripts %}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll("#compareRightCode").forEach(function (el) {
+      hljs.highlightElement(el);
+    });
+  });
+</script>
+{% endblock %}

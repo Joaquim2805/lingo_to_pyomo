@@ -1,0 +1,14 @@
+{% extends "base.html" %} {% block title %}Page non trouvée{% endblock %} {%
+block content %}
+<section class="section">
+  <div class="container text-center" style="padding: 4rem 0">
+    <h1>404</h1>
+    <p class="text-secondary" style="font-size: 1.1rem; margin-bottom: 1.5rem">
+      La page que vous cherchez n'existe pas.
+    </p>
+    <a class="btn btn-primary" href="{{ url_for('main.home') }}"
+      ><i class="fas fa-home"></i> Retour à l'accueil</a
+    >
+  </div>
+</section>
+{% endblock %}

@@ -7,18 +7,18 @@ ENDSETS
 
 DATA:
 Temps = 6,4,7,5,4,6,5,3,7,6;
-CONNEXION = 0,1,0,1,0,1,0,0,1,1,0,0,1,1,0,0,1,0,1,0,1,0,0,0,0,1,0,1,0,0,0,0,1,1,0,1,0,0,0,0,0,1,0,0,1,0,0,0,0,0,1,0,0,0,0,0,1,1,0,1,0,0,1,0,1,0,0,0,0,1,0,1,0,1,0,0,1,0,0,0;
+CONNEXION = 1,0,0,0,1,0,0,0,1,0,0,1,0,1,0,1,0,0,1,1,0,0,1,1,0,0,1,0,1,0,1,0,0,0,0,1,0,1,0,0,0,0,1,1,0,1,0,0,0,0,0,1,0,0,1,0,0,0,0,0,1,0,0,0,0,0,1,1,0,1,0,0,1,0,1,0,0,0,0,1,0,1,0,1,0,0,1,0,0,0;
 ENDDATA
 
 !FO:minimiser le Temps total;
- MIN=@SUM(ROUTES:Temps*X);
+ MIN=@SUM(ROUTES(r):Temps(r)*X(r));
 
 !SAC;
 !Tous les noeuds doivent etre desservis exactement une fois;
 @FOR(NOEUDS(n):@SUM(ROUTES(r):CONNEXION(n,r)*X(r))=1);
 
 !les points doivent etre delivres par trois livreurs;
-@SUM(ROUTES:X)=3;
+@SUM(ROUTES(r):X(r))=3;
 
 !Binaires;
 @FOR(ROUTES:@BIN(X));

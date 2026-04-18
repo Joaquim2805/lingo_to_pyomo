@@ -1,0 +1,25 @@
+MODEL :
+
+SETS:
+OPERATEURS /KC,DH,HB,SC,KS,NK/:Salaire,Hebdomin,OPHEBTOT;
+JOURS /MON..FRI/:;
+DERIVES(OPERATEURS,JOURS): Joursmax,X;
+ENDSETS
+
+DATA:
+Salaire = 25,26,24,23,28,30;
+Hebdomin = 8,8,8,8,7,7;
+Joursmax = 6,0,6,0,6,0,6,0,6,0,4,8,4,0,4,5,5,5,0,5,3,0,3,8,0,0,0,0,6,2;
+Ouverture = 14;
+ENDDATA
+
+!FONCTION OBJECTIF;
+MIN = @SUM(OPERATEURS(o):@SUM(JOURS(j):X(o,j)*Salaire(o)));
+
+!CONTRAINTES;
+@FOR(JOURS(j): @SUM(OPERATEURS(o):X(o,j))=Ouverture);
+@FOR(OPERATEURS(o): OPHEBTOT(o)=@SUM(JOURS(j):X(o,j)));
+@FOR(OPERATEURS: OPHEBTOT>=Hebdomin);
+@FOR(DERIVES:X<=Joursmax);
+
+END

@@ -1,0 +1,24 @@
+MODEL :
+
+SETS:
+PRODUITS /1,2,3/:Profit,Demande,X;
+MACHINES /1,2,3/:CAP;
+PRODUCTION(MACHINES,PRODUITS): HRPROD;
+ENDSETS
+
+DATA:
+Profit = 50,20,25;
+Demande = 1000,1000,20;
+CAP = 500,350,150;
+HRPROD = 9,5,3,3,4,0,5,0,2;
+ENDDATA
+
+!FONCTION OBJECTIF;
+MAX = @SUM(PRODUITS:Profit * X);
+
+!CONTRAINTES;
+@FOR(PRODUITS: X <= Demande);!pas plus de PRODUCTION que la Demande;
+@FOR(MACHINES(m): @SUM(PRODUITS(p): HRPROD(m,p)*X(p))<=CAP(m));!pas plus de PRODUCTION que la capacite des machines;
+@FOR(PRODUITS:@GIN(X));!Produits entiers!;
+
+END

@@ -1,0 +1,51 @@
+set OPERATEURS := KC DH HB SC KS NK ;
+set JOURS := MON TUE WED THU FRI ;
+param Salaire :=
+  KC 25
+  DH 26
+  HB 24
+  SC 23
+  KS 28
+  NK 30
+;
+param Hebdomin :=
+  KC 8
+  DH 8
+  HB 8
+  SC 8
+  KS 7
+  NK 7
+;
+param Ouverture := 14 ;
+param Joursmax :=
+  KC MON 6
+  KC TUE 0
+  KC WED 6
+  KC THU 0
+  KC FRI 6
+  DH MON 0
+  DH TUE 6
+  DH WED 0
+  DH THU 6
+  DH FRI 0
+  HB MON 4
+  HB TUE 8
+  HB WED 4
+  HB THU 0
+  HB FRI 4
+  SC MON 5
+  SC TUE 5
+  SC WED 5
+  SC THU 0
+  SC FRI 5
+  KS MON 3
+  KS TUE 0
+  KS WED 3
+  KS THU 8
+  KS FRI 0
+  NK MON 0
+  NK TUE 0
+  NK WED 0
+  NK THU 6
+  NK FRI 2
+;

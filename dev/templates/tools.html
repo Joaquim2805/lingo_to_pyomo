@@ -1,0 +1,898 @@
+{% extends "base.html" %} {% block title %}Outils{% endblock %} {% block page_id
+%}tools{% endblock %} {% block content %}
+<section class="page-header">
+  <div class="container">
+    <h1>Outils de conversion</h1>
+    <p>
+      Convertissez, nettoyez et préparez vos fichiers LINGO depuis un espace de
+      travail unique.
+    </p>
+  </div>
+</section>
+
+<section class="section" style="padding-top: 0">
+  <div class="container">
+    <div class="card">
+      <div class="card-body stack-lg">
+        <!-- OLE files data for JS -->
+        <script id="ole-files-data" type="application/json">
+          {{ ole_files|tojson }}
+        </script>
+
+        <!-- Tab bar -->
+        <div class="tab-bar">
+          <button class="tab-btn active" type="button" data-tab="generate">
+            <i class="fas fa-book-open"></i> Générer un notebook
+          </button>
+          <button class="tab-btn" type="button" data-tab="ole">
+            <i class="fas fa-file-excel"></i> Convertir OLE
+          </button>
+          <button class="tab-btn" type="button" data-tab="clean">
+            <i class="fas fa-broom"></i> Nettoyer
+          </button>
+          <button class="tab-btn" type="button" data-tab="pipeline">
+            <i class="fas fa-diagram-project"></i> Pipeline complet
+          </button>
+        </div>
+
+        <!-- ==================== Generate ==================== -->
+        <div class="tab-pane active" data-pane="generate">
+          <div class="tool-layout">
+            <div class="stack-lg">
+              <div>
+                <h3>Notebook Pyomo</h3>
+                <p class="text-secondary" style="font-size: 0.9rem">
+                  Conversion directe d'un fichier LINGO en notebook Jupyter prêt
+                  à être exécuté avec le solveur choisi.
+                </p>
+              </div>
+
+              <form id="generateForm" class="stack">
+                <!-- Source toggle -->
+                <div class="source-tabs">
+                  <button
+                    type="button"
+                    class="source-tab active"
+                    data-source="dataset"
+                    data-group="generate"
+                  >
+                    <i class="fas fa-database"></i> Jeu de données
+                  </button>
+                  <button
+                    type="button"
+                    class="source-tab"
+                    data-source="upload"
+                    data-group="generate"
+                  >
+                    <i class="fas fa-upload"></i> Importer
+                  </button>
+                </div>
+
+                <div
+                  class="source-panel active"
+                  data-source="dataset"
+                  data-group="generate"
+                >
+                  <div class="form-group">
+                    <label class="form-label" for="file_select"
+                      ><i class="fas fa-file-lines"></i> Modèle LINGO</label
+                    >
+                    <select
+                      class="form-select ole-detect-select"
+                      id="file_select"
+                      name="file_select"
+                    >
+                      <option value="">Choisissez un fichier .lng</option>
+                      {% for file in files %}
+                      <option value="{{ file }}">{{ file }}</option>
+                      {% endfor %}
+                    </select>
+                    <div class="status-pill" data-ole-pill></div>
+                    <span class="form-hint"
+                      >Un aperçu comparatif sera proposé avant
+                      téléchargement.</span
+                    >
+                  </div>
+                </div>
+
+                <div
+                  class="source-panel"
+                  data-source="upload"
+                  data-group="generate"
+                >
+                  <div class="upload-zone" id="generateUploadZone">
+                    <input
+                      type="file"
+                      name="file_upload"
+                      accept=".lng"
+                      id="generateFileInput"
+                    />
+                    <div class="upload-zone-icon">
+                      <i class="fas fa-cloud-arrow-up"></i>
+                    </div>
+                    <div class="upload-zone-text">
+                      Glissez un fichier .lng ici
+                    </div>
+                    <div class="upload-zone-hint">
+                      ou cliquez pour parcourir
+                    </div>
+                    <div class="upload-file-info hidden" id="generateFileInfo">
+                      <i class="fas fa-file-code"></i>
+                      <span id="generateFileName"></span>
+                      <button
+                        type="button"
+                        class="remove-file"
+                        data-clear="generateFileInput"
+                      >
+                        <i class="fas fa-xmark"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="solver_select"
+                    ><i class="fas fa-gear"></i> Solveur cible</label
+                  >
+                  <select
+                    class="form-select"
+                    id="solver_select"
+                    name="solver_select"
+                  >
+                    <option value="highs" selected>HiGHS</option>
+                    <option value="gurobi">Gurobi</option>
+                    <option value="cplex">CPLEX</option>
+                    <option value="glpk">GLPK</option>
+                  </select>
+                  <span class="form-hint"
+                    >HiGHS est présélectionné : bon point de départ pour un
+                    usage local.</span
+                  >
+                </div>
+
+                <button type="submit" class="btn btn-primary" id="generateBtn">
+                  <i class="fas fa-wand-magic-sparkles"></i> Générer le notebook
+                </button>
+              </form>
+            </div>
+
+            <aside class="info-panel">
+              <h3>Informations</h3>
+              <ul class="info-list">
+                <li>
+                  <i class="fas fa-eye"></i
+                  ><span
+                    >Mode adapté pour obtenir rapidement un notebook
+                    Pyomo.</span
+                  >
+                </li>
+                <li>
+                  <i class="fas fa-code-compare"></i
+                  ><span
+                    >Un aperçu vous permet de vérifier le résultat avant
+                    téléchargement.</span
+                  >
+                </li>
+                <li>
+                  <i class="fas fa-circle-info"></i
+                  ><span
+                    >Le solveur sélectionné sera intégré au notebook
+                    généré.</span
+                  >
+                </li>
+              </ul>
+            </aside>
+          </div>
+        </div>
+
+        <!-- ==================== OLE ==================== -->
+        <div class="tab-pane" data-pane="ole">
+          <div class="tool-layout">
+            <div class="stack-lg">
+              <div>
+                <h3>Conversion OLE</h3>
+                <p class="text-secondary" style="font-size: 0.9rem">
+                  Remplace les appels @OLE(…) par leur forme explicite pour
+                  obtenir un fichier LINGO autonome.
+                </p>
+              </div>
+
+              <form id="oleForm" class="stack">
+                <div class="source-tabs">
+                  <button
+                    type="button"
+                    class="source-tab active"
+                    data-source="dataset"
+                    data-group="ole"
+                  >
+                    <i class="fas fa-database"></i> Jeu de données
+                  </button>
+                  <button
+                    type="button"
+                    class="source-tab"
+                    data-source="upload"
+                    data-group="ole"
+                  >
+                    <i class="fas fa-upload"></i> Importer
+                  </button>
+                </div>
+
+                <div
+                  class="source-panel active"
+                  data-source="dataset"
+                  data-group="ole"
+                >
+                  <div class="form-group">
+                    <label class="form-label" for="file_select_ole"
+                      ><i class="fas fa-file-excel"></i> Fichier avec
+                      @OLE</label
+                    >
+                    <select
+                      class="form-select ole-detect-select"
+                      id="file_select_ole"
+                      name="file_select_ole"
+                    >
+                      <option value="">Choisissez un fichier OLE</option>
+                      {% for file in ole_files %}
+                      <option value="{{ file }}">{{ file }}</option>
+                      {% endfor %}
+                    </select>
+                    <div class="status-pill" data-ole-pill></div>
+                  </div>
+                </div>
+
+                <div class="source-panel" data-source="upload" data-group="ole">
+                  <div class="upload-zone" id="oleUploadZone">
+                    <input
+                      type="file"
+                      name="file_upload_ole"
+                      accept=".lng"
+                      id="oleFileInput"
+                    />
+                    <div class="upload-zone-icon">
+                      <i class="fas fa-cloud-arrow-up"></i>
+                    </div>
+                    <div class="upload-zone-text">
+                      Glissez un fichier .lng ici
+                    </div>
+                    <div class="upload-zone-hint">
+                      Le fichier doit contenir des appels @OLE
+                    </div>
+                    <div class="upload-file-info hidden" id="oleFileInfo">
+                      <i class="fas fa-file-code"></i>
+                      <span id="oleFileName"></span>
+                      <button
+                        type="button"
+                        class="remove-file"
+                        data-clear="oleFileInput"
+                      >
+                        <i class="fas fa-xmark"></i>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="form-group" style="margin-top: 0.75rem">
+                    <label class="form-label" for="oleExcelInput"
+                      ><i class="fas fa-file-excel"></i> Fichier Excel associé
+                      <span class="text-muted" style="font-weight: 400"
+                        >(optionnel)</span
+                      ></label
+                    >
+                    <div class="upload-zone upload-zone-sm" id="oleExcelZone">
+                      <input
+                        type="file"
+                        name="excel_upload_ole"
+                        accept=".xlsx,.xls"
+                        id="oleExcelInput"
+                      />
+                      <div class="upload-zone-icon">
+                        <i class="fas fa-file-excel"></i>
+                      </div>
+                      <div class="upload-zone-text">
+                        Glissez le fichier .xlsx référencé par @OLE
+                      </div>
+                      <div class="upload-zone-hint">
+                        Nécessaire si le .lng utilise @OLE('fichier.xlsx')
+                      </div>
+                      <div
+                        class="upload-file-info hidden"
+                        id="oleExcelFileInfo"
+                      >
+                        <i class="fas fa-file-excel"></i>
+                        <span id="oleExcelFileName"></span>
+                        <button
+                          type="button"
+                          class="remove-file"
+                          data-clear="oleExcelInput"
+                        >
+                          <i class="fas fa-xmark"></i>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  class="btn btn-secondary"
+                  id="convertOleBtn"
+                >
+                  <i class="fas fa-right-left"></i> Convertir en version
+                  explicite
+                </button>
+              </form>
+            </div>
+
+            <aside class="info-panel">
+              <h3>Quand utiliser ce mode</h3>
+              {% if ole_files %}
+              <ul class="info-list">
+                <li>
+                  <i class="fas fa-file-arrow-down"></i
+                  ><span
+                    >Quand un modèle dépend d'une feuille Excel et doit devenir
+                    portable.</span
+                  >
+                </li>
+                <li>
+                  <i class="fas fa-arrows-rotate"></i
+                  ><span
+                    >Avant un nettoyage ou pipeline si vous voulez figer les
+                    données.</span
+                  >
+                </li>
+              </ul>
+              {% else %}
+              <p class="text-secondary" style="font-size: 0.9rem">
+                Aucun fichier utilisant @OLE n'est disponible dans le jeu de
+                données.
+              </p>
+              {% endif %}
+            </aside>
+          </div>
+        </div>
+
+        <!-- ==================== Clean ==================== -->
+        <div class="tab-pane" data-pane="clean">
+          <div class="tool-layout">
+            <div class="stack-lg">
+              <div>
+                <h3>Nettoyage LINGO</h3>
+                <p class="text-secondary" style="font-size: 0.9rem">
+                  Uniformise la casse, supprime les commentaires et retire les
+                  sections vides.
+                </p>
+              </div>
+
+              <form id="cleanForm" class="stack">
+                <div class="source-tabs">
+                  <button
+                    type="button"
+                    class="source-tab active"
+                    data-source="dataset"
+                    data-group="clean"
+                  >
+                    <i class="fas fa-database"></i> Jeu de données
+                  </button>
+                  <button
+                    type="button"
+                    class="source-tab"
+                    data-source="upload"
+                    data-group="clean"
+                  >
+                    <i class="fas fa-upload"></i> Importer
+                  </button>
+                </div>
+
+                <div
+                  class="source-panel active"
+                  data-source="dataset"
+                  data-group="clean"
+                >
+                  <div class="form-group">
+                    <label class="form-label" for="file_select_clean"
+                      ><i class="fas fa-soap"></i> Fichier à nettoyer</label
+                    >
+                    <select
+                      class="form-select ole-detect-select"
+                      id="file_select_clean"
+                      name="file_select_clean"
+                    >
+                      <option value="">Choisissez un fichier .lng</option>
+                      {% for file in files %}
+                      <option value="{{ file }}">{{ file }}</option>
+                      {% endfor %}
+                    </select>
+                    <div class="status-pill" data-ole-pill></div>
+                  </div>
+                </div>
+
+                <div
+                  class="source-panel"
+                  data-source="upload"
+                  data-group="clean"
+                >
+                  <div class="upload-zone" id="cleanUploadZone">
+                    <input
+                      type="file"
+                      name="file_upload_clean"
+                      accept=".lng"
+                      id="cleanFileInput"
+                    />
+                    <div class="upload-zone-icon">
+                      <i class="fas fa-cloud-arrow-up"></i>
+                    </div>
+                    <div class="upload-zone-text">
+                      Glissez un fichier .lng ici
+                    </div>
+                    <div class="upload-zone-hint">
+                      ou cliquez pour parcourir
+                    </div>
+                    <div class="upload-file-info hidden" id="cleanFileInfo">
+                      <i class="fas fa-file-code"></i>
+                      <span id="cleanFileName"></span>
+                      <button
+                        type="button"
+                        class="remove-file"
+                        data-clear="cleanFileInput"
+                      >
+                        <i class="fas fa-xmark"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <button type="submit" class="btn btn-outline" id="cleanBtn">
+                  <i class="fas fa-broom"></i> Lancer le nettoyage
+                </button>
+              </form>
+            </div>
+
+            <aside class="info-panel">
+              <h3>Nettoyages appliqués</h3>
+              <ul class="info-list">
+                <li>
+                  <i class="fas fa-comment-slash"></i
+                  ><span
+                    >Suppression des commentaires entre crochets et motifs
+                    parasites.</span
+                  >
+                </li>
+                <li>
+                  <i class="fas fa-text-height"></i
+                  ><span
+                    >Uniformisation de la casse pour faciliter le
+                    traitement.</span
+                  >
+                </li>
+                <li>
+                  <i class="fas fa-minimize"></i
+                  ><span>Suppression des blocs DATA / ENDDATA vides.</span>
+                </li>
+              </ul>
+            </aside>
+          </div>
+        </div>
+
+        <!-- ==================== Pipeline ==================== -->
+        <div class="tab-pane" data-pane="pipeline">
+          <div class="tool-layout">
+            <div class="stack-lg">
+              <div>
+                <h3>Pipeline complet</h3>
+                <p class="text-secondary" style="font-size: 0.9rem">
+                  Mode autonome : détection OLE, conversion, nettoyage
+                  optionnel, génération du notebook et export des données.
+                </p>
+              </div>
+
+              <form id="pipelineForm" class="stack">
+                <div class="source-tabs">
+                  <button
+                    type="button"
+                    class="source-tab active"
+                    data-source="dataset"
+                    data-group="pipeline"
+                  >
+                    <i class="fas fa-database"></i> Jeu de données
+                  </button>
+                  <button
+                    type="button"
+                    class="source-tab"
+                    data-source="upload"
+                    data-group="pipeline"
+                  >
+                    <i class="fas fa-upload"></i> Importer
+                  </button>
+                </div>
+
+                <div
+                  class="source-panel active"
+                  data-source="dataset"
+                  data-group="pipeline"
+                >
+                  <div class="form-group">
+                    <label class="form-label" for="file_select_pipeline"
+                      ><i class="fas fa-diagram-project"></i> Point de
+                      départ</label
+                    >
+                    <select
+                      class="form-select ole-detect-select"
+                      id="file_select_pipeline"
+                      name="file_select_pipeline"
+                    >
+                      <option value="">Choisissez un fichier .lng</option>
+                      {% for file in files %}
+                      <option value="{{ file }}">{{ file }}</option>
+                      {% endfor %}
+                    </select>
+                    <div class="status-pill" data-ole-pill></div>
+                  </div>
+                </div>
+
+                <div
+                  class="source-panel"
+                  data-source="upload"
+                  data-group="pipeline"
+                >
+                  <div class="upload-zone" id="pipelineUploadZone">
+                    <input
+                      type="file"
+                      name="file_upload_pipeline"
+                      accept=".lng"
+                      id="pipelineFileInput"
+                    />
+                    <div class="upload-zone-icon">
+                      <i class="fas fa-cloud-arrow-up"></i>
+                    </div>
+                    <div class="upload-zone-text">
+                      Glissez un fichier .lng ici
+                    </div>
+                    <div class="upload-zone-hint">
+                      ou cliquez pour parcourir
+                    </div>
+                    <div class="upload-file-info hidden" id="pipelineFileInfo">
+                      <i class="fas fa-file-code"></i>
+                      <span id="pipelineFileName"></span>
+                      <button
+                        type="button"
+                        class="remove-file"
+                        data-clear="pipelineFileInput"
+                      >
+                        <i class="fas fa-xmark"></i>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="form-group" style="margin-top: 0.75rem">
+                    <label class="form-label" for="pipelineExcelInput"
+                      ><i class="fas fa-file-excel"></i> Fichier Excel associé
+                      <span class="text-muted" style="font-weight: 400"
+                        >(optionnel)</span
+                      ></label
+                    >
+                    <div
+                      class="upload-zone upload-zone-sm"
+                      id="pipelineExcelZone"
+                    >
+                      <input
+                        type="file"
+                        name="excel_upload_pipeline"
+                        accept=".xlsx,.xls"
+                        id="pipelineExcelInput"
+                      />
+                      <div class="upload-zone-icon">
+                        <i class="fas fa-file-excel"></i>
+                      </div>
+                      <div class="upload-zone-text">
+                        Glissez le fichier .xlsx référencé par @OLE
+                      </div>
+                      <div class="upload-zone-hint">
+                        Nécessaire si le .lng utilise @OLE('fichier.xlsx')
+                      </div>
+                      <div
+                        class="upload-file-info hidden"
+                        id="pipelineExcelFileInfo"
+                      >
+                        <i class="fas fa-file-excel"></i>
+                        <span id="pipelineExcelFileName"></span>
+                        <button
+                          type="button"
+                          class="remove-file"
+                          data-clear="pipelineExcelInput"
+                        >
+                          <i class="fas fa-xmark"></i>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="solver_select_pipeline"
+                    ><i class="fas fa-gear"></i> Solveur</label
+                  >
+                  <select
+                    class="form-select"
+                    id="solver_select_pipeline"
+                    name="solver_select_pipeline"
+                  >
+                    <option value="highs" selected>HiGHS</option>
+                    <option value="gurobi">Gurobi</option>
+                    <option value="cplex">CPLEX</option>
+                    <option value="glpk">GLPK</option>
+                    <option value="ipopt">IPOPT</option>
+                  </select>
+                </div>
+
+                <div class="stack-sm">
+                  <label class="option-card" for="do_clean">
+                    <input type="checkbox" id="do_clean" name="do_clean" />
+                    <span>
+                      <strong>Nettoyer le fichier avant parsing</strong>
+                      <span
+                        >Utile si le fichier contient des commentaires ou une
+                        casse incohérente.</span
+                      >
+                    </span>
+                  </label>
+                  <label class="option-card" for="external_data">
+                    <input
+                      type="checkbox"
+                      id="external_data"
+                      name="external_data"
+                      checked
+                    />
+                    <span>
+                      <strong>Externaliser les données (JSON ou DAT)</strong>
+                      <span>Recommandé pour séparer structure et données.</span>
+                    </span>
+                  </label>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="external_data_format"
+                    ><i class="fas fa-database"></i> Format des données</label
+                  >
+                  <select
+                    class="form-select"
+                    id="external_data_format"
+                    name="external_data_format"
+                  >
+                    <option value="json" selected>JSON</option>
+                    <option value="dat">DAT (Pyomo / AMPL)</option>
+                  </select>
+                </div>
+
+                <button type="submit" class="btn btn-primary" id="pipelineBtn">
+                  <i class="fas fa-rocket"></i> Exécuter le pipeline
+                </button>
+              </form>
+            </div>
+
+            <aside class="info-panel">
+              <h3>Ce que fait le pipeline</h3>
+              <ul class="info-list">
+                <li>
+                  <i class="fas fa-magnifying-glass"></i
+                  ><span
+                    >Détection d'un éventuel lien Excel dans le fichier
+                    choisi.</span
+                  >
+                </li>
+                <li>
+                  <i class="fas fa-arrows-split-up-and-left"></i
+                  ><span
+                    >Conversion et nettoyage si nécessaire, sans étapes
+                    manuelles.</span
+                  >
+                </li>
+                <li>
+                  <i class="fas fa-file-export"></i
+                  ><span
+                    >Génération du notebook et des données externes si
+                    demandé.</span
+                  >
+                </li>
+              </ul>
+            </aside>
+          </div>
+        </div>
+      </div>
+      <!-- end card-body -->
+    </div>
+    <!-- end card -->
+  </div>
+</section>
+{% endblock %} {% block modals %}
+<!-- Preview modal -->
+<div class="modal-backdrop" id="previewModal" aria-hidden="true">
+  <div
+    class="modal-panel"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="previewTitle"
+  >
+    <div class="modal-header">
+      <div>
+        <h2 class="modal-title" id="previewTitle">Aperçu du résultat</h2>
+        <p class="modal-subtitle" id="previewSubtitle">
+          Vérifiez le résultat avant téléchargement.
+        </p>
+      </div>
+      <button
+        class="modal-close"
+        type="button"
+        data-close="previewModal"
+        aria-label="Fermer"
+      >
+        <i class="fas fa-xmark"></i>
+      </button>
+    </div>
+
+    <div class="view-toggle">
+      <div class="toggle-group">
+        <button class="toggle-btn active" type="button" id="singleViewBtn">
+          <i class="fas fa-file-code"></i> Vue simple
+        </button>
+        <button class="toggle-btn" type="button" id="compareViewBtn">
+          <i class="fas fa-table-columns"></i> Comparée
+        </button>
+      </div>
+      <div class="preview-meta" id="previewMeta"></div>
+    </div>
+
+    <div class="modal-body" id="previewBody">
+      <div class="preview-single">
+        <div class="code-scroll">
+          <pre><code class="language-python" id="previewCode"></code></pre>
+        </div>
+      </div>
+      <div class="preview-compare hidden">
+        <div class="compare-grid">
+          <div class="compare-col">
+            <div class="compare-col-header">
+              <i class="fas fa-file-lines"></i>
+              <span id="leftTitle">Source LINGO</span>
+            </div>
+            <pre><code id="leftCode"></code></pre>
+          </div>
+          <div class="compare-col">
+            <div class="compare-col-header">
+              <i class="fas fa-file-code"></i>
+              <span id="rightTitle">Pyomo généré</span>
+            </div>
+            <pre><code class="language-python" id="rightCode"></code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-outline" type="button" data-close="previewModal">
+        Fermer
+      </button>
+      <a
+        class="btn btn-outline hidden"
+        id="previewCompareLink"
+        href="#"
+        target="_blank"
+      >
+        <i class="fas fa-up-right-from-square"></i> Plein écran
+      </a>
+      <button class="btn btn-primary" type="button" id="previewDownloadBtn">
+        <i class="fas fa-download"></i> Télécharger
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Error modal -->
+<div class="modal-backdrop" id="errorModal" aria-hidden="true">
+  <div
+    class="modal-panel modal-panel-sm"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="errorTitle"
+  >
+    <div class="modal-header">
+      <div>
+        <h2 class="modal-title" id="errorTitle">Erreur</h2>
+        <p class="modal-subtitle">Le serveur a retourné une erreur.</p>
+      </div>
+      <button
+        class="modal-close"
+        type="button"
+        data-close="errorModal"
+        aria-label="Fermer"
+      >
+        <i class="fas fa-xmark"></i>
+      </button>
+    </div>
+    <div class="modal-body" style="padding: 1.25rem 1.5rem">
+      <div class="error-banner">
+        <i class="fas fa-triangle-exclamation"></i>
+        <div id="errorMessage">Une erreur s'est produite.</div>
+      </div>
+      <div
+        class="error-details hidden"
+        id="errorDetails"
+        style="margin-top: 1rem"
+      ></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger" type="button" data-close="errorModal">
+        Fermer
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Pipeline result modal -->
+<div class="modal-backdrop" id="pipelineModal" aria-hidden="true">
+  <div
+    class="modal-panel"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="pipelineTitle"
+  >
+    <div class="modal-header">
+      <div>
+        <h2 class="modal-title" id="pipelineTitle">Pipeline terminé</h2>
+        <p class="modal-subtitle">
+          Résumé des étapes exécutées et des fichiers générés.
+        </p>
+      </div>
+      <button
+        class="modal-close"
+        type="button"
+        data-close="pipelineModal"
+        aria-label="Fermer"
+      >
+        <i class="fas fa-xmark"></i>
+      </button>
+    </div>
+    <div class="pipeline-banner">
+      <h3 id="pipelineBannerTitle">Exécution terminée</h3>
+      <p id="pipelineBannerText">Le notebook a été généré avec succès.</p>
+    </div>
+    <div class="modal-body">
+      <div class="pipeline-content">
+        <div class="stack">
+          <div class="pipeline-box">
+            <h4>Étapes</h4>
+            <ol class="pipeline-steps" id="pipelineSteps"></ol>
+          </div>
+          <div class="pipeline-box">
+            <h4>Artefacts</h4>
+            <div class="pipeline-tags" id="pipelineTags"></div>
+          </div>
+        </div>
+        <div class="pipeline-box pipeline-preview">
+          <h4>Aperçu du code Pyomo</h4>
+          <pre><code class="language-python" id="pipelinePreviewCode"></code></pre>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" type="button" data-close="pipelineModal">
+        Fermer
+      </button>
+      <button
+        class="btn btn-secondary hidden"
+        type="button"
+        id="downloadPipelineDataBtn"
+      >
+        <i class="fas fa-download"></i> Télécharger données
+      </button>
+      <button
+        class="btn btn-primary"
+        type="button"
+        id="downloadPipelineNotebookBtn"
+      >
+        <i class="fas fa-download"></i> Télécharger notebook
+      </button>
+    </div>
+  </div>
+</div>
+{% endblock %}

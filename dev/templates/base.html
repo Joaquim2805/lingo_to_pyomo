@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% block title %}LingPy{% endblock %} — LINGO vers Pyomo</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Icons -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+    />
+
+    <!-- Syntax highlighting -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css"
+    />
+
+    <!-- App CSS -->
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/style.css') }}"
+    />
+
+    {% block head %}{% endblock %}
+  </head>
+
+  <body data-page="{% block page_id %}base{% endblock %}">
+    <!-- ===== Navbar ===== -->
+    <nav class="navbar">
+      <div class="container navbar-inner">
+        <a class="navbar-brand" href="{{ url_for('main.home') }}">
+          <span class="navbar-logo"><i class="fas fa-code-branch"></i></span>
+          <span class="navbar-brand-text">LingPy</span>
+        </a>
+
+        <button
+          class="navbar-toggle"
+          type="button"
+          id="navToggle"
+          aria-label="Menu"
+        >
+          <i class="fas fa-bars"></i>
+        </button>
+
+        <div class="navbar-nav" id="navMenu">
+          <a
+            class="navbar-link {% if nav_active == 'home' %}active{% endif %}"
+            href="{{ url_for('main.home') }}"
+          >
+            <i class="fas fa-home"></i> Accueil
+          </a>
+          <a
+            class="navbar-link {% if nav_active == 'tools' %}active{% endif %}"
+            href="{{ url_for('tools.workspace') }}"
+          >
+            <i class="fas fa-wand-magic-sparkles"></i> Outils
+          </a>
+          <a
+            class="navbar-link {% if nav_active == 'batch' %}active{% endif %}"
+            href="{{ url_for('batch.batch_page') }}"
+          >
+            <i class="fas fa-layer-group"></i> Traitement par lot
+          </a>
+          <a
+            class="navbar-link {% if nav_active == 'about' %}active{% endif %}"
+            href="{{ url_for('main.about') }}"
+          >
+            <i class="fas fa-circle-info"></i> À propos
+          </a>
+        </div>
+      </div>
+    </nav>
+
+    <!-- ===== Toast container ===== -->
+    <div class="toast-stack" id="toastContainer"></div>
+
+    <!-- ===== Main content ===== -->
+    <main>{% block content %}{% endblock %}</main>
+
+    <!-- ===== Modals ===== -->
+    {% block modals %}{% endblock %}
+
+    <!-- ===== Footer ===== -->
+    <footer class="footer">
+      <div class="container">
+        <div class="footer-panel">
+          <div class="footer-grid">
+            <div class="footer-block">
+              <h4><i class="fas fa-compass"></i> Présentation</h4>
+              <p>
+                Outil local destiné à convertir et préparer des modèles LINGO
+                pour une utilisation avec Pyomo.
+              </p>
+            </div>
+            <div class="footer-block">
+              <h4><i class="fas fa-cubes"></i> Technologies</h4>
+              <p>
+                Flask, Lark (parsing), Pyomo (cible) et Jupyter pour la
+                restitution finale en notebook.
+              </p>
+            </div>
+            <div class="footer-block">
+              <h4><i class="fas fa-people-group"></i> Auteurs</h4>
+              <p>Fausto Errico<br />Virginie Destuynder<br />Joaquim Jusseau</p>
+            </div>
+            <div class="footer-block">
+              <h4><i class="fab fa-github"></i> Source</h4>
+              <p>
+                Projet académique —
+                <a
+                  href="https://github.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >GitHub</a
+                >
+              </p>
+            </div>
+          </div>
+          <div class="footer-bottom">
+            <span>LingPy — Conversion LINGO vers Pyomo</span>
+            <span>2026</span>
+          </div>
+        </div>
+      </div>
+    </footer>
+
+    <!-- ===== Scripts ===== -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    {% block scripts %}{% endblock %}
+  </body>
+</html>

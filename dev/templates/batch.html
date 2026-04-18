@@ -1,0 +1,237 @@
+{% extends "base.html" %} {% block title %}Traitement par lot{% endblock %} {%
+block page_id %}batch{% endblock %} {% block content %}
+<section class="page-header">
+  <div class="container">
+    <h1>Traitement par lot</h1>
+    <p>
+      Importez plusieurs fichiers .lng et générez tous les notebooks en une
+      seule opération.
+    </p>
+  </div>
+</section>
+
+<section class="section" style="padding-top: 0">
+  <div class="container">
+    <div class="card">
+      <div class="card-body stack-lg">
+        <form id="batchForm" class="stack-lg">
+          <div class="tool-layout">
+            <div class="stack-lg">
+              <!-- Upload zone -->
+              <div class="stack">
+                <h3>Fichiers à traiter</h3>
+                <div class="upload-zone" id="batchUploadZone">
+                  <input
+                    type="file"
+                    name="files"
+                    accept=".lng"
+                    multiple
+                    id="batchFileInput"
+                  />
+                  <div class="upload-zone-icon">
+                    <i class="fas fa-cloud-arrow-up"></i>
+                  </div>
+                  <div class="upload-zone-text">
+                    Glissez vos fichiers .lng ici
+                  </div>
+                  <div class="upload-zone-hint">
+                    ou cliquez pour parcourir — plusieurs fichiers acceptés
+                  </div>
+                </div>
+                <div id="batchFileList" class="stack-sm"></div>
+              </div>
+
+              <!-- Dataset multi-select -->
+              <div class="stack">
+                <h3>Ou sélectionnez depuis le jeu de données</h3>
+                <div class="form-group">
+                  <select
+                    class="form-select"
+                    id="batchDatasetSelect"
+                    multiple
+                    size="8"
+                    style="min-height: 180px"
+                  >
+                    {% for file in files %}
+                    <option value="{{ file }}">{{ file }}</option>
+                    {% endfor %}
+                  </select>
+                  <span class="form-hint"
+                    >Maintenez Ctrl (ou Cmd) pour sélectionner plusieurs
+                    fichiers.</span
+                  >
+                </div>
+              </div>
+
+              <!-- Options -->
+              <div class="form-group">
+                <label class="form-label" for="batchSolver"
+                  ><i class="fas fa-gear"></i> Solveur</label
+                >
+                <select class="form-select" id="batchSolver" name="solver">
+                  <option value="highs" selected>HiGHS</option>
+                  <option value="gurobi">Gurobi</option>
+                  <option value="cplex">CPLEX</option>
+                  <option value="glpk">GLPK</option>
+                </select>
+              </div>
+
+              <div class="stack-sm">
+                <label class="option-card" for="batchDoClean">
+                  <input type="checkbox" id="batchDoClean" name="do_clean" />
+                  <span>
+                    <strong>Nettoyer les fichiers avant parsing</strong>
+                    <span
+                      >Supprime les commentaires et uniformise la casse.</span
+                    >
+                  </span>
+                </label>
+                <label class="option-card" for="batchExternalData">
+                  <input
+                    type="checkbox"
+                    id="batchExternalData"
+                    name="external_data"
+                    checked
+                  />
+                  <span>
+                    <strong>Externaliser les données (JSON ou DAT)</strong>
+                    <span
+                      >Sépare la structure du modèle et les données dans un
+                      fichier annexe.</span
+                    >
+                  </span>
+                </label>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="batchDataFormat"
+                  ><i class="fas fa-database"></i> Format des données</label
+                >
+                <select
+                  class="form-select"
+                  id="batchDataFormat"
+                  name="external_data_format"
+                >
+                  <option value="json" selected>JSON</option>
+                  <option value="dat">DAT (Pyomo / AMPL)</option>
+                </select>
+              </div>
+
+              <button
+                type="submit"
+                class="btn btn-primary btn-lg"
+                id="batchProcessBtn"
+              >
+                <i class="fas fa-rocket"></i> Traiter tous les fichiers
+              </button>
+            </div>
+
+            <aside class="info-panel">
+              <h3>Comment ça marche</h3>
+              <ul class="info-list">
+                <li>
+                  <i class="fas fa-upload"></i
+                  ><span
+                    >Importez ou sélectionnez un ou plusieurs fichiers
+                    .lng.</span
+                  >
+                </li>
+                <li>
+                  <i class="fas fa-cogs"></i
+                  ><span
+                    >Chaque fichier est parsé et converti en code Pyomo
+                    indépendamment.</span
+                  >
+                </li>
+                <li>
+                  <i class="fas fa-file-zipper"></i
+                  ><span
+                    >Une archive ZIP contenant tous les notebooks est proposée
+                    au téléchargement.</span
+                  >
+                </li>
+                <li>
+                  <i class="fas fa-circle-info"></i
+                  ><span
+                    >Les fichiers en erreur sont signalés sans bloquer les
+                    autres.</span
+                  >
+                </li>
+              </ul>
+            </aside>
+          </div>
+        </form>
+
+        <!-- Results area -->
+        <div id="batchResults" class="hidden stack-lg">
+          <div class="row" style="justify-content: space-between">
+            <h3 style="margin: 0">Résultats</h3>
+            <div class="row">
+              <span class="badge badge-success" id="batchSuccessCount"></span>
+              <span class="badge badge-error" id="batchErrorCount"></span>
+              <button class="btn btn-primary btn-sm" id="batchDownloadZip">
+                <i class="fas fa-file-zipper"></i> Télécharger ZIP
+              </button>
+            </div>
+          </div>
+
+          <div class="card card-sm" style="overflow-x: auto">
+            <table class="results-table" id="batchResultsTable">
+              <thead>
+                <tr>
+                  <th>Fichier</th>
+                  <th>Statut</th>
+                  <th>Détails</th>
+                  <th style="width: 100px">Action</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %} {% block modals %}
+<!-- Error modal -->
+<div class="modal-backdrop" id="errorModal" aria-hidden="true">
+  <div
+    class="modal-panel modal-panel-sm"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="errorTitle"
+  >
+    <div class="modal-header">
+      <div>
+        <h2 class="modal-title" id="errorTitle">Erreur</h2>
+        <p class="modal-subtitle">Le traitement a échoué.</p>
+      </div>
+      <button
+        class="modal-close"
+        type="button"
+        data-close="errorModal"
+        aria-label="Fermer"
+      >
+        <i class="fas fa-xmark"></i>
+      </button>
+    </div>
+    <div class="modal-body" style="padding: 1.25rem 1.5rem">
+      <div class="error-banner">
+        <i class="fas fa-triangle-exclamation"></i>
+        <div id="errorMessage">Une erreur s'est produite.</div>
+      </div>
+      <div
+        class="error-details hidden"
+        id="errorDetails"
+        style="margin-top: 1rem"
+      ></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger" type="button" data-close="errorModal">
+        Fermer
+      </button>
+    </div>
+  </div>
+</div>
+{% endblock %}

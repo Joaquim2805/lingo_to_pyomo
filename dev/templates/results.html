@@ -1,0 +1,153 @@
+{% extends "base.html" %} {% block title %}Résultats{% endblock %} {% block
+page_id %}results{% endblock %} {% block content %}
+<section class="page-header">
+  <div class="container">
+    <div class="row" style="justify-content: space-between">
+      <div>
+        <h1>Résultats</h1>
+        <p>Résumé de la conversion {{ job.type if job else "" }}.</p>
+      </div>
+      <a class="btn btn-outline" href="{{ url_for('tools.workspace') }}">
+        <i class="fas fa-arrow-left"></i> Retour aux outils
+      </a>
+    </div>
+  </div>
+</section>
+
+<section class="section" style="padding-top: 0">
+  <div class="container">
+    {% if job %}
+    <div class="tool-layout">
+      <!-- Main content -->
+      <div class="stack-lg">
+        <!-- Job info -->
+        <div class="card">
+          <div class="card-body stack">
+            <div class="row" style="justify-content: space-between">
+              <h3 style="margin: 0">
+                {% if job.type == 'generate' %}Notebook Pyomo {% elif job.type
+                == 'clean' %}Fichier nettoyé {% elif job.type == 'ole'
+                %}Conversion OLE {% elif job.type == 'pipeline' %}Pipeline
+                complet {% else %}Résultat {% endif %}
+              </h3>
+              <span class="badge badge-success"
+                ><i class="fas fa-check"></i> Terminé</span
+              >
+            </div>
+
+            <div class="grid-2">
+              <div class="stat-card">
+                <div class="stat-label">Type</div>
+                <div style="font-weight: 700">{{ job.type|capitalize }}</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label">Fichier</div>
+                <div style="font-weight: 700">
+                  {{ job.metadata.get('file_name',
+                  job.metadata.get('notebook_filename', '-')) }}
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              {% if job.type in ('generate', 'pipeline') %}
+              <form
+                method="POST"
+                action="{{ url_for('api.download', job_id=job.id, file_type='notebook') }}"
+                style="display: inline"
+              >
+                <button class="btn btn-primary" type="submit">
+                  <i class="fas fa-download"></i> Télécharger le notebook
+                </button>
+              </form>
+              {% endif %} {% if job.type in ('clean', 'ole') %}
+              <form
+                method="POST"
+                action="{{ url_for('api.download', job_id=job.id, file_type='lng') }}"
+                style="display: inline"
+              >
+                <button class="btn btn-primary" type="submit">
+                  <i class="fas fa-download"></i> Télécharger le .lng
+                </button>
+              </form>
+              {% endif %} {% if job.metadata.get('data_filename') %}
+              <form
+                method="POST"
+                action="{{ url_for('api.download', job_id=job.id, file_type='data') }}"
+                style="display: inline"
+              >
+                <button class="btn btn-secondary" type="submit">
+                  <i class="fas fa-download"></i> Télécharger les données
+                </button>
+              </form>
+              {% endif %}
+
+              <a
+                class="btn btn-outline"
+                href="{{ url_for('main.compare', job_id=job.id) }}"
+              >
+                <i class="fas fa-code-compare"></i> Vue comparée
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Code preview -->
+        <div class="code-panel">
+          <div class="code-panel-header">
+            <i class="fas fa-file-code"></i>
+            <span>Aperçu du code généré</span>
+          </div>
+          <div class="code-scroll">
+            <pre><code class="language-python" id="resultCode">{{ (job.metadata.get('pyomo_code') or job.metadata.get('cleaned') or job.metadata.get('explicit') or '')|e }}</code></pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sidebar -->
+      <aside class="info-panel">
+        <h3>Détails du job</h3>
+        <ul class="info-list">
+          <li>
+            <i class="fas fa-fingerprint"></i><span>ID : {{ job.id }}</span>
+          </li>
+          <li>
+            <i class="fas fa-clock"></i><span>Créé le : {{ job.created }}</span>
+          </li>
+          {% if job.metadata.get('solver') %}
+          <li>
+            <i class="fas fa-gear"></i
+            ><span>Solveur : {{ job.metadata.solver }}</span>
+          </li>
+          {% endif %} {% if job.metadata.get('has_ole') %}
+          <li>
+            <i class="fas fa-file-excel"></i
+            ><span>OLE détecté et converti</span>
+          </li>
+          {% endif %} {% if job.metadata.get('was_cleaned') %}
+          <li><i class="fas fa-broom"></i><span>Nettoyage appliqué</span></li>
+          {% endif %}
+        </ul>
+      </aside>
+    </div>
+    {% else %}
+    <div class="card">
+      <div class="card-body text-center">
+        <p class="text-secondary">Aucun résultat trouvé pour ce job.</p>
+        <a class="btn btn-outline" href="{{ url_for('tools.workspace') }}"
+          >Retour aux outils</a
+        >
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %} {% block scripts %}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll("#resultCode").forEach(function (el) {
+      if (el.textContent.trim()) hljs.highlightElement(el);
+    });
+  });
+</script>
+{% endblock %}

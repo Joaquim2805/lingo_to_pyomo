@@ -1,0 +1,30 @@
+set COMPARTIMENTS := Front Center Back ;
+set CHARGES := 1 2 3 4 ;
+param cap_poids :=
+  Front 12
+  Center 18
+  Back 10
+;
+param cap_volume :=
+  Front 7000
+  Center 9000
+  Back 5000
+;
+param poids :=
+  1 20
+  2 16
+  3 25
+  4 13
+;
+param volume :=
+  1 500
+  2 700
+  3 600
+  4 400
+;
+param gain :=
+  1 320
+  2 400
+  3 360
+  4 290
+;

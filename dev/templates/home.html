@@ -1,0 +1,435 @@
+{% extends "base.html" %} {% block title %}Accueil{% endblock %} {% block
+page_id %}home{% endblock %} {% block content %}
+<!-- ===== Hero ===== -->
+<section class="hero">
+  <div class="container hero-grid">
+    <div class="hero-card">
+      <span class="hero-eyebrow">
+        <i class="fas fa-sun"></i>
+        Conversion LINGO → Pyomo
+      </span>
+      <h1 class="hero-title">
+        Passez de <span class="accent">LINGO</span> à un notebook Pyomo sans
+        perdre le fil.
+      </h1>
+      <p class="hero-text">
+        Convertissez vos modèles LINGO en notebooks Jupyter exécutables, traitez
+        les fichiers reliés à Excel, nettoyez vos sources et lancez des
+        pipelines complets de préparation.
+      </p>
+      <div class="hero-actions">
+        <a
+          class="btn btn-primary btn-lg"
+          href="{{ url_for('tools.workspace') }}"
+        >
+          <i class="fas fa-wand-magic-sparkles"></i>
+          Utiliser les outils
+        </a>
+        <a
+          class="btn btn-outline btn-lg"
+          href="{{ url_for('batch.batch_page') }}"
+        >
+          <i class="fas fa-layer-group"></i>
+          Traitement par lot
+        </a>
+      </div>
+      <div class="hero-metrics">
+        <span class="hero-metric">
+          <i class="fas fa-file-lines"></i>
+          {{ files|length }} fichiers .lng disponibles
+        </span>
+        <span class="hero-metric">
+          <i class="fas fa-file-excel"></i>
+          {{ ole_files|length }} avec @OLE
+        </span>
+        <span class="hero-metric">
+          <i class="fas fa-flask"></i>
+          Utilisation locale
+        </span>
+      </div>
+    </div>
+
+    <div class="hero-panel">
+      <div>
+        <h3>En bref</h3>
+        <p class="text-secondary" style="font-size: 0.9rem">
+          Un outil conçu pour la recherche opérationnelle : importez,
+          convertissez et exportez en quelques clics.
+        </p>
+      </div>
+      <div class="hero-panel-stats">
+        <div class="stat-card">
+          <div class="stat-label">Entrée</div>
+          <div class="stat-value">LINGO</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Sortie</div>
+          <div class="stat-value">Pyomo</div>
+        </div>
+      </div>
+      <div class="flow-card">
+        <h4>Fonctionnement</h4>
+        <ul class="flow-list">
+          <li>
+            <span class="flow-num">1</span>
+            <span>Choisissez ou importez un fichier .lng</span>
+          </li>
+          <li>
+            <span class="flow-num">2</span>
+            <span>L'outil détecte, nettoie et transforme automatiquement</span>
+          </li>
+          <li>
+            <span class="flow-num">3</span>
+            <span>Téléchargez le notebook Pyomo prêt à exécuter</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== Quick Start ===== -->
+<section class="section">
+  <div class="container">
+    <div class="quick-start">
+      <h2>Démarrage rapide</h2>
+      <p>
+        Importez un fichier .lng ou choisissez un modèle du jeu de données pour
+        générer un notebook Pyomo.
+      </p>
+
+      <div class="quick-start-grid">
+        <!-- Upload zone -->
+        <div class="stack">
+          <h3 style="font-size: 1rem">
+            <i
+              class="fas fa-upload"
+              style="color: var(--primary); margin-right: 0.4rem"
+            ></i>
+            Importer un fichier
+          </h3>
+          <form id="quickUploadForm" class="stack">
+            <div class="upload-zone" id="quickUploadZone">
+              <input
+                type="file"
+                name="file_upload"
+                accept=".lng"
+                id="quickFileInput"
+              />
+              <div class="upload-zone-icon">
+                <i class="fas fa-cloud-arrow-up"></i>
+              </div>
+              <div class="upload-zone-text">Glissez un fichier .lng ici</div>
+              <div class="upload-zone-hint">ou cliquez pour parcourir</div>
+              <div class="upload-file-info hidden" id="quickFileInfo">
+                <i class="fas fa-file-code"></i>
+                <span id="quickFileName"></span>
+                <button type="button" class="remove-file" id="quickFileRemove">
+                  <i class="fas fa-xmark"></i>
+                </button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="quickSolver"
+                ><i class="fas fa-gear"></i> Solveur</label
+              >
+              <select class="form-select" id="quickSolver" name="solver_select">
+                <option value="highs" selected>HiGHS</option>
+                <option value="gurobi">Gurobi</option>
+                <option value="cplex">CPLEX</option>
+                <option value="glpk">GLPK</option>
+              </select>
+            </div>
+            <button
+              type="submit"
+              class="btn btn-primary"
+              id="quickGenerateBtn"
+              disabled
+            >
+              <i class="fas fa-wand-magic-sparkles"></i>
+              Générer le notebook
+            </button>
+          </form>
+        </div>
+
+        <!-- Dataset selection -->
+        <div class="stack">
+          <h3 style="font-size: 1rem">
+            <i
+              class="fas fa-database"
+              style="color: var(--primary); margin-right: 0.4rem"
+            ></i>
+            Depuis le jeu de données
+          </h3>
+          <form id="quickDatasetForm" class="stack">
+            <div class="form-group">
+              <label class="form-label" for="quickFileSelect"
+                ><i class="fas fa-file-lines"></i> Modèle LINGO</label
+              >
+              <select
+                class="form-select"
+                id="quickFileSelect"
+                name="file_select"
+                required
+              >
+                <option value="">Choisissez un fichier .lng</option>
+                {% for file in files %}
+                <option value="{{ file }}">{{ file }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="quickSolver2"
+                ><i class="fas fa-gear"></i> Solveur</label
+              >
+              <select
+                class="form-select"
+                id="quickSolver2"
+                name="solver_select"
+              >
+                <option value="highs" selected>HiGHS</option>
+                <option value="gurobi">Gurobi</option>
+                <option value="cplex">CPLEX</option>
+                <option value="glpk">GLPK</option>
+              </select>
+            </div>
+            <button type="submit" class="btn btn-primary" id="quickDatasetBtn">
+              <i class="fas fa-wand-magic-sparkles"></i>
+              Générer le notebook
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== Features ===== -->
+<section class="section" id="capabilities">
+  <div class="container">
+    <h2>Pourquoi utiliser cet outil</h2>
+    <p class="text-secondary mb-2" style="max-width: 60ch">
+      LingPy regroupe en une interface unique tout ce dont vous avez besoin pour
+      passer d'un modèle LINGO à un notebook Pyomo exploitable.
+    </p>
+    <div class="features-grid">
+      <article class="feature-card">
+        <div class="feature-icon"><i class="fas fa-bolt"></i></div>
+        <h3>Conversion instantanée</h3>
+        <p>
+          Transformez un fichier LINGO en code Pyomo prêt à exécuter, avec
+          détection automatique de la structure du modèle.
+        </p>
+      </article>
+      <article class="feature-card">
+        <div class="feature-icon"><i class="fas fa-file-excel"></i></div>
+        <h3>Gestion des sources Excel</h3>
+        <p>
+          Les appels @OLE sont automatiquement détectés et convertis en données
+          explicites intégrées au modèle.
+        </p>
+      </article>
+      <article class="feature-card">
+        <div class="feature-icon"><i class="fas fa-code-compare"></i></div>
+        <h3>Comparaison avant / après</h3>
+        <p>
+          Vérifiez le résultat côte à côte avec la source LINGO originale avant
+          de télécharger le notebook.
+        </p>
+      </article>
+      <article class="feature-card">
+        <div class="feature-icon"><i class="fas fa-broom"></i></div>
+        <h3>Nettoyage intelligent</h3>
+        <p>
+          Suppression des commentaires, normalisation de la casse et retrait des
+          blocs vides en un clic.
+        </p>
+      </article>
+      <article class="feature-card">
+        <div class="feature-icon"><i class="fas fa-layer-group"></i></div>
+        <h3>Traitement par lot</h3>
+        <p>
+          Importez plusieurs fichiers et obtenez tous les notebooks générés dans
+          une archive ZIP.
+        </p>
+      </article>
+      <article class="feature-card">
+        <div class="feature-icon"><i class="fas fa-diagram-project"></i></div>
+        <h3>Pipeline complet</h3>
+        <p>
+          Enchaînez détection OLE, nettoyage, parsing et génération
+          automatiquement en une seule étape.
+        </p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ===== Process ===== -->
+<section class="section" id="guide">
+  <div class="container">
+    <h2>Comment ça marche</h2>
+    <p class="text-secondary mb-2">
+      Un parcours simple en quatre étapes pour obtenir votre notebook Pyomo.
+    </p>
+    <div class="process-grid">
+      <article class="process-card">
+        <span class="process-num">1</span>
+        <h3>Choisir l'action</h3>
+        <p>
+          Conversion directe, nettoyage, traitement OLE ou pipeline complet
+          selon vos besoins.
+        </p>
+      </article>
+      <article class="process-card">
+        <span class="process-num">2</span>
+        <h3>Importer le fichier</h3>
+        <p>
+          Sélectionnez un modèle du jeu de données ou glissez votre propre
+          fichier .lng.
+        </p>
+      </article>
+      <article class="process-card">
+        <span class="process-num">3</span>
+        <h3>Vérifier le résultat</h3>
+        <p>
+          L'aperçu comparatif permet de valider le code Pyomo généré avant
+          téléchargement.
+        </p>
+      </article>
+      <article class="process-card">
+        <span class="process-num">4</span>
+        <h3>Télécharger</h3>
+        <p>
+          Récupérez le notebook, le fichier nettoyé ou l'archive complète selon
+          l'action choisie.
+        </p>
+      </article>
+    </div>
+  </div>
+</section>
+{% endblock %} {% block modals %}
+<!-- Preview modal (reused from quick-start) -->
+<div class="modal-backdrop" id="previewModal" aria-hidden="true">
+  <div
+    class="modal-panel"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="previewTitle"
+  >
+    <div class="modal-header">
+      <div>
+        <h2 class="modal-title" id="previewTitle">Aperçu du résultat</h2>
+        <p class="modal-subtitle" id="previewSubtitle">
+          Vérifiez le résultat avant téléchargement.
+        </p>
+      </div>
+      <button
+        class="modal-close"
+        type="button"
+        data-close="previewModal"
+        aria-label="Fermer"
+      >
+        <i class="fas fa-xmark"></i>
+      </button>
+    </div>
+
+    <div class="view-toggle">
+      <div class="toggle-group">
+        <button class="toggle-btn active" type="button" id="singleViewBtn">
+          <i class="fas fa-file-code"></i> Vue simple
+        </button>
+        <button class="toggle-btn" type="button" id="compareViewBtn">
+          <i class="fas fa-table-columns"></i> Comparée
+        </button>
+      </div>
+      <div class="preview-meta" id="previewMeta"></div>
+    </div>
+
+    <div class="modal-body" id="previewBody">
+      <div class="preview-single">
+        <div class="code-scroll">
+          <pre><code class="language-python" id="previewCode"></code></pre>
+        </div>
+      </div>
+      <div class="preview-compare hidden">
+        <div class="compare-grid">
+          <div class="compare-col">
+            <div class="compare-col-header">
+              <i class="fas fa-file-lines"></i>
+              <span id="leftTitle">Source LINGO</span>
+            </div>
+            <pre><code id="leftCode"></code></pre>
+          </div>
+          <div class="compare-col">
+            <div class="compare-col-header">
+              <i class="fas fa-file-code"></i>
+              <span id="rightTitle">Pyomo généré</span>
+            </div>
+            <pre><code class="language-python" id="rightCode"></code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-outline" type="button" data-close="previewModal">
+        Fermer
+      </button>
+      <a
+        class="btn btn-outline"
+        id="previewCompareLink"
+        href="#"
+        target="_blank"
+        style="display: none"
+      >
+        <i class="fas fa-up-right-from-square"></i> Ouvrir la comparaison
+      </a>
+      <button class="btn btn-primary" type="button" id="previewDownloadBtn">
+        <i class="fas fa-download"></i> Télécharger
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Error modal -->
+<div class="modal-backdrop" id="errorModal" aria-hidden="true">
+  <div
+    class="modal-panel modal-panel-sm"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="errorTitle"
+  >
+    <div class="modal-header">
+      <div>
+        <h2 class="modal-title" id="errorTitle">Erreur</h2>
+        <p class="modal-subtitle">Le serveur a retourné une erreur.</p>
+      </div>
+      <button
+        class="modal-close"
+        type="button"
+        data-close="errorModal"
+        aria-label="Fermer"
+      >
+        <i class="fas fa-xmark"></i>
+      </button>
+    </div>
+    <div class="modal-body" style="padding: 1.25rem 1.5rem">
+      <div class="error-banner">
+        <i class="fas fa-triangle-exclamation"></i>
+        <div id="errorMessage">Une erreur s'est produite.</div>
+      </div>
+      <div
+        class="error-details hidden"
+        id="errorDetails"
+        style="margin-top: 1rem"
+      ></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger" type="button" data-close="errorModal">
+        Fermer
+      </button>
+    </div>
+  </div>
+</div>
+{% endblock %}
