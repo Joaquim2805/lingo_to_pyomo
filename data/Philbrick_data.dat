@@ -1,0 +1,61 @@
+set PRODUITS := P1 P2 ;
+set MOIS := fevrier mars ;
+set USINES := U1 U2 ;
+set REGION := Est Ouest ;
+set PROCEDES := PR1 PR2 ;
+param Revenu :=
+  P1 83
+  P2 112
+;
+param COUT_STOCK :=
+  P1 3
+  P2 4
+;
+param JOURS_PROD :=
+  fevrier 20
+  mars 23
+;
+param CAP :=
+  Est 1000
+  Ouest 1000
+;
+param DEMANDE :=
+  P1 Est fevrier 3600
+  P1 Est mars 6300
+  P1 Ouest fevrier 4900
+  P1 Ouest mars 4200
+  P2 Est fevrier 4500
+  P2 Est mars 5400
+  P2 Ouest fevrier 5100
+  P2 Ouest mars 6000
+;
+param COUT_TRANSPORT :=
+  P1 U1 Est 0
+  P1 U1 Ouest 9
+  P1 U2 Est 9
+  P1 U2 Ouest 0
+  P2 U1 Est 0
+  P2 U1 Ouest 7
+  P2 U2 Est 7
+  P2 U2 Ouest 0
+;
+param CoutProd :=
+  P1 U1 PR1 62
+  P1 U1 PR2 59
+  P1 U2 PR1 61
+  P1 U2 PR2 65
+  P2 U1 PR1 78
+  P2 U1 PR2 85
+  P2 U2 PR1 89
+  P2 U2 PR2 86
+;
+param TAUX_PROD :=
+  P1 U1 PR1 100
+  P1 U1 PR2 140
+  P1 U2 PR1 130
+  P1 U2 PR2 110
+  P2 U1 PR1 120
+  P2 U1 PR2 150
+  P2 U2 PR1 160
+  P2 U2 PR2 130
+;

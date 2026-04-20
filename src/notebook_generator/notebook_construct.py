@@ -5,8 +5,29 @@ import re
 
 def split_pyomo_sections(pyomo_code: str):
     """
-    Découpe le code Pyomo en sections à partir des commentaires ======
-    Retourne une liste de tuples (section_name, section_code)
+    Découpe un script Pyomo en sections nommées pour la mise en notebook.
+
+    Le générateur Pyomo produit du code balisé par des commentaires en majuscules
+    (ex: ``# SETS``, ``# PARAMS``, ``# VARIABLES``, ``# CONSTRAINTS``). Cette
+    fonction utilise ces balises pour regrouper les lignes par section et retourner
+    une liste de tuples ``(titre, code)`` prête à être transformée en cellules Jupyter.
+
+    Args:
+        pyomo_code (str): Code source Pyomo complet, tel que produit par
+            :func:`~pyomo_generator.json_parser.generate_pyomo_code`.
+
+    Returns:
+        list[tuple[str, str]]: Liste ordonnée de ``(nom_section, code_section)``.
+            Le premier tuple a toujours pour titre ``"MODEL"`` si aucune balise
+            n'est trouvée en tête de fichier.
+
+    Example:
+        ```python
+        sections = split_pyomo_sections(pyomo_code)
+        for title, code in sections:
+            print(f"=== {title} ===")
+            print(code)
+        ```
     """
 
     sections = []
@@ -44,7 +65,51 @@ def generate_pyomo_notebook(
     external_data_format: str = "json",
 ):
     """
-    Génère un notebook Jupyter structuré avec une cellule par composant Pyomo.
+    Génère un notebook Jupyter structuré à partir d'un script Pyomo.
+
+    Produit un fichier `.ipynb` organisé en sections lisibles :
+
+    1. **Titre** — cellule markdown globale.
+    2. **Imports** — `pyomo.environ`, `SolverFactory`, `pandas`.
+    3. **Chargement des données** — cellule `load_pyomo_data()` si `external_data=True`.
+    4. **Sections du modèle** — une paire (markdown + code) par section détectée
+       (SETS, PARAMS, VARIABLES, CONSTRAINTS, OBJECTIVE…).
+    5. **Résolution** — appel `solver.solve(model)` avec affichage du statut.
+    6. **Valeur objective** — extraction et affichage de l'objectif optimal.
+    7. **Variables de décision** — tableau pandas des valeurs non nulles.
+
+    Args:
+        pyomo_code (str): Code Pyomo complet généré par
+            :func:`~pyomo_generator.json_parser.generate_pyomo_code`.
+        solver (str): Nom du solveur Pyomo à utiliser (ex: ``"highs"``, ``"gurobi"``,
+            ``"glpk"``). Par défaut ``"gurobi"``.
+        filename (str | Path): Chemin de sortie du notebook (`.ipynb`).
+            Par défaut ``"model.ipynb"``.
+        external_data (bool): Si ``True``, ajoute une cellule qui charge les données
+            depuis un fichier externe (JSON ou DAT) via `load_pyomo_data()`.
+        json_data_filename (str): Chemin par défaut du fichier JSON de données externes.
+            Utilisé uniquement si `data_filename` est ``None``.
+        data_filename (str | None): Chemin effectif du fichier de données. Surcharge
+            `json_data_filename` si fourni.
+        external_data_format (str): Format du fichier de données externes : ``"json"``
+            ou ``"dat"``.
+
+    Returns:
+        None: Le notebook est écrit sur disque à l'emplacement `filename`.
+
+    Side Effects:
+        Crée ou écrase le fichier `.ipynb` spécifié par `filename`.
+
+    Example:
+        ```python
+        generate_pyomo_notebook(
+            pyomo_code=code,
+            solver="highs",
+            filename="output/forets_pipeline.ipynb",
+            external_data=True,
+            data_filename="output/forets_data.json",
+        )
+        ```
     """
 
     nb_cells = []

@@ -17,8 +17,17 @@ import re
 
 def replace_lingo_calls(expr):
     """
-    Remplace les appels LINGO du type f(i) ou f(i,j)
-    par des accès Pyomo model.f[i] ou model.f[i,j]
+    Remplace les appels LINGO de la forme ``f(i)`` ou ``f(i, j)`` par des accès Pyomo.
+
+    Transforme :
+    - ``f(i, j)`` → ``model.f[i, j]``
+    - ``f(i)`` → ``model.f[i]``
+
+    Args:
+        expr (str): Expression LINGO contenant des appels de type ``attr(alias)``.
+
+    Returns:
+        str: Expression avec les appels remplacés par la syntaxe d'accès Pyomo.
     """
 
     # f(i,j) → model.f[i,j]
@@ -39,7 +48,17 @@ def replace_lingo_calls(expr):
 
 
 def _split_index_args(index_text):
-    """Split index arguments while preserving nested parentheses expressions."""
+    """Découpe une liste d'indices en respectant la profondeur des parenthèses.
+
+    Contrairement à ``str.split(',')``, cette fonction ne coupe pas à
+    l'intérieur d'une expression parenthésée (ex: ``model.X[a, b], c``).
+
+    Args:
+        index_text (str): Chaîne contenant les indices séparés par des virgules.
+
+    Returns:
+        list[str]: Liste des indices individuels, chacun stripé.
+    """
     parts = []
     current = []
     depth = 0
@@ -65,7 +84,17 @@ def _split_index_args(index_text):
 
 
 def _format_index_literal(value):
-    """Format mapped index literal for code generation."""
+    """Formate une valeur d'indice pour la génération de code Pyomo.
+
+    - Les entiers et flottants sont représentés comme littéraux numériques.
+    - Les chaînes non numériques sont encadrées de guillemets (``repr()``).
+
+    Args:
+        value (str | int | float): Valeur à formater.
+
+    Returns:
+        str: Représentation en chaîne prête à insérer dans du code Python.
+    """
     if isinstance(value, str):
         token = value.strip()
         if re.fullmatch(r"[+-]?\d+", token):
@@ -77,7 +106,21 @@ def _format_index_literal(value):
 
 
 def remap_numeric_indices_in_model_access(expr, symbol_index_sets, sets):
-    """Map numeric LINGO indices (1-based) to actual set elements in model accesses."""
+    """Remplace les indices numériques LINGO (base 1) par les éléments réels des ensembles.
+
+    LINGO utilise des indices 1-basés pour accéder aux éléments d'un ensemble.
+    Cette fonction traduit par exemple ``model.Cap[1]`` en ``model.Cap["Paris"]``
+    si l'élément 1 de l'ensemble associé est ``"Paris"``.
+
+    Args:
+        expr (str): Expression Pyomo contenant des accès ``model.symbol[idx]``.
+        symbol_index_sets (dict): ``{nom_symbole: [nom_ensemble, ...]}}`` indiquant
+            le ou les ensembles indexant chaque symbole.
+        sets (dict): ``{nom_ensemble: [elem1, elem2, ...]}`` liste des éléments.
+
+    Returns:
+        str: Expression avec les indices numériques remplacés par les littéraux d'éléments.
+    """
     if not symbol_index_sets:
         return expr
 
@@ -120,7 +163,20 @@ def remap_numeric_indices_in_model_access(expr, symbol_index_sets, sets):
 
 
 def add_missing_single_dim_indices(expr, symbol_index_sets, alias_to_set):
-    """Add missing index to bare model.symbol when symbol has one known dimension."""
+    """Ajoute l'indice manquant aux symboles ``model.X`` indexés par un seul ensemble.
+
+    Lorsqu'un symbole est utilisé sans crochets (``model.Cap``) mais qu'il est déclaré
+    comme indexé par un ensemble simple, cette fonction ajoute automatiquement l'alias
+    de la boucle courante : ``model.Cap[i]``.
+
+    Args:
+        expr (str): Expression Pyomo potentiellement avec des accès non indexés.
+        symbol_index_sets (dict): ``{nom_symbole: [nom_ensemble]}``.
+        alias_to_set (dict): ``{alias: nom_ensemble}`` déduit des clauses ``for`` de l'expression.
+
+    Returns:
+        str: Expression avec les indices manquants ajoutés.
+    """
     if not symbol_index_sets or not alias_to_set:
         return expr
 
@@ -147,7 +203,20 @@ def add_missing_single_dim_indices(expr, symbol_index_sets, alias_to_set):
 
 
 def collapse_uniform_bare_indexed_params(expr, symbol_index_sets, param_values):
-    """Replace bare indexed params with a scalar literal if all indexed values are equal."""
+    """Remplace un paramètre non indexé par sa valeur scalaire s'il est uniforme.
+
+    Si toutes les valeurs d'un paramètre indexé sont identiques et qu'il est utilisé
+    sans indice dans l'expression, remplace ``model.Cout`` par la valeur littérale
+    (ex: ``5.0``) pour simplifier le code généré.
+
+    Args:
+        expr (str): Expression Pyomo à simplifier.
+        symbol_index_sets (dict): ``{nom_symbole: [ensembles]}}``.
+        param_values (dict): ``{nom_param: [valeurs]}`` des paramètres connus.
+
+    Returns:
+        str: Expression simplifiée.
+    """
     if not symbol_index_sets or not param_values:
         return expr
 
@@ -176,7 +245,20 @@ def collapse_uniform_bare_indexed_params(expr, symbol_index_sets, param_values):
 
 
 def extract_alias_to_set(expr, sets, cartesian_sets):
-    """Extract alias->set mapping from comprehension clauses in a Pyomo expression."""
+    """Extrait le dictionnaire ``{alias: ensemble}`` depuis les clauses ``for`` d'une expression Pyomo.
+
+    Analyse les constructions ``for alias in model.Set`` et
+    ``for (a, b) in model.CartSet`` pour construire une correspondance
+    alias → nom de l'ensemble (ou sous-ensemble cartésien).
+
+    Args:
+        expr (str): Expression Pyomo contenant des clauses ``for``.
+        sets (dict): Ensembles simples connus.
+        cartesian_sets (dict): Ensembles cartésiens connus.
+
+    Returns:
+        dict: ``{alias: nom_ensemble}`` utilisable pour l'indexation automatique.
+    """
     alias_to_set = {}
 
     for alias_name, set_name in re.findall(
@@ -197,7 +279,20 @@ def extract_alias_to_set(expr, sets, cartesian_sets):
 
 
 def add_missing_multi_dim_indices(expr, symbol_index_sets, alias_to_set):
-    """Add missing indices to bare model.symbol for symbols with >=2 dimensions."""
+    """Ajoute les indices manquants aux symboles multi-dimensionnels.
+
+    Complément de :func:`add_missing_single_dim_indices` pour les symboles
+    indexés par plusieurs ensembles : ajoute ``[a, b]`` si le symbole est
+    déclaré avec deux dimensions et que les alias ``a`` et ``b`` sont connus.
+
+    Args:
+        expr (str): Expression Pyomo à compléter.
+        symbol_index_sets (dict): ``{nom_symbole: [ens1, ens2, ...]}}``.
+        alias_to_set (dict): ``{alias: ensemble}`` déduit des clauses ``for``.
+
+    Returns:
+        str: Expression avec les indices manquants.
+    """
     if not symbol_index_sets or not alias_to_set:
         return expr
 
@@ -320,7 +415,20 @@ def auto_index_constraint_symbols(
 
 def convert_nested_sums(expr, sets, cartesian_sets):
     """
-    Convertit de manière récursive les @SUM imbriquées en sum() Pyomo.
+    Convertit de manière récursive les ``@SUM`` imbriquées en ``sum()`` Pyomo.
+
+    Traite l'expression de l'intérieur vers l'extérieur (innermost first) pour
+    gérer correctement les ``@SUM`` imbriquées. Chaque ``@SUM`` trouvée est
+    traduite par :func:`translate_sum_to_pyomo`.
+
+    Args:
+        expr (str): Expression LINGO pouvant contenir plusieurs ``@SUM`` imbriquées.
+        sets (dict): Ensembles simples du modèle.
+        cartesian_sets (dict): Ensembles cartésiens du modèle.
+
+    Returns:
+        str: Expression avec toutes les ``@SUM`` converties en ``sum(... for ... in ...)``,
+            ou expression inchangée si la traduction échoue.
     """
     # Chercher le premier @SUM de l'intérieur (le plus interne)
     # pour traiter de l'intérieur vers l'extérieur
@@ -364,8 +472,23 @@ def convert_nested_sums(expr, sets, cartesian_sets):
 
 def translate_sum_to_pyomo(expr, sets, cartesian_sets):
     """
-    Traduit une expression LINGO de la forme @SUM(...) en une expression Pyomo.
-    Gère les @SUM imbriquées de manière récursive.
+    Traduit une expression ``@SUM(Set(alias): inner_expr)`` en ``sum()`` Pyomo.
+
+    Gère les cas suivants :
+    - Ensembles simples : ``@SUM(PRODUITS(i): cout(i))`` → ``sum(model.cout[i] for i in model.PRODUITS)``
+    - Ensembles cartésiens : ``@SUM(ARC(i, j): cap(i, j))`` → ``sum(model.cap[i, j] for (i, j) in model.ARC)``
+    - ``@SUM`` imbriquées via :func:`convert_nested_sums`.
+
+    Args:
+        expr (str): Expression ``@SUM(...)`` à traduire.
+        sets (dict): Ensembles simples du modèle.
+        cartesian_sets (dict): Ensembles cartésiens du modèle.
+
+    Returns:
+        str: Expression Pyomo ``sum(...)``.
+
+    Raises:
+        ValueError: Si le format ``@SUM`` n'est pas reconnu.
     """
 
     expr = expr.strip()
@@ -891,7 +1014,26 @@ def translate_constraint_with_sum(
     symbol_index_sets=None,
 ):
     """
-    Traduit une contrainte LINGO avec @SUM en Pyomo, en gardant l'opérateur et le côté droit.
+    Traduit une contrainte LINGO contenant ``@SUM`` en contrainte Pyomo.
+
+    Détecte l'opérateur de comparaison (``<=``, ``>=``, ``=``), traduit le membre gauche
+    (contenant le ``@SUM``) et le membre droit, puis assemble la contrainte Pyomo
+    avec l'opérateur Pyomo correct (``<=``, ``>=``, ``==``).
+
+    Args:
+        c (str): Chaîne de contrainte LINGO, ex. ``"@SUM(PROD(i): cout(i)) <= 100"``.
+        sets (dict): Ensembles simples du modèle.
+        cartesian_sets (dict): Ensembles cartésiens du modèle.
+        declared_vars (list): Variables de décision déclarées (pour le remplacement).
+        scalar_vars (list): Variables scalaires détectées.
+        declared_params (dict): Paramètres déclarés (pour éviter de les préfixer).
+        symbol_index_sets (dict | None): ``{symbole: [ensembles]}`` pour l'indexation auto.
+
+    Returns:
+        str: Contrainte Pyomo sous forme de chaîne, ex. ``"model.Cap[i, j] <= 100"``.
+
+    Raises:
+        ValueError: Si l'opérateur de comparaison ne peut être détecté.
     """
     # Recherche de l'opérateur
     m = re.match(r"(.+?)(<=|>=|=)(.+)", c.replace(" ", ""))
@@ -1146,17 +1288,6 @@ def generate_pyomo_code(
     data_filename="./data/pyomo_data.json",
     external_data_format="json",
 ):
-    (
-        sets,
-        cartesian_sets,
-        params,
-        variables,
-        constraints,
-        for_loops,
-        objective,
-        direction,
-    ) = parse_lingo_json(model_json)
-
     """
     Génère le code source Pyomo (string) à partir d'un JSON LINGO parsé.
 
@@ -1178,15 +1309,30 @@ def generate_pyomo_code(
 
     Args:
         model_json (dict): JSON déjà désérialisé décrivant le modèle LINGO.
+        external_data (bool): Si ``True``, génère du code qui charge les paramètres depuis un
+            fichier externe (JSON ou DAT) plutôt que de les inliner dans le script.
+        data_filename (str): Chemin du fichier de données externe (utilisé si `external_data` est ``True``).
+        external_data_format (str): Format du fichier de données : ``"json"`` ou ``"dat"``.
 
     Returns:
-        str: Code Python (Pyomo) complet prêt à être écrit dans un fichier *.py.
+        str: Code Python (Pyomo) complet prêt à être écrit dans un fichier ``.py`` ou inséré dans
+            un notebook Jupyter.
 
     Raises:
         ValueError: Si des éléments structurels essentiels manquent dans le JSON.
-        Exception: Les erreurs internes sont capturées et commentées dans le code de sortie
-                plutôt que de faire échouer la génération dans la plupart des cas.
+        Exception: Les erreurs internes de traduction sont capturées et commentées dans le code
+            de sortie (avec ``# TODO``) plutôt que de faire échouer la génération.
     """
+    (
+        sets,
+        cartesian_sets,
+        params,
+        variables,
+        constraints,
+        for_loops,
+        objective,
+        direction,
+    ) = parse_lingo_json(model_json)
 
     def add_section(title):
         lines.append("")

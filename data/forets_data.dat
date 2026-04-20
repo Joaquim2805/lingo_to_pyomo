@@ -1,20 +1,20 @@
 set MATIERES := Epinette Sapin ;
 set PRODUITS := Planche Contreplaque ;
-param dispo :=
+param DISPO :=
   Epinette 150000
   Sapin 200000
 ;
-param gain :=
+param Gain :=
   Planche 200
   Contreplaque 300
 ;
-param engagement :=
+param Engagement :=
   Planche 40
   Contreplaque 30
 ;
-param utilisation :=
-  [Epinette,Planche] 1000
-  [Epinette,Contreplaque] 2000
-  [Sapin,Planche] 1200
-  [Sapin,Contreplaque] 4000
+param UTILISATION :=
+  Epinette Planche 1000
+  Epinette Contreplaque 2000
+  Sapin Planche 1200
+  Sapin Contreplaque 4000
 ;

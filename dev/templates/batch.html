@@ -1,195 +1,243 @@
 {% extends "base.html" %} {% block title %}Traitement par lot{% endblock %} {%
 block page_id %}batch{% endblock %} {% block content %}
-<section class="page-header">
+<section class="batch-hero">
   <div class="container">
-    <h1>Traitement par lot</h1>
-    <p>
-      Importez plusieurs fichiers .lng et générez tous les notebooks en une
-      seule opération.
-    </p>
+    <div class="batch-hero-content">
+      <div class="batch-hero-badge">
+        <i class="fas fa-layer-group"></i> Traitement par lot
+      </div>
+      <h1>
+        Convertissez vos modèles<br /><span class="gradient-text"
+          >en un seul clic</span
+        >
+      </h1>
+      <p>
+        Importez vos fichiers .lng, associez les données Excel si nécessaire, et
+        générez tous les notebooks Pyomo d'un coup.
+      </p>
+    </div>
   </div>
 </section>
 
-<section class="section" style="padding-top: 0">
+<section class="section" style="padding-top: 0; margin-top: -1.5rem">
   <div class="container">
-    <div class="card">
-      <div class="card-body stack-lg">
-        <form id="batchForm" class="stack-lg">
-          <div class="tool-layout">
-            <div class="stack-lg">
-              <!-- Upload zone -->
-              <div class="stack">
-                <h3>
-                  <i class="fas fa-upload" style="color: var(--primary)"></i>
-                  Importer des fichiers
-                </h3>
-                <div class="upload-zone upload-zone-batch" id="batchUploadZone">
-                  <input
-                    type="file"
-                    accept=".lng,.xlsx,.xls"
-                    multiple
-                    id="batchFileInput"
-                    style="display: none"
-                  />
-                  <div class="upload-zone-icon">
-                    <i class="fas fa-cloud-arrow-up"></i>
-                  </div>
-                  <div class="upload-zone-text">Glissez vos fichiers ici</div>
-                  <div class="upload-zone-hint">
-                    Fichiers .lng et .xlsx acceptés — plusieurs fichiers
-                    possible
-                  </div>
-                </div>
-                <div id="batchFileList" class="batch-file-grid"></div>
+    <form id="batchForm">
+      <div class="batch-layout">
+        <!-- ====== LEFT: Inputs ====== -->
+        <div class="batch-main">
+          <!-- Upload zone — hero element -->
+          <div class="batch-upload-wrapper">
+            <div
+              class="upload-zone upload-zone-batch upload-zone-hero"
+              id="batchUploadZone"
+            >
+              <input
+                type="file"
+                accept=".lng,.xlsx,.xls"
+                multiple
+                id="batchFileInput"
+                style="display: none"
+              />
+              <input
+                type="file"
+                webkitdirectory
+                multiple
+                id="batchFolderInput"
+                style="display: none"
+              />
+              <div class="upload-zone-orb"></div>
+              <div class="upload-zone-icon-hero">
+                <i class="fas fa-cloud-arrow-up"></i>
               </div>
-
-              <!-- Dataset multi-select -->
-              <div class="stack">
-                <h3>
-                  <i class="fas fa-database" style="color: var(--primary)"></i>
-                  Ou sélectionner depuis le jeu de données
-                </h3>
-                <div class="form-group">
-                  <select
-                    class="form-select"
-                    id="batchDatasetSelect"
-                    multiple
-                    size="8"
-                    style="min-height: 180px"
-                  >
-                    {% for file in files %}
-                    <option value="{{ file }}">{{ file }}</option>
-                    {% endfor %}
-                  </select>
-                  <span class="form-hint"
-                    >Maintenez Ctrl (ou Cmd) pour sélectionner plusieurs
-                    fichiers.</span
-                  >
-                </div>
+              <div class="upload-zone-text">
+                Glissez vos fichiers ou un dossier ici
               </div>
-
-              <!-- Options -->
-              <div class="form-group">
-                <label class="form-label" for="batchSolver"
-                  ><i class="fas fa-gear"></i> Solveur</label
+              <div class="upload-zone-hint">
+                Fichiers <strong>.lng</strong> et
+                <strong>.xlsx</strong> acceptés — dossiers et sélection multiple
+                supportés
+              </div>
+              <div class="upload-zone-cta">
+                <span class="btn btn-outline btn-sm" id="batchBrowseFiles"
+                  ><i class="fas fa-file"></i> Parcourir</span
                 >
-                <select class="form-select" id="batchSolver" name="solver">
-                  <option value="highs" selected>HiGHS</option>
-                  <option value="gurobi">Gurobi</option>
-                  <option value="cplex">CPLEX</option>
-                  <option value="glpk">GLPK</option>
-                </select>
-              </div>
-
-              <div class="stack-sm">
-                <label class="option-card" for="batchDoClean">
-                  <input type="checkbox" id="batchDoClean" name="do_clean" />
-                  <span>
-                    <strong>Nettoyer les fichiers avant parsing</strong>
-                    <span
-                      >Supprime les commentaires et uniformise la casse.</span
-                    >
-                  </span>
-                </label>
-                <label class="option-card" for="batchExternalData">
-                  <input
-                    type="checkbox"
-                    id="batchExternalData"
-                    name="external_data"
-                    checked
-                  />
-                  <span>
-                    <strong>Externaliser les données (JSON ou DAT)</strong>
-                    <span
-                      >Sépare la structure du modèle et les données dans un
-                      fichier annexe.</span
-                    >
-                  </span>
-                </label>
-              </div>
-
-              <div class="form-group">
-                <label class="form-label" for="batchDataFormat"
-                  ><i class="fas fa-database"></i> Format des données</label
+                <span class="btn btn-outline btn-sm" id="batchBrowseFolder"
+                  ><i class="fas fa-folder-open"></i> Dossier</span
                 >
-                <select
-                  class="form-select"
-                  id="batchDataFormat"
-                  name="external_data_format"
-                >
-                  <option value="json" selected>JSON</option>
-                  <option value="dat">DAT (Pyomo / AMPL)</option>
-                </select>
               </div>
+            </div>
+          </div>
 
-              <button
-                type="submit"
-                class="btn btn-primary btn-lg"
-                id="batchProcessBtn"
+          <!-- File list (animated cards) -->
+          <div id="batchFileList" class="batch-file-grid"></div>
+
+          <!-- Counter bar (appears when files are added) -->
+          <div id="batchFileCount" class="batch-file-count hidden">
+            <span id="batchFileCountText"></span>
+            <button type="button" class="batch-clear-btn" id="batchClearAll">
+              <i class="fas fa-trash-can"></i> Tout retirer
+            </button>
+          </div>
+
+          <!-- Dataset selector — collapsed by default -->
+          <details class="batch-dataset-details" id="batchDatasetDetails">
+            <summary class="batch-dataset-summary">
+              <i class="fas fa-database"></i>
+              <span>Ou sélectionner depuis le jeu de données existant</span>
+              <i class="fas fa-chevron-down batch-dataset-chevron"></i>
+            </summary>
+            <div class="batch-dataset-body">
+              <select
+                class="form-select"
+                id="batchDatasetSelect"
+                multiple
+                size="6"
               >
-                <i class="fas fa-rocket"></i> Traiter tous les fichiers
-              </button>
+                {% for file in files %}
+                <option value="{{ file }}">{{ file }}</option>
+                {% endfor %}
+              </select>
+              <span class="form-hint">
+                <i class="fas fa-info-circle"></i> Maintenez Cmd pour sélection
+                multiple.
+              </span>
             </div>
+          </details>
 
-            <aside class="info-panel">
-              <h3>Comment ça marche</h3>
-              <ul class="info-list">
-                <li>
-                  <i class="fas fa-upload"></i
-                  ><span
-                    >Importez ou sélectionnez un ou plusieurs fichiers
-                    .lng.</span
-                  >
-                </li>
-                <li>
-                  <i class="fas fa-file-excel"></i
-                  ><span
-                    >Si un fichier contient @OLE, associez le .xlsx
-                    correspondant.</span
-                  >
-                </li>
-                <li>
-                  <i class="fas fa-cogs"></i
-                  ><span
-                    >Chaque fichier est parsé et converti en code Pyomo
-                    indépendamment.</span
-                  >
-                </li>
-                <li>
-                  <i class="fas fa-file-zipper"></i
-                  ><span
-                    >Une archive ZIP contenant tous les notebooks est proposée
-                    au téléchargement.</span
-                  >
-                </li>
-              </ul>
-            </aside>
+          <!-- Options: compact 2-column grid -->
+          <div class="batch-options-grid">
+            <div class="form-group">
+              <label class="form-label" for="batchSolver">
+                <i class="fas fa-microchip"></i> Solveur
+              </label>
+              <select class="form-select" id="batchSolver" name="solver">
+                <option value="highs" selected>HiGHS</option>
+                <option value="gurobi">Gurobi</option>
+                <option value="cplex">CPLEX</option>
+                <option value="glpk">GLPK</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="batchDataFormat">
+                <i class="fas fa-file-export"></i> Format de sortie
+              </label>
+              <select
+                class="form-select"
+                id="batchDataFormat"
+                name="external_data_format"
+              >
+                <option value="json" selected>JSON</option>
+                <option value="dat">DAT (Pyomo / AMPL)</option>
+              </select>
+            </div>
           </div>
-        </form>
 
-        <!-- Results area -->
-        <div id="batchResults" class="hidden stack-lg">
-          <div
-            class="row"
-            style="
-              justify-content: space-between;
-              flex-wrap: wrap;
-              gap: 0.75rem;
-            "
+          <div class="batch-toggles">
+            <label class="toggle-pill" for="batchDoClean">
+              <input type="checkbox" id="batchDoClean" name="do_clean" />
+              <span class="toggle-pill-slider"></span>
+              <span class="toggle-pill-label">
+                <strong>Nettoyage</strong>
+                <small>Supprimer commentaires & uniformiser la casse</small>
+              </span>
+            </label>
+            <label class="toggle-pill" for="batchExternalData">
+              <input
+                type="checkbox"
+                id="batchExternalData"
+                name="external_data"
+                checked
+              />
+              <span class="toggle-pill-slider"></span>
+              <span class="toggle-pill-label">
+                <strong>Données externes</strong>
+                <small>Séparer modèle et données dans un fichier annexe</small>
+              </span>
+            </label>
+          </div>
+
+          <!-- Submit -->
+          <button
+            type="submit"
+            class="btn btn-primary btn-lg batch-submit-btn"
+            id="batchProcessBtn"
           >
-            <h3 style="margin: 0">Résultats</h3>
-            <div class="row" style="gap: 0.5rem">
-              <span class="badge badge-success" id="batchSuccessCount"></span>
-              <span class="badge badge-error" id="batchErrorCount"></span>
-              <button class="btn btn-primary btn-sm" id="batchDownloadZip">
-                <i class="fas fa-file-zipper"></i> Télécharger ZIP
-              </button>
+            <i class="fas fa-rocket"></i>
+            <span>Lancer le traitement</span>
+            <span class="batch-submit-count" id="batchSubmitCount"></span>
+          </button>
+        </div>
+
+        <!-- ====== RIGHT: Sidebar ====== -->
+        <aside class="batch-sidebar">
+          <div class="batch-sidebar-card">
+            <div class="batch-sidebar-header">
+              <i class="fas fa-sparkles"></i> Comment ça marche
             </div>
+            <ol class="batch-steps-list">
+              <li>
+                <div class="batch-step-num">1</div>
+                <div>
+                  <strong>Importez</strong> vos fichiers .lng via le
+                  glisser-déposer ou la sélection.
+                </div>
+              </li>
+              <li>
+                <div class="batch-step-num">2</div>
+                <div>
+                  <strong>Associez</strong> les .xlsx aux fichiers contenant des
+                  références @OLE.
+                </div>
+              </li>
+              <li>
+                <div class="batch-step-num">3</div>
+                <div>
+                  <strong>Lancez</strong> le traitement — chaque fichier est
+                  parsé et converti indépendamment.
+                </div>
+              </li>
+              <li>
+                <div class="batch-step-num">4</div>
+                <div>
+                  <strong>Téléchargez</strong> l'archive ZIP contenant tous les
+                  notebooks.
+                </div>
+              </li>
+            </ol>
           </div>
 
-          <div id="batchResultCards" class="batch-result-grid"></div>
+          <div
+            class="batch-sidebar-card batch-sidebar-stats"
+            id="batchSidebarStats"
+            style="display: none"
+          >
+            <div class="batch-sidebar-header">
+              <i class="fas fa-chart-pie"></i> Résumé
+            </div>
+            <div class="batch-stats-grid" id="batchStatsGrid"></div>
+          </div>
+        </aside>
+      </div>
+    </form>
+
+    <!-- ====== Results ====== -->
+    <div id="batchResults" class="hidden batch-results-section">
+      <div class="batch-results-header">
+        <div class="batch-results-title">
+          <div class="batch-results-icon">
+            <i class="fas fa-clipboard-check"></i>
+          </div>
+          <h2>Résultats</h2>
+        </div>
+        <div class="batch-results-actions">
+          <span class="badge badge-success" id="batchSuccessCount"></span>
+          <span class="badge badge-error" id="batchErrorCount"></span>
+          <button class="btn btn-primary btn-sm" id="batchDownloadZip">
+            <i class="fas fa-file-zipper"></i> Télécharger ZIP
+          </button>
         </div>
       </div>
+      <div id="batchResultCards" class="batch-result-grid"></div>
     </div>
   </div>
 </section>

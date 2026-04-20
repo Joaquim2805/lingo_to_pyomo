@@ -748,17 +748,18 @@ function initBatchPage() {
 
   const zone = document.getElementById("batchUploadZone");
   const input = document.getElementById("batchFileInput");
+  const folderInput = document.getElementById("batchFolderInput");
+  const browseFilesBtn = document.getElementById("batchBrowseFiles");
+  const browseFolderBtn = document.getElementById("batchBrowseFolder");
   const fileListEl = document.getElementById("batchFileList");
+  const countBar = document.getElementById("batchFileCount");
+  const countText = document.getElementById("batchFileCountText");
+  const clearBtn = document.getElementById("batchClearAll");
+  const submitCount = document.getElementById("batchSubmitCount");
 
-  /*
-   * Managed file store:
-   *   _batchFiles = [ { id, lngFile: File, excelFile: File|null, hasOle: bool } ]
-   * We read each .lng to detect @OLE so we can show the Excel upload button.
-   */
   let _batchFiles = [];
   let _nextId = 1;
 
-  /* --- Helpers --- */
   function fileId() {
     return _nextId++;
   }
@@ -772,8 +773,32 @@ function initBatchPage() {
     }
   }
 
+  function updateCounts() {
+    const n = _batchFiles.length;
+    const dsSelect = document.getElementById("batchDatasetSelect");
+    const dsCount = dsSelect ? dsSelect.selectedOptions.length : 0;
+    const total = n + dsCount;
+
+    if (countBar) {
+      if (n > 0) {
+        countBar.classList.remove("hidden");
+        const oleCount = _batchFiles.filter((f) => f.hasOle).length;
+        const excelCount = _batchFiles.filter((f) => f.excelFile).length;
+        let txt = `${n} fichier${n > 1 ? "s" : ""}`;
+        if (oleCount > 0) txt += ` · ${oleCount} @OLE`;
+        if (excelCount > 0) txt += ` · ${excelCount} Excel`;
+        countText.textContent = txt;
+      } else {
+        countBar.classList.add("hidden");
+      }
+    }
+    if (submitCount) {
+      submitCount.textContent = total > 0 ? total : "";
+    }
+  }
+
   async function addFiles(rawFiles) {
-    const files = Array.from(rawFiles); /* snapshot – FileList may be cleared */
+    const files = Array.from(rawFiles);
     const existingNames = new Set(_batchFiles.map((f) => f.lngFile.name));
     for (const f of files) {
       const lower = f.name.toLowerCase();
@@ -782,7 +807,6 @@ function initBatchPage() {
         _batchFiles.push({ id: fileId(), lngFile: f, excelFile: null, hasOle });
         existingNames.add(f.name);
       } else if (lower.endsWith(".xlsx") || lower.endsWith(".xls")) {
-        /* Auto-pair Excel: find a .lng entry whose stem matches or that has no Excel yet */
         const stem = f.name.replace(/\.(xlsx|xls)$/i, "").toLowerCase();
         const match = _batchFiles.find(
           (b) =>
@@ -796,7 +820,6 @@ function initBatchPage() {
         if (match) {
           match.excelFile = f;
         } else {
-          /* No auto-match, attach to first OLE file without Excel */
           const first = _batchFiles.find((b) => b.hasOle && !b.excelFile);
           if (first) first.excelFile = f;
         }
@@ -806,8 +829,18 @@ function initBatchPage() {
   }
 
   function removeFile(id) {
-    _batchFiles = _batchFiles.filter((f) => f.id !== id);
-    renderFileList();
+    /* Animate out, then remove */
+    const card = fileListEl?.querySelector(`[data-entry-id="${id}"]`);
+    if (card) {
+      card.classList.add("removing");
+      card.addEventListener("animationend", () => {
+        _batchFiles = _batchFiles.filter((f) => f.id !== id);
+        renderFileList();
+      });
+    } else {
+      _batchFiles = _batchFiles.filter((f) => f.id !== id);
+      renderFileList();
+    }
   }
 
   function removeExcel(id) {
@@ -816,18 +849,23 @@ function initBatchPage() {
     renderFileList();
   }
 
+  function clearAll() {
+    _batchFiles = [];
+    renderFileList();
+  }
+
   function renderFileList() {
     if (!fileListEl) return;
     fileListEl.innerHTML = "";
 
-    for (const entry of _batchFiles) {
+    _batchFiles.forEach((entry, idx) => {
       const card = document.createElement("div");
       card.className = "batch-file-card";
+      card.dataset.entryId = entry.id;
+      card.style.animationDelay = `${idx * 0.05}s`;
 
-      /* LNG icon */
       const iconDiv = `<div class="batch-file-icon icon-lng"><i class="fas fa-file-code"></i></div>`;
 
-      /* File info */
       const size = (entry.lngFile.size / 1024).toFixed(1);
       let metaHtml = `${size} Ko`;
       if (entry.hasOle)
@@ -838,7 +876,6 @@ function initBatchPage() {
         <div class="batch-file-meta">${metaHtml}</div>
       </div>`;
 
-      /* Excel button (only for OLE files) */
       let excelHtml = "";
       if (entry.hasOle) {
         if (entry.excelFile) {
@@ -853,12 +890,11 @@ function initBatchPage() {
         }
       }
 
-      /* Remove button */
       const removeBtn = `<button type="button" class="batch-file-remove" data-action="remove" data-id="${entry.id}" title="Retirer"><i class="fas fa-xmark"></i></button>`;
 
       card.innerHTML = iconDiv + infoDiv + excelHtml + removeBtn;
       fileListEl.appendChild(card);
-    }
+    });
 
     /* Bind actions */
     fileListEl.querySelectorAll("[data-action]").forEach((btn) => {
@@ -871,6 +907,8 @@ function initBatchPage() {
         else if (action === "add-excel") pickExcel(id);
       });
     });
+
+    updateCounts();
   }
 
   function pickExcel(entryId) {
@@ -889,9 +927,64 @@ function initBatchPage() {
     tmp.click();
   }
 
+  /* --- Helpers for folder drop --- */
+  function readEntriesPromise(reader) {
+    return new Promise((resolve, reject) =>
+      reader.readEntries(resolve, reject),
+    );
+  }
+
+  async function getAllFilesFromEntry(entry) {
+    const files = [];
+    if (entry.isFile) {
+      const file = await new Promise((resolve, reject) =>
+        entry.file(resolve, reject),
+      );
+      files.push(file);
+    } else if (entry.isDirectory) {
+      const reader = entry.createReader();
+      let batch;
+      do {
+        batch = await readEntriesPromise(reader);
+        for (const child of batch) {
+          const childFiles = await getAllFilesFromEntry(child);
+          files.push(...childFiles);
+        }
+      } while (batch.length > 0);
+    }
+    return files;
+  }
+
+  async function getFilesFromDataTransfer(dataTransfer) {
+    const items = dataTransfer.items;
+    if (!items) return Array.from(dataTransfer.files);
+
+    const entries = [];
+    for (let i = 0; i < items.length; i++) {
+      const entry = items[i].webkitGetAsEntry?.();
+      if (entry) entries.push(entry);
+    }
+    if (entries.length === 0) return Array.from(dataTransfer.files);
+
+    const allFiles = [];
+    for (const entry of entries) {
+      const files = await getAllFilesFromEntry(entry);
+      allFiles.push(...files);
+    }
+    return allFiles;
+  }
+
   /* --- Drop zone --- */
   if (zone && input) {
-    zone.addEventListener("click", () => input.click());
+    zone.addEventListener("click", (e) => {
+      /* Don't trigger file picker if they clicked a CTA button */
+      if (
+        e.target.closest("#batchBrowseFiles") ||
+        e.target.closest("#batchBrowseFolder")
+      )
+        return;
+      input.click();
+    });
     zone.addEventListener("dragover", (e) => {
       e.preventDefault();
       zone.classList.add("drag-over");
@@ -899,15 +992,45 @@ function initBatchPage() {
     zone.addEventListener("dragleave", () =>
       zone.classList.remove("drag-over"),
     );
-    zone.addEventListener("drop", (e) => {
+    zone.addEventListener("drop", async (e) => {
       e.preventDefault();
       zone.classList.remove("drag-over");
-      addFiles(e.dataTransfer.files);
+      const files = await getFilesFromDataTransfer(e.dataTransfer);
+      addFiles(files);
     });
     input.addEventListener("change", () => {
       if (input.files.length) addFiles(input.files);
-      input.value = ""; /* allow re-picking the same files */
+      input.value = "";
     });
+  }
+
+  /* --- Browse buttons --- */
+  if (browseFilesBtn) {
+    browseFilesBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      input?.click();
+    });
+  }
+  if (browseFolderBtn && folderInput) {
+    browseFolderBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      folderInput.click();
+    });
+    folderInput.addEventListener("change", () => {
+      if (folderInput.files.length) addFiles(folderInput.files);
+      folderInput.value = "";
+    });
+  }
+
+  /* --- Clear all button --- */
+  if (clearBtn) {
+    clearBtn.addEventListener("click", clearAll);
+  }
+
+  /* --- Dataset select: update count on change --- */
+  const dsSelect = document.getElementById("batchDatasetSelect");
+  if (dsSelect) {
+    dsSelect.addEventListener("change", updateCounts);
   }
 
   /* --- Submit --- */
@@ -915,15 +1038,25 @@ function initBatchPage() {
     e.preventDefault();
     const btn = document.getElementById("batchProcessBtn");
     setLoading(btn, true);
+
+    /* Show processing indicator */
+    const resultsContainer = document.getElementById("batchResults");
+    const cardsEl = document.getElementById("batchResultCards");
+    if (resultsContainer && cardsEl) {
+      resultsContainer.classList.remove("hidden");
+      cardsEl.innerHTML = `<div class="batch-processing">
+        <div class="batch-processing-spinner"></div>
+        <div class="batch-processing-text">Traitement en cours…</div>
+        <div class="batch-processing-sub">${_batchFiles.length + (dsSelect?.selectedOptions.length || 0)} fichier(s) à traiter</div>
+      </div>`;
+    }
+
     try {
       const fd = new FormData();
 
-      /* Uploaded LNG files */
       for (const entry of _batchFiles) {
         fd.append("files", entry.lngFile);
       }
-
-      /* Excel files: send with indexed keys so backend can pair them */
       for (let i = 0; i < _batchFiles.length; i++) {
         const entry = _batchFiles[i];
         if (entry.excelFile) {
@@ -932,7 +1065,6 @@ function initBatchPage() {
         }
       }
 
-      /* Dataset selection */
       const datasetSelect = document.getElementById("batchDatasetSelect");
       if (datasetSelect) {
         for (const opt of datasetSelect.selectedOptions) {
@@ -967,14 +1099,19 @@ function initBatchPage() {
           `${data.succeeded}/${data.total} fichiers convertis.`,
         );
       } else {
+        if (resultsContainer) resultsContainer.classList.add("hidden");
         showError(data);
       }
     } catch (err) {
+      if (resultsContainer) resultsContainer.classList.add("hidden");
       Toast.error("Erreur", err.message);
     } finally {
       setLoading(btn, false);
     }
   });
+
+  /* Initialize counts */
+  updateCounts();
 }
 
 function renderBatchResults(data) {
@@ -991,14 +1128,45 @@ function renderBatchResults(data) {
   if (errorCount) errorCount.textContent = `${data.failed} erreur(s)`;
   if (errorCount) errorCount.style.display = data.failed > 0 ? "" : "none";
 
+  /* Sidebar stats */
+  const statsPanel = document.getElementById("batchSidebarStats");
+  const statsGrid = document.getElementById("batchStatsGrid");
+  if (statsPanel && statsGrid) {
+    statsPanel.style.display = "";
+    const oleCount = data.results.filter((r) => r.has_ole).length;
+    const dataCount = data.results.filter((r) => r.data_file).length;
+    statsGrid.innerHTML = `
+      <div class="batch-stat">
+        <div class="batch-stat-value" style="color:var(--success)">${data.succeeded}</div>
+        <div class="batch-stat-label">Réussi(s)</div>
+      </div>
+      <div class="batch-stat">
+        <div class="batch-stat-value" style="color:var(--error)">${data.failed}</div>
+        <div class="batch-stat-label">Erreur(s)</div>
+      </div>
+      <div class="batch-stat">
+        <div class="batch-stat-value" style="color:#7c3aed">${dataCount}</div>
+        <div class="batch-stat-label">Données</div>
+      </div>
+      <div class="batch-stat">
+        <div class="batch-stat-value" style="color:#16a34a">${oleCount}</div>
+        <div class="batch-stat-label">OLE</div>
+      </div>`;
+  }
+
+  /* Scroll to results */
+  setTimeout(() => {
+    container.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, 100);
+
   cardsEl.innerHTML = "";
-  for (const item of data.results) {
+  data.results.forEach((item, idx) => {
     const card = document.createElement("div");
     card.className = "batch-result-card";
+    card.style.animationDelay = `${idx * 0.08}s`;
 
     const isOk = item.status === "success";
 
-    /* Header */
     let headerHtml = `<div class="batch-result-header">
       <div class="batch-result-status ${isOk ? "status-ok" : "status-err"}"></div>
       <span class="batch-result-name">${escapeHtml(item.name)}</span>
@@ -1010,7 +1178,6 @@ function renderBatchResults(data) {
     let bodyHtml = "";
 
     if (isOk) {
-      /* File chips */
       let chipsHtml = "";
       if (item.notebook) {
         chipsHtml += `<span class="batch-result-file-chip chip-notebook"><i class="fas fa-book-open"></i> ${escapeHtml(item.notebook)}</span>`;
@@ -1024,7 +1191,6 @@ function renderBatchResults(data) {
       }
       bodyHtml += `<div class="batch-result-files">${chipsHtml}</div>`;
 
-      /* Steps */
       if (item.steps && item.steps.length) {
         let stepsHtml = item.steps
           .map((s) => `<span class="batch-result-step">${escapeHtml(s)}</span>`)
@@ -1037,7 +1203,7 @@ function renderBatchResults(data) {
 
     card.innerHTML = headerHtml + bodyHtml;
     cardsEl.appendChild(card);
-  }
+  });
 
   if (zipBtn) {
     zipBtn.onclick = async () => {

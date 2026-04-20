@@ -1,0 +1,38 @@
+set ALIMENTS := Brownie Cremeglacee Cola Gateau ;
+set INGREDIENTS := Calories Chocolat Sucre Matieregrasse ;
+param Prix :=
+  Brownie 50
+  Cremeglacee 20
+  Cola 30
+  Gateau 80
+;
+param Calories :=
+  Brownie 400
+  Cremeglacee 200
+  Cola 150
+  Gateau 500
+;
+param DIETEJOUR :=
+  Calories 500
+  Chocolat 6
+  Sucre 10
+  Matieregrasse 8
+;
+param QTEING :=
+  Brownie Calories 400
+  Brownie Chocolat 3
+  Brownie Sucre 2
+  Brownie Matieregrasse 2
+  Cremeglacee Calories 200
+  Cremeglacee Chocolat 2
+  Cremeglacee Sucre 2
+  Cremeglacee Matieregrasse 4
+  Cola Calories 150
+  Cola Chocolat 0
+  Cola Sucre 4
+  Cola Matieregrasse 1
+  Gateau Calories 500
+  Gateau Chocolat 0
+  Gateau Sucre 4
+  Gateau Matieregrasse 5
+;

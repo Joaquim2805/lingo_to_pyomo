@@ -222,6 +222,18 @@ class LingoModelTransformer2(Transformer):
         return {"name_range": []}
 
     def data_block(self, items):
+        """Traite le bloc DATA...ENDDATA du modèle LINGO.
+
+        Parcourt les éléments du bloc DATA et construit un dictionnaire
+        ``{nom_attribut: [valeur1, valeur2, ...]}`` listant tous les paramètres
+        numériques déclarés.
+
+        Args:
+            items (list): Sous-arbres et tokens du bloc DATA.
+
+        Returns:
+            dict: ``{"data": {nom: [valeurs]}}`` prêt à fusionner dans le JSON du modèle.
+        """
         data = {}
         for item in items:
             if isinstance(item, dict):
@@ -229,6 +241,17 @@ class LingoModelTransformer2(Transformer):
         return {"data": data}
 
     def data_stmt(self, items):
+        """Traite une instruction DATA du type ``ATTR = v1, v2, ...;``.
+
+        Extrait récursivement toutes les valeurs numériques de l'arbre
+        syntaxique associé à l'instruction et les associe au nom de l'attribut.
+
+        Args:
+            items (list): ``[nom_token, sous_arbre_valeurs]``.
+
+        Returns:
+            dict: ``{nom_attribut: [float, float, ...]}``.
+        """
         key = str(items[0])
 
         def flatten(tree):
@@ -244,6 +267,17 @@ class LingoModelTransformer2(Transformer):
         return {key: values}
 
     def label(self, items):
+        """Traite une étiquette (identifiant) de contrainte LINGO.
+
+        Les étiquettes sont des noms optionnels placés entre crochets avant
+        une contrainte (ex: ``[ContrainteProd]``).
+
+        Args:
+            items (list): Liste contenant le token du nom de l'étiquette.
+
+        Returns:
+            dict: ``{"label": nom_chaine}``.
+        """
         return {"label": str(items[0])}
 
     def objective(self, items):
@@ -337,6 +371,22 @@ class LingoModelTransformer2(Transformer):
         raise ValueError(f"constraint: structure inattendue: {items}")
 
     def for_loop(self, items):
+        """Traite une boucle ``@FOR(IndexSet(alias): expr)`` du modèle LINGO.
+
+        Reconstruit la représentation textuelle de la boucle sous la forme
+        ``@FOR(IndexSet(alias): expression)`` qui sera ensuite traduite en
+        règle Pyomo par le générateur de code.
+
+        Args:
+            items (list): Tokens et sous-arbres : ``[FOR, LPAR, indexset, COLON, body, RPAR, SEMICOLON]``.
+
+        Returns:
+            dict: ``{"for_loop": "@FOR(...)"}``, ou lève ``ValueError`` si la structure
+                est inattendue.
+
+        Raises:
+            ValueError: Si l'indexset ou le corps de la boucle est manquant.
+        """
         # items contient : FOR, LPAR, indexset, COLON, for_loop_body, RPAR, SEMICOLON
         indexset = None
         expr = None

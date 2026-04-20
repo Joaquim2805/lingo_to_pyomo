@@ -10,8 +10,31 @@ from openpyxl.cell.cell import Cell
 
 def read_excel_defined_zones(filename):
     """
-    Lit les zones nommées définies dans Excel (menu déroulant),
-    compatible cellules uniques, lignes, matrices.
+    Lit toutes les zones nommées définies dans un classeur Excel.
+
+    Les zones nommées (plages nommées Excel) sont définies dans le gestionnaire de
+    noms Excel et contiennent les données à injecter dans le modèle LINGO via `@OLE`.
+    Cette fonction lit chaque zone, quelle que soit sa forme (cellule unique, vecteur ligne
+    ou colonne, matrice 2D), et retourne une liste de descripteurs structurés.
+
+    Args:
+        filename (str | Path): Chemin vers le fichier Excel (`.xlsx`).
+
+    Returns:
+        list[dict]: Une entrée par zone nommée, chacune contenant :
+
+            - ``name`` (str): Nom de la zone (tel que défini dans Excel).
+            - ``sheet`` (str): Nom de la feuille contenant la zone.
+            - ``range`` (str): Coordonnée Excel de la plage (ex: ``"B2:D5"``).
+            - ``shape`` (tuple): Dimensions ``(nb_lignes, nb_colonnes)`` de la zone.
+            - ``data`` (pd.DataFrame): Contenu de la zone sous forme de DataFrame.
+
+    Example:
+        ```python
+        zones = read_excel_defined_zones("modele.xlsx")
+        for z in zones:
+            print(z["name"], z["shape"])
+        ```
     """
 
     wb = load_workbook(filename, data_only=True)
@@ -49,29 +72,55 @@ def read_excel_defined_zones(filename):
 
 
 def _normalize_name(name: str) -> str:
+    """Normalise un nom en minuscules sans espaces parasites pour les comparaisons internes."""
     return str(name).strip().lower()
 
 
 def _sanitize_elem(value: str) -> str:
-    # Supprimer les espaces pour qu'un élément reste un seul token LINGO
+    """Nettoie une valeur de cellule Excel pour qu'elle constitue un token LINGO valide.
+
+    Supprime les espaces (les éléments LINGO ne peuvent pas contenir d'espaces).
+    """
     return str(value).strip().replace(" ", "")
 
 
 def _zone_map_from_excel(excel_path: str) -> dict:
+    """Construit un dictionnaire ``{nom_normalisé: DataFrame}`` depuis les zones nommées Excel.
+
+    Args:
+        excel_path (str): Chemin vers le classeur Excel.
+
+    Returns:
+        dict: Clés = noms de zones en minuscules, valeurs = DataFrames bruts.
+    """
     zones = read_excel_defined_zones(excel_path)
     return {_normalize_name(z["name"]): z["data"] for z in zones}
 
 
 def _clean_df(df: pd.DataFrame) -> pd.DataFrame:
+    """Supprime les lignes et colonnes entièrement vides (NaN) d'un DataFrame."""
     return df.dropna(how="all").dropna(axis=1, how="all")
 
 
 def _format_list(values):
+    """Formate une liste de valeurs en chaîne séparée par des virgules (format DATA LINGO)."""
     return ",".join(str(v) for v in values)
 
 
 def _format_matrix_row_major(df: pd.DataFrame, expected_rows=None, expected_cols=None):
-    """Formate une matrice en row-major order en préservant toutes les valeurs."""
+    """Formate un DataFrame en liste row-major pour le bloc DATA LINGO.
+
+    Préserve toutes les cellules (y compris zéros) et remplace les NaN par 0.
+    Émet un avertissement si les dimensions réelles diffèrent des dimensions attendues.
+
+    Args:
+        df (pd.DataFrame): Données matricielles à sérialiser.
+        expected_rows (int | None): Nombre de lignes attendu (pour validation).
+        expected_cols (int | None): Nombre de colonnes attendu (pour validation).
+
+    Returns:
+        str: Valeurs aplaties en row-major, séparées par des virgules.
+    """
     # Ne PAS nettoyer pour les matrices - chaque cellule compte
     actual_rows, actual_cols = df.shape
 
@@ -91,7 +140,20 @@ def _format_matrix_row_major(df: pd.DataFrame, expected_rows=None, expected_cols
 
 
 def _strip_headers(df: pd.DataFrame, row_labels=None, col_labels=None) -> pd.DataFrame:
-    """Supprime les en-têtes de ligne/colonne d'une matrice Excel en préservant toutes les données."""
+    """Supprime les en-têtes de ligne/colonne d'une matrice Excel si présents.
+
+    Utilise un critère strict (>50 % de correspondance) pour éviter de supprimer à tort
+    des lignes/colonnes contenant des données numériques. Transpose automatiquement
+    le DataFrame si les axes semblent inversés dans le fichier Excel.
+
+    Args:
+        df (pd.DataFrame): DataFrame brut tel que lu depuis la zone nommée Excel.
+        row_labels (list | None): Éléments attendus en en-tête de lignes.
+        col_labels (list | None): Éléments attendus en en-tête de colonnes.
+
+    Returns:
+        pd.DataFrame: DataFrame nettoyé avec index et colonnes réinitialisés.
+    """
     # Ne pas nettoyer au début pour ne pas perdre de données
     df2 = df.copy()
 
@@ -172,6 +234,23 @@ def _lingo_value_from_zone(
     expected_rows=None,
     expected_cols=None,
 ) -> str:
+    """Convertit une zone Excel (DataFrame) en chaîne de valeurs au format DATA LINGO.
+
+    Sélectionne automatiquement le format de sortie en fonction de la forme de la zone :
+    - Cellule unique → valeur scalaire.
+    - Vecteur (1 ligne ou 1 colonne) → liste séparée par des virgules.
+    - Matrice 2D → sérialisation row-major.
+
+    Args:
+        df (pd.DataFrame): Données brutes de la zone nommée.
+        row_labels (list | None): Étiquettes de lignes pour la suppression des en-têtes.
+        col_labels (list | None): Étiquettes de colonnes pour la suppression des en-têtes.
+        expected_rows (int | None): Nombre de lignes attendu (transmis à `_format_matrix_row_major`).
+        expected_cols (int | None): Nombre de colonnes attendu (transmis à `_format_matrix_row_major`).
+
+    Returns:
+        str: Représentation textuelle de la valeur, prête à être insérée dans un bloc DATA LINGO.
+    """
     df = _strip_headers(df, row_labels=row_labels, col_labels=col_labels)
     if df.shape == (1, 1):
         v = df.iat[0, 0]
@@ -190,6 +269,16 @@ def _lingo_value_from_zone(
 
 
 def _parse_ole_args(ole_args: str):
+    """Découpe la liste d'arguments d'un ``@OLE(...)`` en ``(excel_path, range_name)``.
+
+    Args:
+        ole_args (str): Contenu brut entre parenthèses du ``@OLE``, ex.
+            ``"'Cargo.xlsx', 'Cap'"``.
+
+    Returns:
+        tuple[str | None, str | None]: ``(excel_path, range_name)``.
+            ``range_name`` est ``None`` si un seul argument est fourni.
+    """
     # Retourne (excel_path, range_name_or_none)
     parts = [p.strip() for p in ole_args.split(",")]
 
@@ -202,6 +291,19 @@ def _parse_ole_args(ole_args: str):
 
 
 def _inject_set_elements(text: str, zone_map: dict) -> str:
+    """Ajoute les éléments manquants dans les déclarations d'ensembles LINGO.
+
+    Pour chaque ensemble déclaré sans liste d'éléments (``SETNAME : attrs;``),
+    recherche une zone Excel portant le même nom et injecte les valeurs sous la
+    forme ``SETNAME /a,b,c/ : attrs;``.
+
+    Args:
+        text (str): Contenu du fichier LINGO.
+        zone_map (dict): Dictionnaire ``{nom_normalisé: DataFrame}`` des zones Excel.
+
+    Returns:
+        str: Texte LINGO avec les éléments d'ensemble injectés.
+    """
     # Insère les éléments dans SETS si absents: SETNAME: ... -> SETNAME /a,b/ : ...
     m = re.search(r"SETS:(.*?)ENDSETS", text, flags=re.S | re.I)
     if not m:
@@ -230,6 +332,20 @@ def _inject_set_elements(text: str, zone_map: dict) -> str:
 
 
 def _parse_sets_and_dims(text: str):
+    """Extrait les éléments d'ensembles et les dimensions des attributs depuis le bloc SETS.
+
+    Analyse le bloc ``SETS...ENDSETS`` du texte LINGO pour construire :
+
+    - ``set_elements`` : dictionnaire ``{nom_ensemble_normalisé: [elem1, elem2, ...]}``,
+    - ``var_dims`` : dictionnaire ``{nom_attr_normalisé: [dim1, dim2, ...]}``
+      indiquant le ou les ensembles indexant chaque attribut.
+
+    Args:
+        text (str): Contenu complet du fichier LINGO.
+
+    Returns:
+        tuple[dict, dict]: ``(set_elements, var_dims)``.
+    """
     # Extrait les éléments d'ensembles définis dans SETS et les dimensions des variables
     m = re.search(r"SETS:(.*?)ENDSETS", text, flags=re.S | re.I)
     block = m.group(1) if m else ""
@@ -266,6 +382,17 @@ def _parse_sets_and_dims(text: str):
 
 
 def _get_dim_labels(var_name: str, set_elements: dict, var_dims: dict):
+    """Retourne les étiquettes de lignes et de colonnes associées à un attribut.
+
+    Args:
+        var_name (str): Nom de l'attribut LINGO.
+        set_elements (dict): Éléments connus par ensemble (depuis ``_parse_sets_and_dims``).
+        var_dims (dict): Dimensions de chaque attribut (depuis ``_parse_sets_and_dims``).
+
+    Returns:
+        tuple[list | None, list | None]: ``(row_labels, col_labels)``.
+            ``col_labels`` est ``None`` pour les attributs 1D.
+    """
     dims = var_dims.get(_normalize_name(var_name), [])
     row_labels = set_elements.get(dims[0], None) if len(dims) >= 1 else None
     col_labels = set_elements.get(dims[1], None) if len(dims) >= 2 else None
@@ -273,6 +400,20 @@ def _get_dim_labels(var_name: str, set_elements: dict, var_dims: dict):
 
 
 def _get_expected_matrix_shape(var_name: str, set_elements: dict, var_dims: dict):
+    """Calcule le nombre de lignes et de colonnes attendus pour un attribut multi-dim.
+
+    Utilise la convention Excel row-major : la première dimension donne les lignes,
+    le produit des dimensions restantes donne les colonnes.
+
+    Args:
+        var_name (str): Nom de l'attribut LINGO.
+        set_elements (dict): Éléments connus par ensemble.
+        var_dims (dict): Dimensions de chaque attribut.
+
+    Returns:
+        tuple[int | None, int | None]: ``(expected_rows, expected_cols)``.
+            Retourne ``(None, None)`` si l'attribut est 1D ou si des ensembles sont vides.
+    """
     dims = var_dims.get(_normalize_name(var_name), [])
     if len(dims) < 2:
         return None, None
@@ -289,6 +430,18 @@ def _get_expected_matrix_shape(var_name: str, set_elements: dict, var_dims: dict
 
 
 def _replace_set_ole(text: str, zone_map: dict) -> str:
+    """Remplace les ``@OLE`` dans les déclarations d'éléments d'ensemble LINGO.
+
+    Transforme ``SETNAME /@OLE('fichier.xlsx')/ : attrs;`` en
+    ``SETNAME /elem1,elem2,elem3/ : attrs;`` en lisant la zone Excel correspondante.
+
+    Args:
+        text (str): Contenu du fichier LINGO.
+        zone_map (dict): Dictionnaire ``{nom_normalisé: DataFrame}`` des zones Excel.
+
+    Returns:
+        str: Texte LINGO avec les ``@OLE`` de la section SETS remplacés.
+    """
     # Remplace SETNAME /@OLE('file')/ par SETNAME /a,b,c/ (zone = SETNAME)
     pattern = re.compile(r"(\b([A-Za-z_][A-Za-z0-9_]*)\b\s*/)(\s*@OLE\(([^)]*)\)\s*/)")
 
@@ -307,6 +460,28 @@ def _replace_set_ole(text: str, zone_map: dict) -> str:
 def _replace_data_ole(
     text: str, zone_map: dict, set_elements: dict, var_dims: dict
 ) -> str:
+    """Remplace les assignations ``@OLE`` dans le bloc DATA LINGO par des valeurs littérales.
+
+    Gère deux syntaxes :
+
+    - Multi-variables : ``a, b, c = @OLE('fichier.xlsx');``
+    - Simple : ``Cap = @OLE('fichier.xlsx', 'Cap');``
+
+    Pour chaque variable, la zone Excel est lue, les en-têtes supprimés et la valeur
+    formatée selon la dimensionnalité de l'attribut (scalaire, liste ou matrice).
+
+    Args:
+        text (str): Contenu du fichier LINGO.
+        zone_map (dict): Dictionnaire ``{nom_normalisé: DataFrame}`` des zones Excel.
+        set_elements (dict): Éléments d'ensemble pour la résolution des en-têtes.
+        var_dims (dict): Dimensions de chaque attribut pour la résolution de la forme.
+
+    Returns:
+        str: Texte LINGO avec tous les ``@OLE`` du bloc DATA remplacés.
+
+    Raises:
+        KeyError: Si une zone référencée par un ``@OLE`` est introuvable dans le classeur.
+    """
     # Remplace les assignations DATA ... = @OLE(...)
     # Cas multi-variables: a, b, c = @OLE('file');
     multi_pattern = re.compile(
@@ -377,6 +552,14 @@ def _replace_data_ole(
 
 
 def _parse_declared_attrs(text: str) -> dict[str, str]:
+    """Extrait tous les attributs déclarés dans le bloc SETS.
+
+    Args:
+        text (str): Contenu complet du fichier LINGO.
+
+    Returns:
+        dict[str, str]: ``{nom_normalisé: nom_original}`` de tous les attributs.
+    """
     m = re.search(r"SETS:(.*?)ENDSETS", text, flags=re.S | re.I)
     block = m.group(1) if m else ""
     attrs_by_norm = {}
@@ -392,6 +575,18 @@ def _parse_declared_attrs(text: str) -> dict[str, str]:
 
 
 def _is_likely_parameter_usage(text: str, attr_name: str) -> bool:
+    """Détermine heuristiquement si un attribut est utilisé comme paramètre dans le modèle.
+
+    Analyse le texte LINGO pour détecter des patterns typiques d'un paramètre
+    (attribut utilisé dans une expression arithmétique ou en membre droit d'une contrainte).
+
+    Args:
+        text (str): Contenu du fichier LINGO.
+        attr_name (str): Nom de l'attribut à tester.
+
+    Returns:
+        bool: ``True`` si l'attribut semble être un paramètre (et non une variable de décision).
+    """
     attr_pattern = re.escape(attr_name)
     patterns = [
         rf"\b{attr_pattern}\s*\([^)]*\)\s*[*/]",
@@ -404,6 +599,22 @@ def _is_likely_parameter_usage(text: str, attr_name: str) -> bool:
 def _inject_implicit_data_block(
     text: str, zone_map: dict, set_elements: dict, var_dims: dict
 ) -> str:
+    """Injecte un bloc DATA implicite pour les attributs présents dans Excel mais absents du DATA LINGO.
+
+    Certains fichiers LINGO référencent leurs données via ``@OLE`` uniquement dans le bloc
+    SETS, sans bloc DATA explicite. Cette fonction détecte ces attributs (heuristique
+    ``_is_likely_parameter_usage``), lit les valeurs Excel correspondantes et les insère
+    dans un bloc ``DATA...ENDDATA`` existant ou nouvellement créé après ``ENDSETS``.
+
+    Args:
+        text (str): Contenu du fichier LINGO (après résolution partielle des ``@OLE``).
+        zone_map (dict): Dictionnaire ``{nom_normalisé: DataFrame}`` des zones Excel.
+        set_elements (dict): Éléments d'ensemble connus.
+        var_dims (dict): Dimensions de chaque attribut.
+
+    Returns:
+        str: Texte LINGO enrichi d'un bloc DATA si des données implicites ont été détectées.
+    """
     attrs_by_norm = _parse_declared_attrs(text)
     if not attrs_by_norm:
         return text
@@ -463,6 +674,44 @@ def _inject_implicit_data_block(
 def convert_lingo_ole_to_explicit(
     lingo_path: str, output_path: str | None = None, excel_path: str | None = None
 ) -> str:
+    """
+    Remplace toutes les références ``@OLE(...)`` d'un fichier LINGO par les valeurs
+    numériques extraites du classeur Excel associé.
+
+    C'est la **fonction principale** du module `excel_parser`. Elle orchestre toute la
+    chaîne de résolution OLE :
+
+    1. Détection automatique du fichier Excel (depuis la première référence ``@OLE``
+       si `excel_path` n'est pas fourni).
+    2. Lecture de toutes les zones nommées du classeur.
+    3. Injection des éléments d'ensemble dans le bloc ``SETS``.
+    4. Remplacement des ``@OLE`` dans ``SETS`` (listes d'éléments).
+    5. Remplacement des ``@OLE`` dans ``DATA`` (valeurs scalaires, vecteurs, matrices).
+    6. Injection d'un bloc ``DATA`` implicite si des attributs ont des valeurs dans Excel
+       mais ne sont pas encore dans un bloc ``DATA``.
+
+    Args:
+        lingo_path (str | Path): Chemin du fichier LINGO source (`.lng`).
+        output_path (str | Path | None): Chemin de sortie. Si ``None``, le fichier
+            produit porte le suffixe ``_explicit.lng`` dans le même répertoire.
+        excel_path (str | Path | None): Chemin du fichier Excel. Si ``None``, le chemin
+            est lu depuis la première occurrence ``@OLE('chemin.xlsx', ...)`` du fichier.
+
+    Returns:
+        str: Chemin absolu du fichier LINGO explicite généré.
+
+    Raises:
+        ValueError: Si aucune référence ``@OLE`` n'est trouvée et qu'`excel_path` est
+            ``None``.
+        KeyError: Si une zone nommée référencée dans un ``@OLE`` est introuvable dans
+            le classeur Excel.
+
+    Example:
+        ```python
+        out = convert_lingo_ole_to_explicit("Cargo.lng", excel_path="Cargo.xlsx")
+        # Produit : Cargo_explicit.lng
+        ```
+    """
     lingo_path = Path(lingo_path)
     text = lingo_path.read_text(encoding="utf-8")
 

@@ -3,6 +3,7 @@
 import os
 
 from flask import Blueprint, request, jsonify, send_file
+from datetime import datetime
 
 from config import OUTPUT_FOLDER
 from services.file_manager import get_job, create_batch_zip
@@ -78,10 +79,11 @@ def download(job_id, file_type):
             if not zip_path:
                 zip_path = create_batch_zip(job_id)
             if zip_path and os.path.exists(zip_path):
+                stamp = datetime.now().strftime("%Y-%m-%d_%Hh%M")
                 return send_file(
                     zip_path,
                     as_attachment=True,
-                    download_name=f"batch_{job_id}.zip",
+                    download_name=f"LingPy_batch_{stamp}.zip",
                 )
             return jsonify({"success": False, "error": "Archive non trouvée"}), 404
 
