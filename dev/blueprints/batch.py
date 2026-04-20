@@ -17,6 +17,7 @@ from services.file_manager import (
     save_upload,
     create_batch_zip,
     ALLOWED_LNG_EXTENSIONS,
+    ALLOWED_EXCEL_EXTENSIONS,
 )
 from services.converter import parse_and_generate, generate_notebook_file, run_pipeline
 
@@ -39,20 +40,34 @@ def process():
         uploaded_files = request.files.getlist("files")
         dataset_files = request.form.getlist("dataset_files")
 
-        # Gather all inputs
-        input_files: list[tuple[str, str]] = []
+        # Excel pairing: excel_for_lng[i] = lng filename for excel_files[i]
+        excel_uploads = request.files.getlist("excel_files")
+        excel_lng_names = request.form.getlist("excel_for_lng")
+
+        # Build a mapping: lng_filename -> saved excel path
+        excel_map: dict[str, str] = {}
+        for i, ef in enumerate(excel_uploads):
+            if ef and ef.filename:
+                valid, _ = validate_file(ef, ALLOWED_EXCEL_EXTENSIONS)
+                if valid and i < len(excel_lng_names):
+                    xlsx_path = save_upload(ef, subfolder="batch")
+                    excel_map[excel_lng_names[i]] = xlsx_path
+
+        # Gather all inputs: (display_name, lng_path, excel_path_or_None)
+        input_files: list[tuple[str, str, str | None]] = []
 
         for f in uploaded_files:
             if f and f.filename:
                 valid, _ = validate_file(f, ALLOWED_LNG_EXTENSIONS)
                 if valid:
                     path = save_upload(f, subfolder="batch")
-                    input_files.append((Path(f.filename).name, path))
+                    name = Path(f.filename).name
+                    input_files.append((name, path, excel_map.get(name)))
 
         for name in dataset_files:
             path = str(DATA_FOLDER / name)
             if os.path.exists(path):
-                input_files.append((name, path))
+                input_files.append((name, path, None))
 
         if not input_files:
             return jsonify({"success": False, "error": "Aucun fichier à traiter"}), 400
@@ -60,7 +75,7 @@ def process():
         job = create_job("batch", metadata={"solver": solver, "items": []})
         results = []
 
-        for name, path in input_files:
+        for name, path, excel_path in input_files:
             item: dict = {"name": name, "status": "pending"}
             try:
                 result = run_pipeline(
@@ -69,6 +84,7 @@ def process():
                     do_clean=do_clean,
                     external_data=external_data,
                     data_format=data_format,
+                    excel_path=excel_path,
                 )
 
                 nb_name = result["notebook_filename"]

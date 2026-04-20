@@ -1553,6 +1553,109 @@ textarea.form-control {
 }
 
 /* ---- Batch file list ---- */
+.batch-file-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.batch-file-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.85rem;
+  background: var(--surface);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  font-size: 0.88rem;
+  transition: border-color var(--transition);
+}
+.batch-file-card:hover {
+  border-color: var(--border);
+}
+
+.batch-file-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-xs);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+.batch-file-icon.icon-lng {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+.batch-file-icon.icon-xlsx {
+  background: rgba(22, 163, 74, 0.1);
+  color: #16a34a;
+}
+
+.batch-file-info {
+  flex: 1;
+  min-width: 0;
+}
+.batch-file-name {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.batch-file-meta {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.batch-file-excel-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px dashed var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+.batch-file-excel-link:hover {
+  border-color: #16a34a;
+  color: #16a34a;
+  background: rgba(22, 163, 74, 0.06);
+}
+.batch-file-excel-link.has-excel {
+  border-style: solid;
+  border-color: #16a34a;
+  color: #16a34a;
+  background: rgba(22, 163, 74, 0.08);
+}
+
+.batch-file-remove {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all var(--transition);
+  font-size: 0.8rem;
+}
+.batch-file-remove:hover {
+  background: var(--error-bg);
+  color: var(--error);
+}
+
+/* Batch file item (legacy compat) */
 .batch-file-item {
   display: flex;
   align-items: center;
@@ -1564,6 +1667,128 @@ textarea.form-control {
 }
 .batch-file-item i {
   color: var(--primary);
+}
+
+/* ---- Batch result cards ---- */
+.batch-result-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.batch-result-card {
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  overflow: hidden;
+  transition: box-shadow var(--transition);
+}
+.batch-result-card:hover {
+  box-shadow: var(--shadow-sm);
+}
+
+.batch-result-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.batch-result-status {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+.batch-result-status.status-ok {
+  background: var(--success);
+  box-shadow: 0 0 0 3px var(--success-bg);
+}
+.batch-result-status.status-err {
+  background: var(--error);
+  box-shadow: 0 0 0 3px var(--error-bg);
+}
+
+.batch-result-name {
+  font-weight: 700;
+  font-size: 0.9rem;
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.batch-result-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: var(--radius-full);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+}
+.batch-result-badge.badge-ok {
+  background: var(--success-bg);
+  color: var(--success);
+}
+.batch-result-badge.badge-err {
+  background: var(--error-bg);
+  color: var(--error);
+}
+
+.batch-result-files {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.65rem 1rem;
+}
+
+.batch-result-file-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.65rem;
+  border-radius: var(--radius-full);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+.batch-result-file-chip.chip-notebook {
+  background: var(--primary-light);
+  color: var(--primary-dark);
+}
+.batch-result-file-chip.chip-data {
+  background: rgba(139, 92, 246, 0.1);
+  color: #7c3aed;
+}
+.batch-result-file-chip.chip-ole {
+  background: rgba(22, 163, 74, 0.08);
+  color: #16a34a;
+}
+
+.batch-result-error {
+  padding: 0.65rem 1rem;
+  font-size: 0.82rem;
+  color: var(--error);
+  background: var(--error-bg);
+}
+
+.batch-result-steps {
+  padding: 0.5rem 1rem 0.65rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+.batch-result-step {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  padding: 0.15rem 0.45rem;
+  background: var(--bg);
+  border-radius: var(--radius-xs);
 }
 
 /* ---- Footer ---- */

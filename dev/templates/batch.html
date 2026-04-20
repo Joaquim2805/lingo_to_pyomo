@@ -19,31 +19,36 @@ block page_id %}batch{% endblock %} {% block content %}
             <div class="stack-lg">
               <!-- Upload zone -->
               <div class="stack">
-                <h3>Fichiers à traiter</h3>
-                <div class="upload-zone" id="batchUploadZone">
+                <h3>
+                  <i class="fas fa-upload" style="color: var(--primary)"></i>
+                  Importer des fichiers
+                </h3>
+                <div class="upload-zone upload-zone-batch" id="batchUploadZone">
                   <input
                     type="file"
-                    name="files"
-                    accept=".lng"
+                    accept=".lng,.xlsx,.xls"
                     multiple
                     id="batchFileInput"
+                    style="display: none"
                   />
                   <div class="upload-zone-icon">
                     <i class="fas fa-cloud-arrow-up"></i>
                   </div>
-                  <div class="upload-zone-text">
-                    Glissez vos fichiers .lng ici
-                  </div>
+                  <div class="upload-zone-text">Glissez vos fichiers ici</div>
                   <div class="upload-zone-hint">
-                    ou cliquez pour parcourir — plusieurs fichiers acceptés
+                    Fichiers .lng et .xlsx acceptés — plusieurs fichiers
+                    possible
                   </div>
                 </div>
-                <div id="batchFileList" class="stack-sm"></div>
+                <div id="batchFileList" class="batch-file-grid"></div>
               </div>
 
               <!-- Dataset multi-select -->
               <div class="stack">
-                <h3>Ou sélectionnez depuis le jeu de données</h3>
+                <h3>
+                  <i class="fas fa-database" style="color: var(--primary)"></i>
+                  Ou sélectionner depuis le jeu de données
+                </h3>
                 <div class="form-group">
                   <select
                     class="form-select"
@@ -137,6 +142,13 @@ block page_id %}batch{% endblock %} {% block content %}
                   >
                 </li>
                 <li>
+                  <i class="fas fa-file-excel"></i
+                  ><span
+                    >Si un fichier contient @OLE, associez le .xlsx
+                    correspondant.</span
+                  >
+                </li>
+                <li>
                   <i class="fas fa-cogs"></i
                   ><span
                     >Chaque fichier est parsé et converti en code Pyomo
@@ -150,13 +162,6 @@ block page_id %}batch{% endblock %} {% block content %}
                     au téléchargement.</span
                   >
                 </li>
-                <li>
-                  <i class="fas fa-circle-info"></i
-                  ><span
-                    >Les fichiers en erreur sont signalés sans bloquer les
-                    autres.</span
-                  >
-                </li>
               </ul>
             </aside>
           </div>
@@ -164,9 +169,16 @@ block page_id %}batch{% endblock %} {% block content %}
 
         <!-- Results area -->
         <div id="batchResults" class="hidden stack-lg">
-          <div class="row" style="justify-content: space-between">
+          <div
+            class="row"
+            style="
+              justify-content: space-between;
+              flex-wrap: wrap;
+              gap: 0.75rem;
+            "
+          >
             <h3 style="margin: 0">Résultats</h3>
-            <div class="row">
+            <div class="row" style="gap: 0.5rem">
               <span class="badge badge-success" id="batchSuccessCount"></span>
               <span class="badge badge-error" id="batchErrorCount"></span>
               <button class="btn btn-primary btn-sm" id="batchDownloadZip">
@@ -175,63 +187,10 @@ block page_id %}batch{% endblock %} {% block content %}
             </div>
           </div>
 
-          <div class="card card-sm" style="overflow-x: auto">
-            <table class="results-table" id="batchResultsTable">
-              <thead>
-                <tr>
-                  <th>Fichier</th>
-                  <th>Statut</th>
-                  <th>Détails</th>
-                  <th style="width: 100px">Action</th>
-                </tr>
-              </thead>
-              <tbody></tbody>
-            </table>
-          </div>
+          <div id="batchResultCards" class="batch-result-grid"></div>
         </div>
       </div>
     </div>
   </div>
 </section>
-{% endblock %} {% block modals %}
-<!-- Error modal -->
-<div class="modal-backdrop" id="errorModal" aria-hidden="true">
-  <div
-    class="modal-panel modal-panel-sm"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="errorTitle"
-  >
-    <div class="modal-header">
-      <div>
-        <h2 class="modal-title" id="errorTitle">Erreur</h2>
-        <p class="modal-subtitle">Le traitement a échoué.</p>
-      </div>
-      <button
-        class="modal-close"
-        type="button"
-        data-close="errorModal"
-        aria-label="Fermer"
-      >
-        <i class="fas fa-xmark"></i>
-      </button>
-    </div>
-    <div class="modal-body" style="padding: 1.25rem 1.5rem">
-      <div class="error-banner">
-        <i class="fas fa-triangle-exclamation"></i>
-        <div id="errorMessage">Une erreur s'est produite.</div>
-      </div>
-      <div
-        class="error-details hidden"
-        id="errorDetails"
-        style="margin-top: 1rem"
-      ></div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-danger" type="button" data-close="errorModal">
-        Fermer
-      </button>
-    </div>
-  </div>
-</div>
 {% endblock %}

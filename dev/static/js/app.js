@@ -108,63 +108,65 @@ function initSourceToggles() {
 
 /* ---------- Upload zones ---------- */
 function initUploadZones() {
-  document.querySelectorAll(".upload-zone").forEach((zone) => {
-    const input = zone.querySelector("input[type=file]");
-    if (!input) return;
-    const infoEl = zone.querySelector(".upload-file-info");
-    const nameEl = zone.querySelector("[id$='FileName']");
+  document
+    .querySelectorAll(".upload-zone:not(.upload-zone-batch)")
+    .forEach((zone) => {
+      const input = zone.querySelector("input[type=file]");
+      if (!input) return;
+      const infoEl = zone.querySelector(".upload-file-info");
+      const nameEl = zone.querySelector("[id$='FileName']");
 
-    /* Derive accepted extensions from the input's accept attribute */
-    const acceptAttr = (input.getAttribute("accept") || ".lng").toLowerCase();
-    const acceptedExts = acceptAttr.split(",").map((s) => s.trim());
+      /* Derive accepted extensions from the input's accept attribute */
+      const acceptAttr = (input.getAttribute("accept") || ".lng").toLowerCase();
+      const acceptedExts = acceptAttr.split(",").map((s) => s.trim());
 
-    zone.addEventListener("click", (e) => {
-      if (!e.target.closest(".remove-file")) input.click();
-    });
-    zone.addEventListener("dragover", (e) => {
-      e.preventDefault();
-      zone.classList.add("drag-over");
-    });
-    zone.addEventListener("dragleave", () =>
-      zone.classList.remove("drag-over"),
-    );
-    zone.addEventListener("drop", (e) => {
-      e.preventDefault();
-      zone.classList.remove("drag-over");
-      if (e.dataTransfer.files.length) {
-        const file = e.dataTransfer.files[0];
-        const ext = file.name
-          .substring(file.name.lastIndexOf("."))
-          .toLowerCase();
-        if (!acceptedExts.includes(ext)) {
-          Toast.error(
-            "Format invalide",
-            `Seuls les fichiers ${acceptedExts.join(", ")} sont acceptés.`,
-          );
-          return;
+      zone.addEventListener("click", (e) => {
+        if (!e.target.closest(".remove-file")) input.click();
+      });
+      zone.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        zone.classList.add("drag-over");
+      });
+      zone.addEventListener("dragleave", () =>
+        zone.classList.remove("drag-over"),
+      );
+      zone.addEventListener("drop", (e) => {
+        e.preventDefault();
+        zone.classList.remove("drag-over");
+        if (e.dataTransfer.files.length) {
+          const file = e.dataTransfer.files[0];
+          const ext = file.name
+            .substring(file.name.lastIndexOf("."))
+            .toLowerCase();
+          if (!acceptedExts.includes(ext)) {
+            Toast.error(
+              "Format invalide",
+              `Seuls les fichiers ${acceptedExts.join(", ")} sont acceptés.`,
+            );
+            return;
+          }
+          const dt = new DataTransfer();
+          dt.items.add(file);
+          input.files = dt.files;
+          showFileInfo(file);
         }
-        const dt = new DataTransfer();
-        dt.items.add(file);
-        input.files = dt.files;
-        showFileInfo(file);
-      }
-    });
-    input.addEventListener("change", () => {
-      if (input.files.length) showFileInfo(input.files[0]);
-    });
+      });
+      input.addEventListener("change", () => {
+        if (input.files.length) showFileInfo(input.files[0]);
+      });
 
-    function showFileInfo(file) {
-      if (infoEl && nameEl) {
-        nameEl.textContent = file.name;
-        infoEl.classList.remove("hidden");
-        zone
-          .querySelectorAll(
-            ".upload-zone-icon, .upload-zone-text, .upload-zone-hint",
-          )
-          .forEach((el) => el.classList.add("hidden"));
+      function showFileInfo(file) {
+        if (infoEl && nameEl) {
+          nameEl.textContent = file.name;
+          infoEl.classList.remove("hidden");
+          zone
+            .querySelectorAll(
+              ".upload-zone-icon, .upload-zone-text, .upload-zone-hint",
+            )
+            .forEach((el) => el.classList.add("hidden"));
+        }
       }
-    }
-  });
+    });
 
   /* Remove-file buttons */
   document.querySelectorAll(".remove-file").forEach((btn) => {
@@ -744,11 +746,150 @@ function initBatchPage() {
   const form = document.getElementById("batchForm");
   if (!form) return;
 
-  /* Multi-file upload zone */
   const zone = document.getElementById("batchUploadZone");
   const input = document.getElementById("batchFileInput");
-  const fileList = document.getElementById("batchFileList");
+  const fileListEl = document.getElementById("batchFileList");
 
+  /*
+   * Managed file store:
+   *   _batchFiles = [ { id, lngFile: File, excelFile: File|null, hasOle: bool } ]
+   * We read each .lng to detect @OLE so we can show the Excel upload button.
+   */
+  let _batchFiles = [];
+  let _nextId = 1;
+
+  /* --- Helpers --- */
+  function fileId() {
+    return _nextId++;
+  }
+
+  async function detectOle(file) {
+    try {
+      const text = await file.text();
+      return text.includes("@OLE");
+    } catch {
+      return false;
+    }
+  }
+
+  async function addFiles(rawFiles) {
+    const files = Array.from(rawFiles); /* snapshot – FileList may be cleared */
+    const existingNames = new Set(_batchFiles.map((f) => f.lngFile.name));
+    for (const f of files) {
+      const lower = f.name.toLowerCase();
+      if (lower.endsWith(".lng") && !existingNames.has(f.name)) {
+        const hasOle = await detectOle(f);
+        _batchFiles.push({ id: fileId(), lngFile: f, excelFile: null, hasOle });
+        existingNames.add(f.name);
+      } else if (lower.endsWith(".xlsx") || lower.endsWith(".xls")) {
+        /* Auto-pair Excel: find a .lng entry whose stem matches or that has no Excel yet */
+        const stem = f.name.replace(/\.(xlsx|xls)$/i, "").toLowerCase();
+        const match = _batchFiles.find(
+          (b) =>
+            !b.excelFile &&
+            b.hasOle &&
+            b.lngFile.name
+              .replace(/\.lng$/i, "")
+              .toLowerCase()
+              .includes(stem),
+        );
+        if (match) {
+          match.excelFile = f;
+        } else {
+          /* No auto-match, attach to first OLE file without Excel */
+          const first = _batchFiles.find((b) => b.hasOle && !b.excelFile);
+          if (first) first.excelFile = f;
+        }
+      }
+    }
+    renderFileList();
+  }
+
+  function removeFile(id) {
+    _batchFiles = _batchFiles.filter((f) => f.id !== id);
+    renderFileList();
+  }
+
+  function removeExcel(id) {
+    const entry = _batchFiles.find((f) => f.id === id);
+    if (entry) entry.excelFile = null;
+    renderFileList();
+  }
+
+  function renderFileList() {
+    if (!fileListEl) return;
+    fileListEl.innerHTML = "";
+
+    for (const entry of _batchFiles) {
+      const card = document.createElement("div");
+      card.className = "batch-file-card";
+
+      /* LNG icon */
+      const iconDiv = `<div class="batch-file-icon icon-lng"><i class="fas fa-file-code"></i></div>`;
+
+      /* File info */
+      const size = (entry.lngFile.size / 1024).toFixed(1);
+      let metaHtml = `${size} Ko`;
+      if (entry.hasOle)
+        metaHtml += ` <span style="color:var(--warning);font-weight:600">· @OLE</span>`;
+
+      const infoDiv = `<div class="batch-file-info">
+        <div class="batch-file-name">${escapeHtml(entry.lngFile.name)}</div>
+        <div class="batch-file-meta">${metaHtml}</div>
+      </div>`;
+
+      /* Excel button (only for OLE files) */
+      let excelHtml = "";
+      if (entry.hasOle) {
+        if (entry.excelFile) {
+          excelHtml = `<button type="button" class="batch-file-excel-link has-excel" data-action="remove-excel" data-id="${entry.id}" title="Retirer ${escapeHtml(entry.excelFile.name)}">
+            <i class="fas fa-file-excel"></i> ${escapeHtml(entry.excelFile.name)}
+            <i class="fas fa-xmark" style="margin-left:0.15rem;font-size:0.65rem;opacity:0.7"></i>
+          </button>`;
+        } else {
+          excelHtml = `<button type="button" class="batch-file-excel-link" data-action="add-excel" data-id="${entry.id}" title="Associer un fichier Excel">
+            <i class="fas fa-file-excel"></i> + Excel
+          </button>`;
+        }
+      }
+
+      /* Remove button */
+      const removeBtn = `<button type="button" class="batch-file-remove" data-action="remove" data-id="${entry.id}" title="Retirer"><i class="fas fa-xmark"></i></button>`;
+
+      card.innerHTML = iconDiv + infoDiv + excelHtml + removeBtn;
+      fileListEl.appendChild(card);
+    }
+
+    /* Bind actions */
+    fileListEl.querySelectorAll("[data-action]").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const id = parseInt(btn.dataset.id, 10);
+        const action = btn.dataset.action;
+        if (action === "remove") removeFile(id);
+        else if (action === "remove-excel") removeExcel(id);
+        else if (action === "add-excel") pickExcel(id);
+      });
+    });
+  }
+
+  function pickExcel(entryId) {
+    const tmp = document.createElement("input");
+    tmp.type = "file";
+    tmp.accept = ".xlsx,.xls";
+    tmp.addEventListener("change", () => {
+      if (tmp.files.length) {
+        const entry = _batchFiles.find((f) => f.id === entryId);
+        if (entry) {
+          entry.excelFile = tmp.files[0];
+          renderFileList();
+        }
+      }
+    });
+    tmp.click();
+  }
+
+  /* --- Drop zone --- */
   if (zone && input) {
     zone.addEventListener("click", () => input.click());
     zone.addEventListener("dragover", (e) => {
@@ -761,45 +902,36 @@ function initBatchPage() {
     zone.addEventListener("drop", (e) => {
       e.preventDefault();
       zone.classList.remove("drag-over");
-      const dt = new DataTransfer();
-      for (const f of e.dataTransfer.files) {
-        if (f.name.toLowerCase().endsWith(".lng")) dt.items.add(f);
-      }
-      if (dt.files.length === 0) {
-        Toast.error(
-          "Format invalide",
-          "Seuls les fichiers .lng sont acceptés.",
-        );
-        return;
-      }
-      input.files = dt.files;
-      renderBatchFileList();
+      addFiles(e.dataTransfer.files);
     });
-    input.addEventListener("change", renderBatchFileList);
+    input.addEventListener("change", () => {
+      if (input.files.length) addFiles(input.files);
+      input.value = ""; /* allow re-picking the same files */
+    });
   }
 
-  function renderBatchFileList() {
-    if (!fileList || !input) return;
-    fileList.innerHTML = "";
-    for (const f of input.files) {
-      const el = document.createElement("div");
-      el.className = "batch-file-item";
-      el.innerHTML = `<i class="fas fa-file-code"></i> <span>${escapeHtml(f.name)}</span> <span class="text-muted">${(f.size / 1024).toFixed(1)} Ko</span>`;
-      fileList.appendChild(el);
-    }
-  }
-
-  /* Submit */
+  /* --- Submit --- */
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     const btn = document.getElementById("batchProcessBtn");
     setLoading(btn, true);
     try {
       const fd = new FormData();
-      /* Uploaded files */
-      if (input && input.files.length) {
-        for (const f of input.files) fd.append("files", f);
+
+      /* Uploaded LNG files */
+      for (const entry of _batchFiles) {
+        fd.append("files", entry.lngFile);
       }
+
+      /* Excel files: send with indexed keys so backend can pair them */
+      for (let i = 0; i < _batchFiles.length; i++) {
+        const entry = _batchFiles[i];
+        if (entry.excelFile) {
+          fd.append("excel_files", entry.excelFile);
+          fd.append("excel_for_lng", entry.lngFile.name);
+        }
+      }
+
       /* Dataset selection */
       const datasetSelect = document.getElementById("batchDatasetSelect");
       if (datasetSelect) {
@@ -807,6 +939,7 @@ function initBatchPage() {
           fd.append("dataset_files", opt.value);
         }
       }
+
       fd.set(
         "solver",
         document.getElementById("batchSolver")?.value || "highs",
@@ -846,32 +979,64 @@ function initBatchPage() {
 
 function renderBatchResults(data) {
   const container = document.getElementById("batchResults");
-  const tbody = document.querySelector("#batchResultsTable tbody");
+  const cardsEl = document.getElementById("batchResultCards");
   const successCount = document.getElementById("batchSuccessCount");
   const errorCount = document.getElementById("batchErrorCount");
   const zipBtn = document.getElementById("batchDownloadZip");
 
-  if (!container || !tbody) return;
+  if (!container || !cardsEl) return;
 
   container.classList.remove("hidden");
   if (successCount) successCount.textContent = `${data.succeeded} réussi(s)`;
   if (errorCount) errorCount.textContent = `${data.failed} erreur(s)`;
   if (errorCount) errorCount.style.display = data.failed > 0 ? "" : "none";
 
-  tbody.innerHTML = "";
+  cardsEl.innerHTML = "";
   for (const item of data.results) {
-    const tr = document.createElement("tr");
-    const statusClass =
-      item.status === "success" ? "badge-success" : "badge-error";
-    const statusText = item.status === "success" ? "OK" : "Erreur";
-    const detail =
-      item.status === "success" ? item.notebook || "" : item.error || "";
-    const action =
-      item.status === "success"
-        ? `<span class="text-muted">${escapeHtml(item.notebook || "")}</span>`
-        : `<span class="text-muted">—</span>`;
-    tr.innerHTML = `<td>${escapeHtml(item.name)}</td><td><span class="badge ${statusClass}">${statusText}</span></td><td class="text-muted" style="font-size:0.85rem">${escapeHtml(detail)}</td><td>${action}</td>`;
-    tbody.appendChild(tr);
+    const card = document.createElement("div");
+    card.className = "batch-result-card";
+
+    const isOk = item.status === "success";
+
+    /* Header */
+    let headerHtml = `<div class="batch-result-header">
+      <div class="batch-result-status ${isOk ? "status-ok" : "status-err"}"></div>
+      <span class="batch-result-name">${escapeHtml(item.name)}</span>
+      <span class="batch-result-badge ${isOk ? "badge-ok" : "badge-err"}">
+        <i class="fas ${isOk ? "fa-check" : "fa-xmark"}"></i> ${isOk ? "OK" : "Erreur"}
+      </span>
+    </div>`;
+
+    let bodyHtml = "";
+
+    if (isOk) {
+      /* File chips */
+      let chipsHtml = "";
+      if (item.notebook) {
+        chipsHtml += `<span class="batch-result-file-chip chip-notebook"><i class="fas fa-book-open"></i> ${escapeHtml(item.notebook)}</span>`;
+      }
+      if (item.data_file) {
+        const ext = item.data_file.split(".").pop().toUpperCase();
+        chipsHtml += `<span class="batch-result-file-chip chip-data"><i class="fas fa-database"></i> ${escapeHtml(item.data_file)} <span style="opacity:0.7;font-size:0.68rem">${ext}</span></span>`;
+      }
+      if (item.has_ole) {
+        chipsHtml += `<span class="batch-result-file-chip chip-ole"><i class="fas fa-file-excel"></i> OLE converti</span>`;
+      }
+      bodyHtml += `<div class="batch-result-files">${chipsHtml}</div>`;
+
+      /* Steps */
+      if (item.steps && item.steps.length) {
+        let stepsHtml = item.steps
+          .map((s) => `<span class="batch-result-step">${escapeHtml(s)}</span>`)
+          .join("");
+        bodyHtml += `<div class="batch-result-steps">${stepsHtml}</div>`;
+      }
+    } else {
+      bodyHtml += `<div class="batch-result-error"><i class="fas fa-triangle-exclamation"></i> ${escapeHtml(item.error || "Erreur inconnue")}</div>`;
+    }
+
+    card.innerHTML = headerHtml + bodyHtml;
+    cardsEl.appendChild(card);
   }
 
   if (zipBtn) {

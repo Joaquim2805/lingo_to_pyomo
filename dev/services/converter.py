@@ -90,10 +90,22 @@ def run_pipeline(
     has_ole = "@OLE" in original
     if has_ole:
         steps.append("Détection @OLE : conversion en format explicite")
-        ole_output = convert_lingo_ole_to_explicit(current_file, excel_path=excel_path)
-        current_file = ole_output
-        with open(current_file, "r", encoding="utf-8", errors="ignore") as f:
-            current_content = f.read()
+        try:
+            ole_output = convert_lingo_ole_to_explicit(
+                current_file, excel_path=excel_path
+            )
+            current_file = ole_output
+            with open(current_file, "r", encoding="utf-8", errors="ignore") as f:
+                current_content = f.read()
+        except FileNotFoundError as e:
+            import re
+
+            m = re.search(r"@OLE\(\s*['\"]([^'\"]+)['\"]", original)
+            xlsx_name = m.group(1) if m else "?"
+            raise FileNotFoundError(
+                f"Le fichier contient @OLE('{xlsx_name}') mais le fichier Excel "
+                f"associé est introuvable. Veuillez l'importer avec le fichier .lng."
+            ) from e
     else:
         steps.append("Aucun @OLE détecté")
         current_content = original
