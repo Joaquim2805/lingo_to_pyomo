@@ -10,21 +10,21 @@
     ]
   },
   "params": {
-    "dispo": {
+    "DISPO": {
       "Epinette": 150000.0,
       "Sapin": 200000.0
     },
-    "gain": {
+    "Gain": {
       "Planche": 200.0,
       "Contreplaque": 300.0
     },
-    "engagement": {
+    "Engagement": {
       "Planche": 40.0,
       "Contreplaque": 30.0
     }
   },
   "cartesian_data": {
-    "utilisation": {
+    "UTILISATION": {
       "('Epinette', 'Planche')": 1000.0,
       "('Epinette', 'Contreplaque')": 2000.0,
       "('Sapin', 'Planche')": 1200.0,
